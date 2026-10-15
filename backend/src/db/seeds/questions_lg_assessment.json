@@ -1,0 +1,3962 @@
+﻿[
+    {
+        "number":  1,
+        "category":  "Tes Wawasan Kebangsaan",
+        "stem":  "Semangat nasionalisme baru dalam usaha pergerakan kemerdekaan diawali dengan munculnya organisasi ....",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "B",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Serikat Dagang Islam",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Budi Oetomo",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Indische Partij",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Perhimpunan Indonesia",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "PNI",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  2,
+        "category":  "Tes Wawasan Kebangsaan",
+        "stem":  "Pengertian nasionalisme dalam arti sempit adalah ....",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "D",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Rasa cinta terhadap negeri",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Perilaku yang tidak menghargai sesama",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Perasaan keberagaman yang sama",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Perasaan kebangsaan yang sangat tinggi",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Perilaku menjaga harga diri bangsa",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  3,
+        "category":  "Tes Wawasan Kebangsaan",
+        "stem":  "Berikut ini yang bukan termasuk dalam aspek pembentuk rasa nasionalisme adalah ....",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "D",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Perasaan senasib",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Kesatuan tempat tinggal",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Cita-cita bersama",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Perbedaan yang mempersatukan",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Tujuan bersama",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  4,
+        "category":  "Tes Wawasan Kebangsaan",
+        "stem":  "Ideologi nasional Indonesia yang dikenal sampai saat ini adalah ....",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Pancasila",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "UUD 1945",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Tap MPR",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Undang-undang",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Pembukaan UUD 1945",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  5,
+        "category":  "Tes Wawasan Kebangsaan",
+        "stem":  "Semangat nasionalisme sejatinya tertuang dalam ideologi Pancasila yang mengerucut pada sila ke-....",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "C",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "1",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "2",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "3",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "4",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "5",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  6,
+        "category":  "Tes Wawasan Kebangsaan",
+        "stem":  "Bentuk nasionalisme salah satunya adalah nasionalisme kewarganegaraan yang subjeknya adalah ....",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "B",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Pemerintah",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Rakyat (sipil)",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Aparatur negara",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Lembaga negara",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Pendidikan",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  7,
+        "category":  "Tes Wawasan Kebangsaan",
+        "stem":  "Integritas selalu berkaitan dengan kredibilitas. Kredibilitas menyangkut tentang keterampilan atau kemampuan, sedangkan integritas berkaitan dengan ....",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "B",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Kepribadian",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Hati",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Perilaku",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Skills",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Pengetahuan",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  8,
+        "category":  "Tes Wawasan Kebangsaan",
+        "stem":  "Maksud dari etika penegakan hukum berkeadilan adalah ....",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Menumbuhkan tertib sosial, ketenangan, dan peraturan hidup bersama",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Meningkatkan kesadaran hukum bagi sesama tanpa pandang bulu",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Persamaan di muka hukum",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Kepastian hukum bagi seluruh warga negara",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Bersumber pada Pancasila demi tercipta keadilan sosial",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  9,
+        "category":  "Tes Wawasan Kebangsaan",
+        "stem":  "Efektivitas penyelesaian tindak pidana korupsi oleh KPK dilakukan melalui ....",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "B",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Pendidikan antikorupsi sejak dini",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Operasi tangkap tangan",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Regulasi hukum dan lembaga antikorupsi",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Survei lembaga negara",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Sosialiasi bahaya laten korupsi",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  10,
+        "category":  "Tes Wawasan Kebangsaan",
+        "stem":  "Konsep integritas nasional yang dikonsepsikan oleh KPK terdiri atas ....",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "D",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "5 nilai",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "7 nilai",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "9 nilai",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "11 nilai",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "13 nilai",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  11,
+        "category":  "Tes Wawasan Kebangsaan",
+        "stem":  "Nilai kejujuran, toleransi, dan kepedulian merupakan nilai yang terkandung dalam masyarakat yang ditinjau dari sisi ....",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Sosial budaya",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Kemanusiaan",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Agama",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Adat istiadat",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Personal",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  12,
+        "category":  "Tes Wawasan Kebangsaan",
+        "stem":  "Berikut ini yang termasuk lembaga antikorupsi nonpemerintah, kecuali ....",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "D",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Indonesian Coruption Watch",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Kontras",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Imparsial",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "KPK",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "KPAI",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  13,
+        "category":  "Tes Wawasan Kebangsaan",
+        "stem":  "Bentuk ketahanan nasional Indonesia yang memperhatikan kondisi geografis disebut sebagai ....",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "B",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Island state",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Archipelagic state",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Common state",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Nation state",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Welfare state",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  14,
+        "category":  "Tes Wawasan Kebangsaan",
+        "stem":  "Kondisi tingginya tingkat pengangguran dalam suatu negara dapat mengancam ....",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "C",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Pertahanan dan keamanan",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Rekrutmen politik",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Stabilitas politik",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Budaya nasional",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Sikap kemandirian bangsa",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  15,
+        "category":  "Tes Wawasan Kebangsaan",
+        "stem":  "Undang-undang yang mengatur tentang usaha pembelaan dan pertahanan negara diatur dalam ....",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "B",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "UU No. 32 Tahun 2004",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "UU No. 3 Tahun 2002",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "UU No. 3 Tahun 2004",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "UU No. 32 Tahun 2002",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "UU No. 2 Tahun 2002",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  16,
+        "category":  "Tes Wawasan Kebangsaan",
+        "stem":  "Salah satu sifat usaha mempertahankan negara adalah bersifat semesta, maksudnya adalah ....",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "D",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Melibatkan alam semesta",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Dilakukan secara alami",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Mempergunakan sumber daya alam seluruhnya",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Keikutsertaan seluruh rakyat dan sumber daya nasional",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Tidak memandang latar belakang rakyat dalam pembelaan negara",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  17,
+        "category":  "Tes Wawasan Kebangsaan",
+        "stem":  "Hakikat penyelenggaraan pertahanan negara didasarkan pada ....",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Kesadaran atas hak dan kewajiban warga negara",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Kemampuan rakyat perlu pelatihan khusus",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Pelaksanaan UUD 1945 sebagai kewajiban dasar warga negara",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Ideologi Pancasila yang menjadi sumber kekuatan bangsa",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Kemampuan aparatur negara (militer) dan sumber daya nasional",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  18,
+        "category":  "Tes Wawasan Kebangsaan",
+        "stem":  "Berikut ini yang bukan termasuk landasan hukum kewajiban bela negara adalah ....",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "E",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "UUD 1945 Pasal 27 ayat 3",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "UUD 1945 Pasal 30 ayat 1",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "UU No. 3 Tahun 2002",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "UUD 1945 Pasal 30 ayat 2",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "UU No. 21 Tahun 2003",
+                            "is_correct":  true
+                        }
+                    ]
+    },
+    {
+        "number":  19,
+        "category":  "Tes Wawasan Kebangsaan",
+        "stem":  "Kondisi tingginya tingkat pengangguran dalam suatu negara dapat mengancam ....",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "C",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Pertahanan dan keamanan",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Rekrutmen politik",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Stabilitas politik",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Budaya nasional",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Sikap kemandirian bangsa",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  20,
+        "category":  "Tes Wawasan Kebangsaan",
+        "stem":  "Cinta terhadap bangsa merupakan salah satu upaya dalam pembelaan negara. Berikut ini contoh perwujudan cinta terhadap bangsa adalah ....",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "B",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Mengutamakan penggunaan produk dalam negeri karena mampu membangun perekonomian nasional",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Lebih memilih produk luar negeri dengan kualitas tinggi",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Menganggap bangsa sendiri lebih unggul derajatnya dibandingkan dengan bangsa lain",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Mengutamakan hak dibandingkan kewajiban terhadap peranan warga negara",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Melakukan imitasi terhadap segala bentuk perubahan dari bangsa lain",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  21,
+        "category":  "Tes Wawasan Kebangsaan",
+        "stem":  "Salah satu bentuk nilai instrumental dari Pancasila sebagai dasar negara adalah ....",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "E",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Sistem sosial masyarakat",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Peraturan perundang-undangan",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Sikap dan perilaku masyarakat",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Pandangan hidup bangsa",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Adanya adat istiadat daerah",
+                            "is_correct":  true
+                        }
+                    ]
+    },
+    {
+        "number":  22,
+        "category":  "Tes Wawasan Kebangsaan",
+        "stem":  "NKRI merupakan negara yang berlandaskan Pancasila. Hal ini merupakan simpulan dari ....",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "B",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Supersemar",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Pancasila sila ke-3",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Pembukaan UUD 1945 alinea ke-1",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Pembukaan UUD 1945 alinea ke-2",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Pembukaan UUD 1945 alinea ke-4",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  23,
+        "category":  "Tes Wawasan Kebangsaan",
+        "stem":  "Bentuk pemerintahan dalam NKRI adalah ....",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "E",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Oligarki",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Monarki",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Parlementer",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Kesatuan",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Republik",
+                            "is_correct":  true
+                        }
+                    ]
+    },
+    {
+        "number":  24,
+        "category":  "Tes Wawasan Kebangsaan",
+        "stem":  "Keseimbangan antara hak dan kewajiban dijamin dalam dasar negara dan UUD 1945. Keseimbangan tersebut memiliki arti ....",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "D",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Untuk mengatur batas hak asasi manusia",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Mengatur kepentingan bersama",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Sesuai dengan ketentuan",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Pedoman harkat dan martabat manusia",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Keberlangsungan kehidupan harmonis",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  25,
+        "category":  "Tes Wawasan Kebangsaan",
+        "stem":  "Polemik empat pilar kebangsaan yang digagas Taufik Kiemas mengalami problematika terhadap kedudukan ....\nPancasila\nUUD 1945\nNKRI\nBhinneka Tunggal Ika\nSistem Peradilan Nasional\nMengkaji Pancasila secara ilmiah dapat dilakukan pada aspek, kecuali ....",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Metode",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Sistem",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Empiris",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Objek",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Subjek",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  26,
+        "category":  "Tes Wawasan Kebangsaan",
+        "stem":  "Secara historis, nilai-nilai Pancasila sudah mengakar dan endemik pada seluruh lapisan masyarakat Indonesia. Nilai tersebut adalah ....",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "C",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Kebersamaan",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Kekeluargaan",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Gotong royong",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Saling percaya",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Religius",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  27,
+        "category":  "Tes Wawasan Kebangsaan",
+        "stem":  "Memupuk rasa nasionalisme kebangsaan bagi masyarakat Indonesia berdasarkan keberagaman suku, agama, ras, dan antargolongan agar ....",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "E",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Bangsa Indonesia mandiri",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Moralitas bangsa terjaga",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Tercipta kedaulatan bangsa",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Identitas nasional terjaga",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Tidak kehilangan kepribadian bangsa",
+                            "is_correct":  true
+                        }
+                    ]
+    },
+    {
+        "number":  28,
+        "category":  "Tes Wawasan Kebangsaan",
+        "stem":  "Nasionalisme yang lahir di Indonesia bukanlah nasionalisme Barat, melainkan nationalism of humanity yang dikemukakan oleh Ir Soekarno yang berarti bahwa ....",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Kemanusiaan adalah satu",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Kemanusiaan merupakan perbedaan yang harus dipertahankan",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Karakter bangsa lahir dari kemanusiaan",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Jiwa dan jati diri bangsa dipersatukan",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Kemanusiaan adalah sebuah karakter",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  29,
+        "category":  "Tes Wawasan Kebangsaan",
+        "stem":  "Integritas berdasarkan kompetensi KPK memiliki pengertian bahwa ....",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Bertindak sesuai perkataan dan tindakan sesuai dengan nilai secara konsisten",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Mutu, sifat, dan keadaan yang digam- barkan secara utuh yang memancarkan kewibawaan",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Patuh pada kode etik dalam perkataan dan perbuatan",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Berkepribadian utuh yang merujuk pada nilai moral dan etika",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Kepribadian yang membawa marwah bangsa dan negara sebagai identitas nasional",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  30,
+        "category":  "Tes Wawasan Kebangsaan",
+        "stem":  "Ada sembilan nilai integritas dalam antikorupsi yang terbagi dalam 3 aspek, yaitu ....",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Inti, sikap, dan etos kerja",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Personal, perilaku, dan norma",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Kepribadian, agama, dan etos kerja",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Nilai, norma, dan kepribadian",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Inti, personal, dan sikap",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  31,
+        "category":  "Tes Inteligensia Umum",
+        "stem":  "BAJAU : MEMUKUL",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Provokasi : Gangguan",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Marka : Garis",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Kaki : Sepatu",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Berangkat : Tiba",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Baju : Kain",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  32,
+        "category":  "Tes Inteligensia Umum",
+        "stem":  "MAKAN HATI : MENJADI BEBAN PIKIRAN",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "C",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Kepala Batu : Menghargai",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Lurus Hati : Iri",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Mata Angin : Arah",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Buah Tangan : Banyak Bicara",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Muka Dua : Dermawan",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  33,
+        "category":  "Tes Inteligensia Umum",
+        "stem":  "PASAK : BAJI",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Galat : Keliru",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Derai : Ombak",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Mangkus : Obat",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Kadaluwarsa : Tepat",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Pemerintah : Eksekutif",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  34,
+        "category":  "Tes Inteligensia Umum",
+        "stem":  "TIRANA : ALBANIA = ... : ...",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "E",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Manat : Azerbaijan",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Botswana : Gaborone",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Yuan : China",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Santiago : Brazil",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Luanda : Angola",
+                            "is_correct":  true
+                        }
+                    ]
+    },
+    {
+        "number":  35,
+        "category":  "Tes Inteligensia Umum",
+        "stem":  "Konvers pernyataan “Jika saya mengantuk maka saya akan tidur” adalah ….\nJika tidak mengantuk, saya tidak tidur.\nSaya mengantuk, saya nonton liga Inggris.",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "B",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Saya tidak mengantuk dan saya tidak tidur.",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Jika saya akan tidur maka saya mengantuk.",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Jika saya tidak tidur maka saya tidak mengantuk",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Pernyataan ′′Jika laut pasang maka tiang dermaga tenggelam′′ ekuivalen dengan …",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Jika laut pasang maka dermaga tenggelam.",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  36,
+        "category":  "Tes Inteligensia Umum",
+        "stem":  "Jika laut pasang maka tiang dermaga tidak tenggelam.\nJika laut tidak pasang maka tiang dermaga tenggelam.\nJika laut tidak pasang maka tiang dermaga tidak tenggelam.",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Jika tiang dermaga tidak tenggelam maka laut tidak pasang.",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Diberikan pernyataan-pernyataan sebagai berikut:",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Jika penguasaan matematika rendah maka sulit untuk menguasai IPA.",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "IPA tidak sulit dikuasai atau IPTEK tidak berkembang.",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Jika IPTEK tidak berkembang maka negara akan semakin tertinggal.",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  37,
+        "category":  "Tes Inteligensia Umum",
+        "stem":  "Dari ketiga pernyataan di atas, dapat disimpulkan …",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Jika penguasaan matematika rendah maka negara akan semakin tertinggal.",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Jika penguasaan matematika rendah maka IPTEK berkembang.",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "IPTEK dan IPA berkembang.",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "IPTEK dan IPA tidak berkembang.",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Sulit untuk memajukan negara.",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  38,
+        "category":  "Tes Inteligensia Umum",
+        "stem":  "Diberikan pernyataan-pernyataan sebagai berikut:",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "E",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Jika Upik rajin belajar maka naik kelas.",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Jika Upik tidak dapat hadiah maka tidak naik kelas.",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Upik rajin belajar. Kesimpulan yang sah adalah …",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Upik naik kelas",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Upik dapat hadiah",
+                            "is_correct":  true
+                        }
+                    ]
+    },
+    {
+        "number":  39,
+        "category":  "Tes Inteligensia Umum",
+        "stem":  "Upik tidak dapat hadiah\nUpik naik kelas dan dapat hadiah\nUpik dapat hadiah atau naik kelas\nFilm Bundaku Tersayang memecahkan rekor paling banyak ditonton orang. Sementara film Pencuri yang Baik Hati memperoleh 4 buah piala Citra, antara lain sutradara dan peran utama pria terbaik. Film Rinduku Terpaut di Awan tidak ditonton sebanyak orang dibandingkan dengan film terdahulu, tetapi mendapat piala Citra dua lebih banyak dari film Pencuri Yang Baik Hati yang merupakan film dokumenter terbaik. Film Tersanjung merupakan film yang laris di bioskop. Film Kisah Klasik mendapatkan 5 piala citra. Manakah film terbaik berdasarkan piala Citra yang diperolehnya?",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Rinduku Terpaut di Awan",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Pencuri Yang Baik Hati",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Bundaku Tersayang",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Tersanjung",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Kisah Klasik",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  40,
+        "category":  "Tes Inteligensia Umum",
+        "stem":  "Ibu Dina ingin membeli polis asuransi jiwa dengan premi termurah. Setelah meneliti puluhan perusahaan asuransi, terpilihlah lima asuransi yang kredibilitasnya cukup meyakinkan. Harga polis Asuransi Bahagia cukup murah, tetapi premi yang harus dibayar per bulannya lebih mahal dari Asuransi Asal Selamet, meski tetap lebih murah dibandingkan dengan Asuransi Seger Waras. Premi yang harus dibayar untuk Asuransi Ayem Tentrem tiap bulannya lebih murah dibandingkan dengan Asuransi Asal Selamet., tetapi masih kalah murah dengan Asuransi Timbang Apes. Polis Asuransi mana yang memenuhi kriteria Ibu Dina?",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Asuransi Timbang Apes",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Asuransi Asal Selamet",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Asuransi Ayem Tentrem",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Asuransi Seger Waras",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Asuransi Bahagia",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  41,
+        "category":  "Tes Inteligensia Umum",
+        "stem":  "Saat liburan ke luar kota, bagian konsumsi mengharuskan peserta menentukan paket makanan dengan ketentuan berikut.\nPeserta hanya boleh memilih empat makanan.\nMakanan yang dapat dipilih adalah es campur, bakso, soto, nasi kuning, nasi rames, dadar gulung, dan kue bolu.\nPeserta harus mengambil nasi kuning atau nasi rames, tetapi tidak keduanya.\nDadar gulung dan kue bolu hanya tersedia untuk paket nasi rames.\nEs campur hanya tersedia untuk paket nasi kuning.\nBakso tidak boleh dipilih bersamaan kue bolu atau soto.\nJika dalam suatu paket seorang peserta mengambil nasi rames maka makanan lain yang harus diambil adalah ….\nBakso, dadar gulung, soto\nBakso, es campur, dadar gulung\nSoto, dadar gulung, kue bolu",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "B",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Soto, dadar gulung, bakso",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Bakso, es campur, dadar gulung",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Hasil survei dari lima acara televisi, yakni sinetron, musik, animasi, berita, dan film terhadap penduduk suatu kota adalah sebagai berikut.",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Acara musik lebih disukai daripada berita, tetapi musik kurang mendidik dibandingkan berita.",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Acara sinetron lebih disukai daripada animasi, tetapi sinetron kurang mendidik dibandingkan animasi.",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  42,
+        "category":  "Tes Inteligensia Umum",
+        "stem":  "Acara animasi lebih disukai daripada musik, tetapi animasi kurang mendidik dibandingkan musik.\nAcara berita lebih disukai daripada film, tetapi film kurang mendidik dibandingkan berita.\nJika acara sinetron dijadikan acara unggulan televisi maka pemirsa akan menonton acara yang paling ….\nMendidik dan juga paling tidak disukai\nMendidik walaupun kurang disukai\nMendidik dan belum tentu disukai",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "B",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Kurang mendidik dan paling tidak disukai",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Kurang mendidik walaupun paling disukai",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "(6 × 31)2 – (201 – 14)2 = …",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "373",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "186",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  43,
+        "category":  "Tes Inteligensia Umum",
+        "stem":  "36",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "B",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "–186",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "–373",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Nilai 37,5% dari 0,333 adalah …",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "0,008",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "0,015",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  44,
+        "category":  "Tes Inteligensia Umum",
+        "stem":  "0,1\n0,015\n0,008",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "C",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "0,015",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "0,1",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "0,125",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "0,321",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "7, 12, 14, 16, 28, ..., ..., 24, 112, 28",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  45,
+        "category":  "Tes Inteligensia Umum",
+        "stem":  "20, 48",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "20, 56",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "24, 48",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "32, 48",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "24, 56",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "2, 9, 6, 12, ..., 18, 20, 27, 30, ...",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  46,
+        "category":  "Tes Inteligensia Umum",
+        "stem":  "11, 36",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "12, 39",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "15, 36",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "15, 39",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "12, 36",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Jika a sembarang bilangan real dan x = 5a2",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  47,
+        "category":  "Tes Inteligensia Umum",
+        "stem":  "+ 20 dan y = a2 + 50 maka ...",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "D",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "x \u003e y",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "x \u003c y",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "x = y",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "x dan y tidak bisa ditentukan",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "2x \u003e 2y",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  48,
+        "category":  "Tes Inteligensia Umum",
+        "stem":  "Jika x = jumlah bilangan genap antara 1 sampai dengan 30 dan y = jumlah bilangan ganjil antara 1 sampai dengan 30 maka ...",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "B",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "x \u003e y",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "x \u003c y",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "x = y",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "x dan y tidak bisa ditentukan",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "x \u003e 2y",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  49,
+        "category":  "Tes Inteligensia Umum",
+        "stem":  "Jika x = 16,67% dan y =2  maka ...",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "C",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "x \u003e y12",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "x \u003c y",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "x = y",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "x dan y tidak bisa ditentukan",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "2x \u003e 2y",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  50,
+        "category":  "Tes Inteligensia Umum",
+        "stem":  "Seorang petani membeli beberapa ekor sapi dengan harga Rp45.000.000,00, kemudian dijual dengan harga Rp52.000.000,00. Petani tersebut mendapatkan untung Rp700.000,00 per ekor. Berapa ekor sapikah yang dibeli dan dijualnya itu?",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "D",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "7 ekor",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "8 ekor",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "9 ekor",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "10 ekor",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "11 ekor",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  51,
+        "category":  "Tes Inteligensia Umum",
+        "stem":  "Seseorang bersepeda motor dengan kecepatan tetap menempuh jarak 20 km dalam waktu 30 menit. Berapa jam waktu yang ia perlukan untuk menempuh jarak 140 km?",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "D",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "2 jam",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "2,5 jam",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "3 jam",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "3,5 jam",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "4 jam",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  52,
+        "category":  "Tes Inteligensia Umum",
+        "stem":  "Satu tim yang terdiri atas 16 orang dapat menyelesaikan sebuah pekerjaan dalam 9 hari. Jika 4 orang dari tim tersebut tidak dapat bekerja karena sakit, berapa persen penambahan hari untuk menyelesaikan pekerjaan tersebut?",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "C",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "12,5%",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "25%",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "33,33%",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "40%",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "60%",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  53,
+        "category":  "Tes Inteligensia Umum",
+        "stem":  "Yono bersepeda ke sekolah dengan kecepatan 20 km/jam. Ternyata bekal Yono tertinggal sehingga Ibu Yono harus mengantarkan bekal tersebut. Jika Ibu Yono berangkat 10 menit kemudian mengendarai sepeda motor dengan kecepatan 30 km/jam, setelah berapa kilometer Ibu Yono menyusul Yono?",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "B",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "5 km",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "10 km",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "15 km",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "20 km",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "25 km",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  54,
+        "category":  "Tes Inteligensia Umum",
+        "stem":  "FLUTE : TIUP = ... : ...",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "B",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Dengar : Musik",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Harpa : Petik",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Senar : Gitar",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Betot : Bass",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Perkusi : Konga",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  55,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Saya sedang berkonsentrasi untuk melayani customer, tiba-tiba saya mendengar seseorang dari tempat antrean menelepon dengan suara sangat keras yang cukup mengganggu saya dan beberapa orang yang antre di sekelilingnya. Saya akan ….\nMenegur dan memintanya untuk meneruskan menelepon di luar ruangan",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "C",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Membiarkannya saja sampai ditegur oleh orang-orang di sekitarnya",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Memberikan kode kepada security untuk menegur dan mengingatkannya",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Menegur dan memintanya untuk memelankan suaranya saat menelepon",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Tetap berusaha fokus melakukan pelayanan seolah tidak terjadi apa-apa",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Kantor kami bekerja menggunakan sistem shift untuk melaksanakan pelayanan. Suatu hari teman saya terlambat datang saat jam kerja saya sudah habis, padahal pelanggan yang mengantre untuk mendapatkan pelayanan banyak. Langkah yang saya lakukan adalah ….",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  56,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Menggantikannya sampai dia datang dan akan memarahinya karena terlambat datang\nKantor kami bekerja menggunakan sistem shift untuk melaksanakan pelayanan. Suatu hari teman saya terlambat datang saat jam kerja saya sudah habis, padahal pelanggan yang mengantre untuk mendapatkan pelayanan banyak. Langkah yang saya lakukan adalah ….",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "B",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Menggantikannya sampai dia datang dan akan memarahinya karena terlambat datang",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Tetap melaksanakan pelayanan karena pelayanan tidak boleh terhenti",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Melaporkan situasi kepada atasan dan meminta petunjuk lanjutan",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Meminta teman yang sedang tidak melaksanakan pelayanan untuk menggantikan teman saya sampai dia datang",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Segera menghubungi teman saya karena banyak orang sudah menunggunya untuk mendapatkan pelayanan",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  57,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Kantor kami bekerja menggunakan sistem shift untuk melaksanakan pelayanan. Suatu hari teman saya terlambat datang saat jam kerja saya sudah habis, padahal pelanggan yang mengantre untuk mendapatkan pelayanan banyak. Langkah yang saya lakukan adalah ….",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Menggantikannya sampai dia datang dan akan memarahinya karena terlambat datang",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Tetap melaksanakan pelayanan karena pelayanan tidak boleh terhenti",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Melaporkan situasi kepada atasan dan meminta petunjuk lanjutan",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Meminta teman yang sedang tidak melaksanakan pelayanan untuk menggantikan teman saya sampai dia datang",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Segera menghubungi teman saya karena banyak orang sudah menunggunya untuk mendapatkan pelayanan",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  58,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Seseorang datang ke kantor dari tempat yang jauh dan mengatakan sudah memiliki jadwal janji untuk mendapatkan pelayanan. Setelah saya melihat jadwal pelayanan, ternyata jadwal pelayanan untuknya masih besok dan saat ini sudah ada jadwal pelayanan lain yang harus dilakukan. Saya akan ….\nTetap melayaninya dan menganggap dia sama dengan antrean yang lain\nMemintanya untuk datang kembali keesokan harinya sesuai jadwal pelayanannya",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Menghubungi atasan dan meminta arahan untuk tindak lanjutnya",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Meminta teman yang sedang tidak ada pelayanan untuk melayaninya",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Memintanya menunggu setelah s ay a m eny eles aik an s eluruh jadwal pelayanan hari ini dan akan melayaninya setelah itu",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Teman-teman sekampus Anda merenca- nakan untuk berkumpul lagi dan mengada- kan reuni di kota tempat menuntut ilmu dulu. Acara yang diagendakan adalah makan malam bersama yang melibatkan semua alumni dan keluarga. Anda yang kebetulan berdomisili di kota tersebut dipercaya untuk memilihkan restoran untuk acara tersebut. Langkah yang Anda lakukan adalah ….",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Memilih restoran dengan harga terjangkau agar seluruh peserta acara mampu dan tidak merasa keberatan dengan biaya yang harus dikeluarkan",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  59,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Memilih restoran yang sangat istimewa baik dari harga dan kualitas pelayanan sehingga akan menjadi pengalaman makan yang sangat berkesan\nMemilih restoran yang terkenal bersih dan memiliki menu enak mengingat mungkin ada yang membawa anak kecil",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Memilih restoran yang mudah dijangkau dan memiliki lokasi yang nyaman untuk berkumpul",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Memilih restoran yang memiliki kenangan bagi sebagian besar peserta alumni saat mahasiswa dulu",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Saya bekerja di bagian pelayanan sebuah perusahaan. Saat mendekati jam pulang, sudah tidak ada antrean pelayanan di meja saya, sementara saya melihat masih cukup banyak antrean pelayanan di meja teman saya. Saya akan ….",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Menutup pelayanan dan menggunakan waktu tersisa untuk beristirahat sambil menunggu jam pulang",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Membereskan peralatan dan berkas pelayanan sambil menunggu barangkali ada antrean baru di meja pelayanan saya",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  60,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Menghampiri meja teman saya dan membantunya melakukan pelayanan agar bisa selesai lebih cepat\nMembereskan peralatan dan berkas pelayanan sambil menunggu barangkali ada antrean baru di meja pelayanan saya\nMenutup pelayanan dan menggunakan waktu tersisa untuk beristirahat sambil menunggu jam pulang",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "C",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Membereskan peralatan dan berkas pelayanan sambil menunggu barangkali ada antrean baru di meja pelayanan saya",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Menghampiri meja teman saya dan membantunya melakukan pelayanan agar bisa selesai lebih cepat",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Mengarahkan sebagian antrean untuk menuju meja pelayanan saya supaya pelayanan bisa berjalan lancar dan cepat selesai",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Menanyakan kepada teman saya apakah membutuhkan bantuan saya untuk menyelesaikan antrean pelayanan",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Risma adalah seorang penjual daging di Pasar Manis yang dikenal memiliki banyak pelanggan karena selalu memberikan pelayanan yang ramah dan cepat. Suatu hari, Risma mendapat komplain dari pelanggan yang mendapati daging tidak sesuai dengan pesanannya dan baru diketahui setelah daging tersebut dimasak. Langkah yang akan Risma lakukan adalah ….",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  61,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Meminta maaf dan akan memberikan daging sesuai pesanan dengan setengah harga",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Meminta maaf dan segera memberikan daging sesuai pesanan dan menganggap daging yang sebelumnya adalah bonus",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Menerima komplain dan berjanji akan berusaha tidak akan melakukan kesalahan serupa lagi",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Menerima komplain dan berjanji akan memberikan potongan harga pada pembelian daging berikutnya",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Menerima komplain dan menganggap itu hal yang wajar mengingat pembeli yang begitu banyak",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Saya dikenal memiliki banyak hubungan pertemanan yang baik dengan orang lain, di dunia kerja maupun kehidupan bermasyarakat. Mudahnya saya membuat pertemanan dan menjaga hubungan pertemanan ini menurut saya disebabkan karena ….",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  62,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Saya merupakan sosok yang hangat dan menyenangkan\nSaya dikenal memiliki banyak hubungan pertemanan yang baik dengan orang lain, di dunia kerja maupun kehidupan bermasyarakat. Mudahnya saya membuat pertemanan dan menjaga hubungan pertemanan ini menurut saya disebabkan karena ….",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "B",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Saya merupakan sosok yang hangat dan menyenangkan",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Saya pandai menempatkan diri dalam hubungan pertemanan",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Saya sangat perhatian dan selalu siap membantu teman",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Saya merupakan pendengar yang baik dan selalu bisa memberikan solusi permasalahan",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Saya tulus dan tidak pernah mengambil keuntungan dalam sebuah hubungan pertemanan",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  63,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Seorang karyawan yang lebih baru dari saya mendapatkan promosi yang sudah sangat lama saya idamkan. Padahal selama ini menurut saya dia bekerja biasa dan saya tidak melihat kinerja yang menonjol dari dirinya. Menurut saya ….",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Pimpinan melihat kelebihan dari dirinya yang tidak bisa saya lihat",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Dia memiliki koneksi yang lebih baik dari saya yang bisa membuatnya meraih promosi",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Pimpinan telah salah memilihnya karena saya jauh lebih berpengalaman darinya",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Dia lebih baik dari saya dalam hal menunjukkan eksistensi di mata pimpinan",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Dia memiliki keberuntungan sehingga bisa medapatkan posisi tersebut dalam waktu yang singkat",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  64,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Dalam susunan kepanitiaan sebuah acara, saya ditempatkan dalam satu bidang dengan seorang teman yang memiliki hubungan kurang baik dengan saya. Kami sudah tidak berkomunikasi dengan baik selama hampir dua tahun terakhir karena suatu masalah pada masa lalu. Saya akan ….",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Berkomunikasi pada hal-hal yang menyangkut kepentingan acara tersebut saja",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Melihat bagaimana respons yang dia berikan dan akan berkomunikasi sesuai respons tersebut",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Membagi pekerjaan sehingga tidak perlu terlalu sering berkomunikasi",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Mencoba aktif memulai komunikasi demi kelancaran acara tersebut",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Meminta seorang teman sebagai perantara dalam komunikasi kami berdua",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  65,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Saya akan keluar untuk meninjau pekerjaan di lapangan dan teman seruangan saya setuju untuk menggantikan pekerjaan saya di kantor saat saya pergi. Setelah saya kembali, saya kaget melihat banyak pekerjaan menumpuk yang berarti teman seruangan saya tidak menggantikan menyelesaikan pekerjaan sama sekali. Saya akan ….\nMerasa sedih karena teman seruangan saya ternyata tidak membantu saya sama sekali\nMerasa gusar dan menanyakan kepada teman saya kenapa dia tidak menggantikan menyelesaikan pekerjaan saya",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "C",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Merasa sangat kecewa dan tidak akan mau membantunya saat dia membutuhkan bantuan saya nanti",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Memaklumi saja karena saya tahu teman saya juga memiliki kesibukan pekerjaan sendiri",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Langsung berusaha menyelesaikan pekerjaan tersebut meskipun dengan perasaan yang kurang senang",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Saya memiliki seorang anak buah yang terkenal sangat rajin dan cekatan. Namun akhir-akhir ini dia sering datang terlambat dan tidak fokus pada pekerjaannya. Setelah saya selidiki ternyata dia memiliki masalah dengan hubungan asmaranya yang kandas. Saya akan ….",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Membiarkannya sementara karena saya rasa saat ini dia perlu untuk menenangkan diri",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  66,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Memberinya teguran karena hal tersebut dapat berpengaruh terhadap rekan kerjanya yang lain\nMembiarkannya sementara karena saya rasa saat ini dia perlu untuk menenangkan diri",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "B",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Memberinya teguran karena hal tersebut dapat berpengaruh terhadap rekan kerjanya yang lain",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Mengajaknya berbicara dan memintanya untuk kembali berkonsentrasi pada pekerjaannya",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Memberinya semangat dan berharap dia akan kembali bekerja baik seperti sebelumnya",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Menghiburnya dengan mengatakan bahwa jalannya masih panjang dan masih banyak peluang yang bisa dia raih",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Saya adalah seorang pengusaha makanan tradisional kemasan yang memasarkan produk ke pasar-pasar tradisional dan pusat oleh-oleh daerah. Suatu hari datang seseorang yang ingin membeli produk saya, tetapi ingin mengemasnya menggunakan merknya sendiri dan memasarkannya secara online. Saya akan ….",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  67,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Menolaknya dan langsung membuat tim untuk melakukan pemasaran produk secara online\nSaya adalah seorang pengusaha makanan tradisional kemasan yang memasarkan produk ke pasar-pasar tradisional dan pusat oleh-oleh daerah. Suatu hari datang seseorang yang ingin membeli produk saya, tetapi ingin mengemasnya menggunakan merknya sendiri dan memasarkannya secara online. Saya akan ….",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "B",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Menolaknya dan langsung membuat tim untuk melakukan pemasaran produk secara online",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Menerimanya dengan senang hati karena bisa membantu meningkatkan penjualan produk saya",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Menerimanya dengan senang hati sekaligus saya akan belajar cara berjualan secara online",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Menerima tawaran tersebut dengan memberikan syarat berupa pembelian minimal dalam jumlah yang cukup banyak",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Menerima tawaran tersebut dengan syarat produk dengan merknya tidak memasuki pasar yang sudah saya bangun",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  68,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Saya mendapatkan promosi untuk memimpin sebuah kantor cabang yang baru dibuka sebulan yang lalu. Ketika saya mulai bekerja saya terkejut melihat karyawan yang sudah direkrut oleh kantor sebagian besar belum berpengalaman dalam bisnis ini. Saya akan ….",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Membawa beberapa karyawan dari kantor lama selama beberapa bulan untuk memberikan transfer ilmu di kantor cabang yang baru",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Melakukan rekrutmen baru untuk menggantikan para karyawan yang belum berpengalaman tersebut",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Mencari karyawan berpengalaman dari perusahaan pesaing dan merekrutnya untuk menggantikan sebagian karyawan tersebut",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Memberikan pelatihan dan strategi tentang bisnis terhadap karyawan yang belum berpengalaman",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Melakukan evaluasi secara bertahap dan ketat untuk menyaring karyawan yang mampu beradaptasi dengan sistem kerja saya",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  69,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Saya memiliki sejumlah hutang pada sebuah lembaga peminjaman uang yang akhir-akhir ini tersendat pembayarannya karena kondisi keuangan saya sedang tidak baik. Suatu hari seorang penagih hutang perwakilan lembaga tersebut datang ke rumah, saya akan ….",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "E",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Bersembunyi dan pura-pura tidak melihatnya karena saya benar-benar tidak ada uang untuk membayarnya",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Menjelaskan kondisi keuangan saya saat ini dan meminta kebijakan dari lembaga tersebut",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Memintanya untuk kembali karena saya tidak ada uang untuk membayar angsuran pada hari itu",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Mencoba meminta tambahan beberapa hari lagi untuk berusaha mendapatkan uang angsuran",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Membayar seadanya uang yang saya miliki dan akan segera membayarkan sisa angsuran secepat mungkin",
+                            "is_correct":  true
+                        }
+                    ]
+    },
+    {
+        "number":  70,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Untuk meminimalisasi penyebaran penyakit, pemerintah menyarankan untuk melakukan Perilaku Hidup Bersih dan Sehat, salah satunya adalah mencuci tangan dengan sabun sebelum memasuki rumah. Suatu hari teman dekat saya dari luar kota datang ke rumah saya dan langsung masuk ke dalam rumah, padahal di depan rumah sudah disediakan tempat cuci tangan dan membasuh muka sebelum masuk rumah. Saya akan ….",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Memintanya untuk kembali ke luar untuk mencuci tangan dan membersihkan diri terlebih dahulu",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Membiarkannya saja karena dia melakukan perjalanan dengan mobil pribadi sehingga tidak kontak dengan orang lain",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Menegurnya dan memintanya untuk menaati anjuran pemerintah dengan mencuci tangannya terlebih dahulu sebelum memasuki rumah",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Mengingatkannya dan langsung memintanya ke kamar mandi untuk mencuci tangannya",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Membiarkannya saja karena dia terlihat sehat dan tidak menunjukkan gejala penyakit tersebut",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  71,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Untuk mengoptimalkan kinerja penjaga keamanan di perumahan, pengurus RT membuat keputusan untuk memberikan mereka jatah makan siang dan makan malam. Jadwal pemberian jatah makan diatur bergiliran untuk setiap warga. Jadwal akan dimulai dua hari lagi dan kebetulan saya mendapatkan giliran yang pertama. Saya akan ….",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Menerima saja keputusan tersebut karena masih ada waktu untuk mempersiapkannya",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Menerima saja keputusan tersebut karena semua warga akan mendapatkan gilirannya",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Menerima saja keputusan tersebut karena penjaga keamanan sangat berjasa dalam mengamankan perumahan kami",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Sedikit merasa keberatan karena keputusan diambil oleh pengurus RT tanpa melibatkan warganya",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Merasa belum siap dan meminta warga yang telah siap untuk mengambil giliran lebih awal",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  72,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Kakek saya sangat senang menonton langsung pertunjukan wayang, sebuah kesenian yang saya tidak tahan melihatnya karena durasi yang terlalu lama. Malam minggu ini di kota kami akan ada sebuah pertunjukan wayang yang menghadirkan seorang dalang terkenal. Kakek ingin menonton dan meminta untuk diantarkan. Langkah yang saya lakukan adalah….",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "B",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Meminta adik saya untuk mengantarkan dan menemani kakek menonton pertunjukan tersebut",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Mengantarnya dan menemani menonton sebentar saja, lalu nanti akan menjemputnya",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Membuat acara pada malam minggu tersebut dan keluar rumah lebih awal",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Mengantarnya dan menemaninya menonton sampai pertunjukan selesai",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Mengantarnya dan menemani menon- ton, tetapi memintanya untuk tidak menonton sampai pertunjukan selesai",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  73,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Saya memiliki tetangga lanjut usia yang sangat miskin, tetapi dia tidak tercatat sebagai salah satu penerima bantuan dari pemerintah. Banyak orang yang lebih sejahtera kehidupannya malah mendapatkan bantuan dari pemerintah. Saya akan ….",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Menyampaikan dan mengusulkan tetangga saya pada pemerintah desa untuk mendapatkan bantuan",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Melakukan protes karena pemerintah desa tidak cermat dalam melakukan seleksi penerima bantuan",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Mencarikan bantuan lain yang dapat membantu kehidupan tetangga saya tersebut",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Menyisihkan uang saya sebagian untuk membantu masalah perekonomiannya",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Mengajak para tetangga sekitar yang lain untuk lebih peduli dan berusaha membantu kesusahannya",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  74,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Pemerintah sedang menerapkan Pembatasan Sosial Berskala Besar (PSBB), yaitu kita harus menjaga jarak dan interaksi sosial menjadi tidak seperti biasanya. Suatu hari teman-teman saya mengajak untuk berkumpul dan berbincang di sebuah kedai kopi. Saya sudah menolaknya, tetapi mereka berusaha untuk terus merayu saya supaya saya ikut berkumpul dengan mereka. Saya akan ….\nMenegur dan mengingatkan mereka akan larangan berkumpul selama masa PSBB ini",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Tidak termakan provokasi mereka dan tetap pada pendirian saya untuk mematuhi masa PSBB",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Melaporkan mereka karena mengadakan kegiatan berkumpul di masa PSBB dan melakukan provokasi",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Merasa sedih karena mereka tidak menghormati pilihan saya untuk mematuhi masa PSBB",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Memenuhi ajakan tersebut sebentar saja untuk menghargai mereka yang telah berupaya keras membujuk saya",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Tetangga saya memelihara ayam dalam jumlah cukup banyak di rumahnya. Sebagian ayam-ayam tersebut terkadang berkeliaran di jalan dan masuk ke perkarangan rumah saya, dan bahkan mengotori teras rumah. Beberapa tetangga lain merasakan hal yang sama, tetapi tidak berani menegurnya. Saya akan ….",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  75,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Mendatangi tetangga saya dan melarangnya untuk memelihara ayam lagi karena mengganggu kenyamanan tetangga lain",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "D",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Menangkapi semua ayam yang masuk ke perkarangan dan mengotori teras rumah saya",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Menegur tetangga saya dan memintanya untuk mengandangkan ayam peliharaannya sehingga tidak berkeliaran",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Melaporkan kepada ketua RT supaya ditindaklanjuti karena sudah mengganggu kenyamanan warga",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Menyarankan kepada tetangga saya tersebut untuk memelihara ayam di tempat yang lebih sesuai dan tidak di perumahan padat penduduk",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Sebagai seorang kepala divisi, setiap tahun saya dituntut untuk melakukan inovasi dan pengembangan di divisi saya, termasuk pengembangan penggunaan teknologi informasi dan komunikasi. Tahun ini saya berencana untuk mengembangkan pelaporan kinerja berbasis aplikasi, tetapi banyak anak buah saya yang merasa kalau hal tersebut terlalu berlebihan dan belum layak untuk dijalankan. Saya akan ….",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  76,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Tetap menjalankan rencana tersebut dan membiarkan anak buah saya untuk beradaptasi",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Tetap menjalankan rencana tersebut dengan melalui masa percobaan terlebih dahulu",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Tetap menjalankan rencana tersebut dengan keputusan yang dibuat oleh atasan sehingga anak buah saya tidak bisa melakukan protes",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Menunda pelaksanaan rencana tersebut sampai seluruh anak buah mendukung gagasan saya tersebut",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Mengadakan dengar pendapat dengan anak buah tentang perlu tidaknya rencana tersebut dijalankan",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Deni adalah seorang penjual sayur yang berkeliling dari satu lokasi ke lokasi yang lain. Suatu hari seseorang memesan sayur dalam jumlah yang banyak melalui aplikasi messenger dan memintanya untuk mengirimkan ke sebuah perumahan yang sering menjadi tempatnya berjualan. Langkah yang akan Deni lakukan adalah ….",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  77,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Tanpa curiga langsung membelikan sayuran dan membawanya ke lokasi yang ditentukan\nDeni adalah seorang penjual sayur yang berkeliling dari satu lokasi ke lokasi yang lain. Suatu hari seseorang memesan sayur dalam jumlah yang banyak melalui aplikasi messenger dan memintanya untuk mengirimkan ke sebuah perumahan yang sering menjadi tempatnya berjualan. Langkah yang akan Deni lakukan adalah ….",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "B",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Tanpa curiga langsung membelikan sayuran dan membawanya ke lokasi yang ditentukan",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Menghubungi dan memintanya untuk mengirimkan uang muka terlebih dahulu sebagai jaminan pembelian sayur tersebut",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Membeli sayur jenis tertentu saja yang masih bisa dijual apabila pesanan tersebut ternyata tidak benar",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Mendatanginya untuk meminta uang terlebih dahulu sebelum membelikannya sayur yang dipesan",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Membelikannya sesuai pesanan dan berharap pemesan tidak membohonginya",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  78,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Pembatasan Sosial Berskala Besar berimbas kepada segala lini kehidupan masyarakat, termasuk kehidupan Rukun Tetangga di kampung saya. Karena kondisi ini, ketua RT mengusulkan untuk mengadakan rapat RT bulan ini melalui aplikasi video meeting sehingga dapat diikuti oleh semua warga dari rumah masing-masing. Langkah yang saya lakukan adalah ….",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Akan segera mengunduh aplikasi tersebut agar bisa berpartisipasi dalam rapat RT",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Kurang setuju karena rapat RT melalui aplikasi video meeting akan menjadikan peserta rapat tidak fokus",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Kurang setuju karena rapat RT melalui aplikasi video meeting sangat tergantung pada kualitas HP dan kekuatan sinyal, sementara tidak semua warga memiliki fasilitas tersebut",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Menyetujui usul tersebut karena menganggap ini sebuah inovasi baru yang bisa dilakukan di lingkungan RT",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Kurang setuju karena tidak semua warga familiar dengan aplikasi tersebut, dan mengusulkan untuk menunda pertemuan RT sampai suasana kondusif",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  79,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Suatu hari saya ditugaskan untuk membagikan bantuan di sebuah desa yang terletak cukup jauh dari kantor saya. Setelah sampai di tempat pembagian, ternyata saya lupa membawa daftar penerima bantuan yang sudah saya siapkan. Saya akan ….\nSegera kembali ke kantor untuk mengambil daftar penerima bantuan agar kegiatan pembagian bisa segera terlaksana\nMeminta teman di kantor untuk memfoto daftar penerima bantuan dan mengirimkannya ke handphone saya",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Meminta teman di kantor untuk mengirim file daftar penerima bantuan melalui email dan akan mencetaknya di lokasi",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Menyuruh perwakilan dari desa untuk mengambil daftar penerima bantuan ke kantor saya",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Menghubungi kantor dan meminta dikirimkan orang untuk mengantar daftar penerima bantuan ke lokasi",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Sebagai pengelola website sekolah saya bertugas untuk mengunggah informasi- informasi terbaru yang berkaitan dengan kegiatan sekolah serta menampung komentar dan masukan dari masyarakat. Suatu hari seseorang memberikan informasi bahwa sistem pendaftaran online yang ada di website sering mengalami masalah sehingga mempersulit para pendaftar. Padahal masa pendaftaran siswa tinggal dua hari lagi. Saya akan ….",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Segera menghubungi ahli IT sekolah kami untuk memperbaiki sistem pendaftaran online yang ada di website sekolah",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  80,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Segera mengunggah informasi terkait dengan perpanjangan masa pendaftaran siswa akibat permasalahan tersebut\nSegera menghubungi ahli IT sekolah kami untuk memperbaiki sistem pendaftaran online yang ada di website sekolah",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "B",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Segera mengunggah informasi terkait dengan perpanjangan masa pendaftaran siswa akibat permasalahan tersebut",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Menerima dan melaporkan masukan tersebut untuk dapat segera ditindaklanjuti oleh sekolah",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Berusaha secepat mungkin memperbaiki sistem pendaftaran online sehingga bisa segera digunakan kembali",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Menerima masukan tersebut dan meminta pendaftar untuk terus mencoba melakukan pendaftaran secara online",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Hari ini saya dan rekan kerja saya memiliki jadwal untuk melakukan presentasi di depan calon investor untuk usaha yang sedang kami rintis bersama. Namun, mendekati waktu pertemuan, secara mendadak rekan saya mengabarkan tidak bisa menghadiri pertemuan karena orang tuanya sakit dan harus dibawa ke rumah sakit. Padahal materi presentasi yang sudah kami susun dibawa olehnya. Langkah yang akan saya lakukan adalah ….",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  81,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Menghubungi dan memintanya untuk segera menyusul ke tempat pertemuan saat kondisi sudah memungkinkan",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Meminta rekan saya untuk mengirimkan materi presentasi melalui email dan akan melakukan presentasi sendirian",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Menghubungi investor dan meminta untuk menjadwalkan ulang pertemuan karena rekan saya berhalangan hadir",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Mengambil materi di rumah sakit sekalian menjenguk dan menanyakan kondisi orang tua rekan saya",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Meminta teman saya untuk membuat video presentasi dari rumah sakit dan akan menyampaikannya kepada investor",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Di era saat ini kemajuan teknologi membuat banyak kantor melakukan perubahan pelayanan dengan memanfaatkan teknologi yang ada, sementara di kantor yang saya pimpin sebagian besar karyawan berusia tua dan sudah hampir memasuki masa pensiun. Langkah yang akan saya lakukan adalah ….",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  82,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Memberikan pensiun lebih cepat kepada mereka dan menggantinya dengan tenaga muda yang lebih memahami teknologi\nMenunda penggunaan teknologi sampai dengan seluruh karyawan yang berusia tua pension",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "B",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Menerapkan penggunaan teknologi yang mudah diadaptasi oleh seluruh karyawan termasuk karyawan yang sudah tua",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Memberikan pelatihan pada seluruh karyawan sebelum mulai untuk menggunakan teknologi dalam proses pelayanan",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Menerapkan penggunaan teknologi dalam pelayanan dan akan memberhentikan mereka yang tidak mampu beradaptasi",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Atasan memberikan tambahan anak buah untuk tim saya dengan maksud membantu pekerjaan saya. Namun, pada kenyataannya anak baru ini tidak mampu beradaptasi dengan cepat dengan ritme pekerjaan saya dan kurang mampu berkomunikasi dengan rekan setim yang lain. Saya akan ….",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Meminta kepada atasan untuk memilih seseorang yang baru untuk menggantikannya",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  83,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Memintanya untuk segera beradaptasi dengan ritme kerja dan lingkungan kerjanya",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Memberinya batas waktu untuk segera beradaptasi, utamanya dengan ritme kerja saya",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Meminta anggota tim yang lain untuk aktif berkomunikasi supaya dia bisa merasa nyaman",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Memintanya aktif berkomunikasi supaya cepat merasa nyaman dan bisa mengikuti ritme kerja teman yang lain",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Saya ditugaskan oleh kantor untuk memantau sebuah kegiatan yang sedang diadakan oleh salah satu divisi. Kegiatan ini berlangsung pada akhir minggu di luar kota, sementara saya sudah terlanjur ada janji dengan teman- teman saya untuk mengunjungi salah satu teman yang baru saja kembali dari sekolah di luar negeri. Saya akan ….",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Menghubungi divisi penyelenggara dan meminta laporan kegiatan sehingga saya tetap bisa menjalankan acara saya",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  84,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Menghubungi teman-teman dan mengajak mereka untuk menunda kunjungan pada hari Senin\nMenghubungi divisi penyelenggara dan meminta laporan kegiatan sehingga saya tetap bisa menjalankan acara saya\nSaya ditugaskan oleh kantor untuk memantau sebuah kegiatan yang sedang diadakan oleh salah satu divisi. Kegiatan ini berlangsung pada akhir minggu di luar kota, sementara saya sudah terlanjur ada janji dengan teman- teman saya untuk mengunjungi salah satu teman yang baru saja kembali dari sekolah di luar negeri. Saya akan ….",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "C",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Menghubungi divisi penyelenggara dan meminta laporan kegiatan sehingga saya tetap bisa menjalankan acara saya",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Menghubungi teman-teman dan mengajak mereka untuk menunda kunjungan pada hari Senin",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Melakukan kegiatan pemantauan secukupnya dan segera pulang untuk menepati janji dengan teman-teman saya",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Meminta maaf kepada teman-teman tidak bisa ikut mengunjungi teman saya karena mendapatkan tugas mendadak",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Meminta bantuan teman untuk menggantikan kegiatan pemantauan sehingga saya bisa tetap menjalankan acara saya",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  85,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Sebagai seorang analis data di sebuah instansi pemerintah daerah, tugas saya adalah mengumpulkan dan menganalisis data dari seluruh desa di kabupaten. Seluruh desa sudah mendapatkan pelatihan tentang pengumpulan dan penyajian data untuk pemerintah daerah. Namun, ada beberapa desa yang memberikan saya data mentah yang belum diolah. Saya akan ….",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Mengembalikan dan meminta desa untuk menyajikan data seperti yang dibutuhkan",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Memisahkan data tersebut dan tidak memasukkan ke dalam bagian data yang dianalisis",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Menyajikan data mentah tersebut dalam analisis terpisah dari data yang lain",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Mengolah data mentah tersebut untuk bisa dianalisis bersama data lain sebagai sebuah kesatuan",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Mengolah data mentah tersebut karena jika harus mengembalikan ke desa akan memakan waktu yang cukup lama",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  86,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Anda baru saja diterima menjadi seorang Pegawai Negeri Sipil, dan mulai bulan depan Anda mendapatkan jadwal untuk melaksanakan diklat dan harus di karantina selama dua bulan. Sementara di sisi lain Anda juga sedang memasuki bulan-bulan akhir kuliah pascasarjana yang sudah Anda tempuh jauh sebelum diterima sebagai PNS. Langkah yang Anda lakukan adalah ….\nMeminta atasan mendahulukan teman kantor lain untuk mengikuti diklat tersebut karena saya sedang mengejar untuk lulus kuliah saya terlebih dahulu\nTerpaksa mengambil cuti kuliah karena menjadi PNS merupakan cita-cita saya, dan diklat ini sangat penting untuk karier saya",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "B",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Meminta kompensasi untuk boleh keluar dari karantina untuk menyelesaikan kegiatan kuliah saya",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Menggunakan waktu satu bulan untuk menyelesaikan tugas-tugas kuliah saya yang tidak bisa saya kerjakan saat saya di karantina nanti",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Mengikuti kegiatan diklat dengan baik dan berusaha mengejar ketertinggalan di perkuliahan",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Pimpinan memberi banyak tugas kepada saya dan meminta saya untuk menyelesaikannya padahal saat itu sudah mendekati jam pulang dan saya sudah memiliki janji setelah pulang kantor akan menjenguk istri teman yang baru saja melahirkan. Saya akan ….",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Mengerjakan tugas tersebut secepat mungkin dan mengusahakannya hanya terlambat sedikit setelah jam pulang",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  87,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Meminta bantuan teman agar pekerjaan tersebut bisa selesai sebelum jam kantor",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Mengerjakan tugas tersebut sampai jam pulang kantor dan akan menerus- kannya keesokan harinya",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Meminta izin sebentar untuk menjenguk istri teman dan akan kembali ke kantor untuk menyelesaikannya hari itu juga",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Menanyakan kepada atasan dan memastikan kapan tugas tersebut harus diserahkan",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Saya bekerja sebagai penjaga apotek di sebuah desa dengan penduduk yang saling mengenal satu sama lain. Suatu hari datang seorang pelanggan yang sudah sangat saya kenal ingin membeli obat keras, tetapi dia tidak membawa resep dokter karena ketinggalan di rumah. Langkah yang saya lakukan adalah ….",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Memberikan obat yang dia minta karena dia sudah biasa membeli obat tersebut",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  88,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Memberikan obat yang dia minta karena dia adalah salah satu pelanggan apotek saya\nMemberikan obat yang dia minta karena dia sudah biasa membeli obat tersebut",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "C",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Memberikan obat yang dia minta karena dia adalah salah satu pelanggan apotek saya",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Memberikan obat yang dia minta dan memintanya mengambil resep dokter itu untuk saya",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Memintanya mengambil resep dokter di rumah dan akan memberinya obat jika dia bisa menunjukkan resep",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Berkonsultasi dengan apoteker dan melaksanakan semua keputusan yang diberikan oleh apoteker",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Saya merupakan seorang guru di sebuah sekolah menengah atas terkemuka di kota saya. Selain mengajar di sore hari, saya membuka les privat persiapan masuk perguruan tinggi. Suatu hari seorang murid privat mendatangi saya dan menanyakan tentang jurusan yang sebaiknya dia ambil saat mendaftar di perguruan tinggi. Saya akan ….",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  89,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Menyarankannya untuk berbicara dan meminta saran tentang jurusan yang diinginkan oleh orang tuanya",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Mengajak para tetangga untuk bekerja bakti membersihkan lahan kosong tersebut",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Mencoba menghubungi pemilik lahan dan menyampaikan kondisi lahan saat ini",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Menyampaikan keadaan tersebut kepada Ketua RT supaya bisa menghubungi pemilik lahan",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Membayar orang untuk membersihkan lahan tersebut supaya menjadi bersih dan enak dipandang",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Adi tinggal di sebuah desa dengan sebagian besar penduduknya berada dalam tingkat ekonomi menengah ke bawah, termasuk keluarganya. Di sebelah rumah Adi tinggal seorang nenek sebatang kara yang keadaannya sangat menyedihkan. Hal terbaik yang bisa dilakukan Adi adalah ….",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  90,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Meminta izin dan membujuk orang tuanya untuk menampung nenek itu ikut keluarganya\nAdi tinggal di sebuah desa dengan sebagian besar penduduknya berada dalam tingkat ekonomi menengah ke bawah, termasuk keluarganya. Di sebelah rumah Adi tinggal seorang nenek sebatang kara yang keadaannya sangat menyedihkan. Hal terbaik yang bisa dilakukan Adi adalah ….",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "C",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Meminta izin dan membujuk orang tuanya untuk menampung nenek itu ikut keluarganya",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Meminta bantuan melalui media sosial untuk nenek tersebut supaya banyak orang yang memperhatikannya",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Mengusulkan kepada pemerintah desa untuk memperhatikan nenek tersebut karena hidup seorang diri dan sangat menyedihkan",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Membantu langsung nenek tersebut dengan membagi dan memberikan apa pun yang dia punya",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Mengajak warga sekitar untuk berperan membantu nenek tersebut secara langsung",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  91,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Lahan sebelah rumah saya adalah pekarangan kosong yang tidak terawat. Sudah beberapa bulan pemilik lahan tidak menengok dan membersihkan lahan tersebut sehingga rumput tumbuh tinggi dan terkesan berantakan. Langkah yang akan saya lakukan adalah….",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Membantu membersihkan lahan tersebut saat waktu saya luang sehingga tidak nampak berantakan lagi",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Mengajak para tetangga untuk bekerja bakti membersihkan lahan kosong tersebut",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Mencoba menghubungi pemilik lahan dan menyampaikan kondisi lahan saat ini",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Menyampaikan keadaan tersebut kepada Ketua RT  supaya bisa menghubungi pemilik lahan",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Membayar orang untuk membersihkan lahan tersebut supaya menjadi bersih dan enak dipandang",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  92,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Saya memiliki teman yang sudah bersama sejak kecil. Dia sangat baik dan sangat perhatian, tetapi dia memiliki sebuah kebiasaan buruk yang membuatnya dihindari oleh banyak orang, yaitu sering meminjam sesuatu, tetapi tidak pernah mengembalikannya. Suatu hari dia ingin meminjam uang kepada saya, saya akan ….\nMeminjamkan uang kepadanya karena dia adalah teman dan sudah sangat baik terhadap saya",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "B",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Menolak meminjaminya karena saya tidak mau kehilangan uang saya dengan percuma",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Menanyakan alasan yang membuatnya harus berhutang dan memutuskan apakah dia layak diberi pinjaman atau tidak",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Menolak meminjaminya dan menasi- hatinya tentang kebiasaan buruknya tersebut",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Meminjamkan uang kepadanya dengan catatan dia harus benar-benar mengembalikannya",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Saya sering berbelanja memanfaatkan layanan pesan antar yang disediakan oleh sebuah toko di perumahan saya. Dalam beberapa kesempatan, uang pembayaran saya lebih dan petugas pengantar barang mengambilkan uang kembalian ke toko. Namun, terkadang dia tidak datang lagi dan saya tidak menerima uang kembalian saya. Saya akan ….",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  93,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Melaporkan petugas pengantar belanjaan kepada pemilik toko supaya kebiasaannya tersebut bisa ditegur dan diperbaiki",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Menemuinya dan mencoba mea- nyakan tentang uang kembalian saya",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Menganggap dia lupa dan meyakini bahwa itu bukanlah suatu kesengajaan",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Menegurnya dan mengingatkan bahwa apa yang dilakukannya tersebut merupakan hal yang buruk",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Berhenti menggunakan layanan pesan antar dan mulai berbelanja langsung sendiri",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Selokan di depan rumah saya mampet karena ada banyak sampah yang tidak bisa hanyut dan menyumbat aliran air. Sampah- sampah ini kebanyakan berasal dari rumah tetangga saya yang tidak mau membayar iuran sampah dan akhirnya membuang sampah di saluran air. Langkah yang saya lakukan adalah ….",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  94,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Mengambil sampah dari selokan dan membuangnya di halaman rumah tetangga saya tersebut\nMembersihkan selokan dan membuang sampah ke tempat penampungan sampah\nMembersihkan selokan dan menegur tetangga tersebut",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Membersihkan selokan dan menyampaikan kondisi tersebut kepada ketua RT",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Membersihkan selokan begitu saja karena saya tidak ingin membuat masalah dengan tetangga",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Saya dalam perjalanan menjemput ibu ke pasar dan hujan turun sepanjang perjalanan. Di tengah perjalanan ada seseorang yang menyeberang dengan tidak hati-hati sehingga saya harus membunyikan klakson. Orang tersebut berhasil menghindar, tetapi dia terkena cipratan air yang terlindas roda mobil saya. Saya akan ….",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Berhenti untuk melihat keadaannya sebentar dan melanjutkan perjalanan lagi",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Tetap melanjutkan perjalanan dan pura-pura tidak melihat kejadian itu",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  95,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Tetap melanjutkan perjalanan karena ibu sudah menunggu dan saya yakin kejadian itu tidak melukai orang tersebut",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "B",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Tetap melanjutkan perjalanan karena itu merupakan kesalahannya yang berusaha menyeberang dengan sembarangan",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Berhenti melihat keadaannya dan menyarankannya untuk lebih berhati- hati saat menyeberang",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Anda dipercaya membentuk dan memimpin sebuah tim untuk mengembangkan teknologi informasi dan komunikasi yang akan digunakan untuk meningkatkan pemasaran produk perusahaan. Pimpinan perusahaan mengharapkan Anda bekerja dengan cepat dan terjaga kerahasiaannya. Anda akan ….",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Memilih teman-teman dekat yang bisa saya percaya untuk menjaga kerahasiaannya",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Mencari orang-orang yang tidak kenal dengan orang-orang kantor",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  96,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Menggunakan anak buah saya saat ini yang sudah bisa saya percaya\nMencari orang-orang yang tidak kenal dengan orang-orang kantor\nMemilih teman-teman dekat yang bisa saya percaya untuk menjaga kerahasiaannya\nAnda dipercaya membentuk dan memimpin sebuah tim untuk mengembangkan teknologi informasi dan komunikasi yang akan digunakan untuk meningkatkan pemasaran produk perusahaan. Pimpinan perusahaan mengharapkan Anda bekerja dengan cepat dan terjaga kerahasiaannya. Anda akan ….",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "D",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Memilih teman-teman dekat yang bisa saya percaya untuk menjaga kerahasiaannya",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Mencari orang-orang yang tidak kenal dengan orang-orang kantor",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Menggunakan anak buah saya saat ini yang sudah bisa saya percaya",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Membentuk tim dengan mencari tenaga-tenaga profesional sehingga bisa memberikan hasil yang terbaik",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Memilih beberapa karyawan terbaik kantor dan membuat kesepakatan untuk merahasiakan pekerjaan",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  97,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Dalam sebuah pertemuan RT, seorang warga mengusulkan untuk mengadakan kegiatan sosial setiap bulan sebagai upaya untuk meningkatkan rasa toleransi dan kepedulian sosial. Selain itu, menurutnya kegiatan tersebut dapat mencegah tumbuhnya radikalisme di lingkungan kami. Menurut saya ….",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "A",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Usul tersebut harus dilaksanakan dengan semangat mencegah radikalisme hadir di lingkungan kami",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Hal tersebut kurang efektif karena orang yang telah terpapar radikalisme pasti tidak akan menghadiri kegiatan tersebut",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Itu merupakan usul yang bagus dan saya sangat setuju terhadap usul tersebut",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Sebaiknya jangan dilaksanakan setiap bulan mengingat kesibukan setiap warga",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Usul tersebut hanya menambah padatnya jadwal kegiatan RT dari yang sudah ada saat ini",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  98,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Saat ini pencegahan radikalisme menjadi suatu agenda yang mendesak untuk dilakukan oleh pemerintah karena rentan untuk menjangkiti berbagai lapisan masyarakat. Pendapat Anda saat melihat informasi tersebut adalah ….\nMengenali bahaya dan upaya-upaya untuk dapat terhindar dari paparan paham radikal",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "B",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Saya harus berupaya untuk melindungi diri saya dan keluarga dari paparan paham radikal tersebut",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Akan mendukung apa pun program pemerintah yang dibuat untuk mencegah radikalisme",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Berusaha mengidentifikasi orang- orang di lingkungan sekitar saya yang kemungkinan terpapar paham radikal",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Mengabarkan informasi kepada orang- orang sekitar dan mengingatkan mereka akan bahayanya paham radikal terhadap kehidupan bermasyarakat",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Anda adalah seorang muslim yang memiliki usaha kuliner yang cukup terkenal di kota Anda. Suatu hari datang perwakilan dari sebuah sekolah non-muslim yang meminta Anda untuk membuka cabang di kantin sekolah mereka dengan tempat yang sudah disediakan khusus untuk cabang kuliner Anda. Anda akan ….",
+                            "is_correct":  false
+                        }
+                    ]
+    },
+    {
+        "number":  99,
+        "category":  "Tes Karakteristik Pribadi",
+        "stem":  "Merasa curiga dan mencoba melihat apakah ada agenda terselubung di balik penawaran ini\nAnda adalah seorang muslim yang memiliki usaha kuliner yang cukup terkenal di kota Anda. Suatu hari datang perwakilan dari sebuah sekolah non-muslim yang meminta Anda untuk membuka cabang di kantin sekolah mereka dengan tempat yang sudah disediakan khusus untuk cabang kuliner Anda. Anda akan ….",
+        "difficulty":  2,
+        "weight":  1,
+        "correct_key":  "B",
+        "options":  [
+                        {
+                            "position":  1,
+                            "letter":  "A",
+                            "option_text":  "Merasa curiga dan mencoba melihat apakah ada agenda terselubung di balik penawaran ini",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  2,
+                            "letter":  "B",
+                            "option_text":  "Melihat dulu dari prospek untung rugi usaha sebelum memberikan jawaban kepada mereka",
+                            "is_correct":  true
+                        },
+                        {
+                            "position":  3,
+                            "letter":  "C",
+                            "option_text":  "Terpaksa menolaknya karena saat ini saya ingin berkonsentrasi pada satu lokasi saja",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  4,
+                            "letter":  "D",
+                            "option_text":  "Mengomunikasikan dengan para karyawan saya apakah ada yang bersedia untuk ditempatkan di cabang tersebut",
+                            "is_correct":  false
+                        },
+                        {
+                            "position":  5,
+                            "letter":  "E",
+                            "option_text":  "Menolak dengan keras karena itu bisa merusak akidah saya dan karyawan sebagai seorang muslim",
+                            "is_correct":  false
+                        }
+                    ]
+    }
+]
