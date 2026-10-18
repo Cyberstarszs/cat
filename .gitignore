@@ -22,6 +22,12 @@ Thumbs.db
 *.swo
 .vscode/
 .idea/
+.claude/
+.windsurf/
+.agents/
+skills-lock.json
+
+
 
 # Temporary and test artifacts
 *.log

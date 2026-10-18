@@ -17,6 +17,8 @@ import {
   AuditLog,
   NotificationItem,
   StudentProfile,
+  CandidateResponse,
+  CandidateStudent,
 } from '../types';
 
 // ==================== AUTH SERVICE ====================
@@ -168,8 +170,13 @@ export const examService = {
 
 // ==================== QUESTIONS SERVICE ====================
 export const questionService = {
-  async getQuestions(params?: { category_id?: string; search?: string }): Promise<Question[]> {
+  async getQuestions(params?: { category_id?: string; search?: string; year?: number | string }): Promise<Question[]> {
     const res = await apiClient.get<{ data: Question[] }>('/questions', { params });
+    return res.data.data;
+  },
+
+  async getQuestionYears(): Promise<number[]> {
+    const res = await apiClient.get<{ data: number[] }>('/questions/years');
     return res.data.data;
   },
 
@@ -184,6 +191,7 @@ export const questionService = {
     stem: string;
     weight: number;
     difficulty?: string;
+    year?: number;
     options: { label: string; text: string; is_correct: boolean }[];
   }): Promise<Question> {
     const res = await apiClient.post<{ question: Question }>('/questions', data);
@@ -201,6 +209,15 @@ export const questionService = {
     await apiClient.post(`/questions/${questionId}/versions`, data);
   },
 
+  async updateQuestion(id: string, data: { status?: string; year?: number }): Promise<Question> {
+    const res = await apiClient.patch<{ question: Question }>(`/questions/${id}`, data);
+    return res.data.question;
+  },
+
+  async deleteQuestion(id: string): Promise<void> {
+    await apiClient.delete(`/questions/${id}`);
+  },
+
   async previewQuestion(questionId: string): Promise<any> {
     const res = await apiClient.get(`/questions/${questionId}/preview`);
     return res.data;
@@ -209,7 +226,7 @@ export const questionService = {
   async previewImportQuestions(file: File): Promise<{
     success: boolean;
     filename: string;
-    file_type: 'docx' | 'csv';
+    file_type: 'docx' | 'doc' | 'csv';
     total_rows: number;
     valid_rows: number;
     invalid_rows: number;
@@ -224,12 +241,12 @@ export const questionService = {
     return res.data;
   },
 
-  async commitImportQuestions(questions: any[]): Promise<{
+  async commitImportQuestions(questions: any[], year?: number): Promise<{
     success: boolean;
     total_imported: number;
     imported_count: number;
   }> {
-    const res = await apiClient.post('/questions/import/commit', { questions, items: questions });
+    const res = await apiClient.post('/questions/import/commit', { questions, items: questions, year });
     return res.data;
   },
 
@@ -290,6 +307,8 @@ export const sessionService = {
     name: string;
     starts_at: string;
     ends_at: string;
+    capacity?: number | null;
+    question_year?: number | null;
   }): Promise<ExamSession> {
     const res = await apiClient.post<{ session: ExamSession }>('/sessions', data);
     return res.data.session;
@@ -302,6 +321,11 @@ export const sessionService = {
 
   async deleteSession(id: string): Promise<void> {
     await apiClient.delete(`/sessions/${id}`);
+  },
+
+  async getCandidates(sessionId: string): Promise<CandidateResponse> {
+    const res = await apiClient.get<CandidateResponse>(`/sessions/${sessionId}/candidates`);
+    return res.data;
   },
 
   async getEnrollments(sessionId: string): Promise<SessionEnrollment[]> {

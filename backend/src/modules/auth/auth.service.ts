@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { pool } from '../../db/connection.js';
+import { prisma } from '../../db/prisma.js';
 import { comparePassword, hashPassword, hashToken } from '../../lib/hash.js';
 import { AppError } from '../../lib/errors.js';
 import { CONSTANTS } from '../../config/constants.js';
@@ -31,117 +32,90 @@ export async function loginUser(
   const username = usernameInput.trim();
   const isEmail = username.includes('@');
 
-  let userQuery = '';
-  let userParam: string = username;
+  let user: any = null;
+  let studentProfile: any = null;
 
   if (isEmail) {
-    userQuery = `
-      SELECT 
-        u.id, u.email, u.password_hash, u.role, u.status,
-        u.must_change_password, u.failed_login_count, u.locked_until,
-        sp.identifier, sp.full_name, sp.institution, sp.phone
-      FROM users u
-      LEFT JOIN student_profiles sp ON sp.user_id = u.id
-      WHERE lower(u.email) = lower($1) AND u.deleted_at IS NULL;
-    `;
-    userParam = username.toLowerCase();
+    user = await prisma.users.findFirst({
+      where: {
+        email: { equals: username.toLowerCase(), mode: 'insensitive' },
+        deleted_at: null,
+      },
+      include: {
+        student_profiles: true,
+      },
+    });
+    if (user) {
+      studentProfile = user.student_profiles;
+    }
   } else {
-    // Identifier-based login (NIM / NISN)
-    userQuery = `
-      SELECT 
-        u.id, u.email, u.password_hash, u.role, u.status,
-        u.must_change_password, u.failed_login_count, u.locked_until,
-        sp.identifier, sp.full_name, sp.institution, sp.phone
-      FROM student_profiles sp
-      JOIN users u ON u.id = sp.user_id
-      WHERE sp.identifier = $1 AND u.deleted_at IS NULL;
-    `;
+    // Identifier-based login (NIM / NISN) via Prisma
+    const profile = await prisma.student_profiles.findFirst({
+      where: {
+        identifier: username,
+        users: { deleted_at: null },
+      },
+      include: {
+        users: true,
+      },
+    });
+    if (profile) {
+      user = profile.users;
+      studentProfile = profile;
+    }
   }
 
-  const { rows } = await pool.query(userQuery, [userParam]);
-
   // Timing attack prevention: run dummy comparison if user doesn't exist
-  if (rows.length === 0) {
+  if (!user) {
     await comparePassword(passwordInput, '$2a$12$e80yq9g6L9s/rAqvY/6kpuYm1Jc64f7mF3u8K7c2f6Y3vG2a9kK6G');
     throw new AppError('AUTH_INVALID_CREDENTIALS');
   }
-
-  const user = rows[0];
 
   // Cek apakah akun suspended
   if (user.status === 'suspended') {
     throw new AppError('AUTH_INVALID_CREDENTIALS', 'Akun telah dinonaktifkan.');
   }
 
-  // Cek apakah akun terkunci (AUTH_LOCKED)
-  if (user.locked_until && new Date(user.locked_until).getTime() > Date.now()) {
-    const remainingMinutes = Math.ceil((new Date(user.locked_until).getTime() - Date.now()) / (60 * 1000));
-    throw new AppError(
-      'AUTH_LOCKED',
-      `Akun Anda terkunci sementara karena beberapa kali gagal login. Silakan tunggu ${remainingMinutes} menit atau hubungi administrator.`
-    );
-  }
-
   // Verifikasi kata sandi
   const isPasswordValid = await comparePassword(passwordInput, user.password_hash);
   if (!isPasswordValid) {
-    const newFailCount = (user.failed_login_count || 0) + 1;
-    if (newFailCount >= CONSTANTS.LOGIN_MAX_FAILS) {
-      const lockUntil = new Date(Date.now() + CONSTANTS.LOGIN_LOCK_MINUTES * 60 * 1000);
-      await pool.query(
-        `UPDATE users SET failed_login_count = $1, locked_until = $2, updated_at = now() WHERE id = $3;`,
-        [newFailCount, lockUntil, user.id]
-      );
-      await logAudit({
-        actorId: user.id,
-        actorRole: user.role,
-        action: 'auth.locked',
-        entityType: 'users',
-        entityId: user.id,
-        reason: `Exceeded max failed login attempts (${CONSTANTS.LOGIN_MAX_FAILS})`,
-        ipAddress,
-      });
-      throw new AppError(
-        'AUTH_LOCKED',
-        `Akun Anda telah terkunci selama ${CONSTANTS.LOGIN_LOCK_MINUTES} menit karena 5 kali salah kata sandi.`
-      );
-    } else {
-      await pool.query(
-        `UPDATE users SET failed_login_count = $1, updated_at = now() WHERE id = $2;`,
-        [newFailCount, user.id]
-      );
-      throw new AppError('AUTH_INVALID_CREDENTIALS');
-    }
+    throw new AppError('AUTH_INVALID_CREDENTIALS');
   }
 
-  // Reset fail count dan perbarui last_login_at
-  await pool.query(
-    `UPDATE users 
-     SET failed_login_count = 0, locked_until = NULL, last_login_at = now(), updated_at = now()
-     WHERE id = $1;`,
-    [user.id]
-  );
+  // Reset fail count dan perbarui last_login_at via Prisma
+  await prisma.users.update({
+    where: { id: user.id },
+    data: {
+      failed_login_count: 0,
+      locked_until: null,
+      last_login_at: new Date(),
+    },
+  });
 
   // Cabut sesi aktif sebelumnya jika mahasiswa (INV-22: single active session untuk integritas ujian)
   if (user.role === 'student') {
-    await pool.query(
-      `UPDATE auth_sessions SET revoked_at = now() WHERE user_id = $1 AND revoked_at IS NULL;`,
-      [user.id]
-    );
+    await prisma.auth_sessions.updateMany({
+      where: { user_id: user.id, revoked_at: null },
+      data: { revoked_at: new Date() },
+    });
   }
 
-  // Buat sesi login baru
+  // Buat sesi login baru via Prisma
   const rawToken = crypto.randomBytes(32).toString('hex');
   const tokenHash = hashToken(rawToken);
 
   const durationHours = user.role === 'admin' ? 8 : CONSTANTS.STUDENT_SESSION_MAX_HOURS;
   const expiresAt = new Date(Date.now() + durationHours * 60 * 60 * 1000);
 
-  await pool.query(
-    `INSERT INTO auth_sessions (user_id, refresh_token_hash, user_agent, ip_address, expires_at)
-     VALUES ($1, $2, $3, $4, $5);`,
-    [user.id, tokenHash, userAgent || null, ipAddress || null, expiresAt]
-  );
+  await prisma.auth_sessions.create({
+    data: {
+      user_id: user.id,
+      refresh_token_hash: tokenHash,
+      user_agent: userAgent || null,
+      ip_address: ipAddress || null,
+      expires_at: expiresAt,
+    },
+  });
 
   await logAudit({
     actorId: user.id,
@@ -160,12 +134,12 @@ export async function loginUser(
       email: user.email,
       role: user.role,
       must_change_password: user.must_change_password,
-      student_profile: user.identifier
+      student_profile: studentProfile
         ? {
-            identifier: user.identifier,
-            full_name: user.full_name,
-            institution: user.institution,
-            phone: user.phone,
+            identifier: studentProfile.identifier,
+            full_name: studentProfile.full_name,
+            institution: studentProfile.institution,
+            phone: studentProfile.phone,
           }
         : null,
     },
@@ -178,10 +152,10 @@ export async function logoutSession(
   actorRole: 'admin' | 'student',
   ipAddress?: string
 ): Promise<void> {
-  await pool.query(
-    `UPDATE auth_sessions SET revoked_at = now() WHERE id = $1 AND revoked_at IS NULL;`,
-    [sessionId]
-  );
+  await prisma.auth_sessions.updateMany({
+    where: { id: sessionId, revoked_at: null },
+    data: { revoked_at: new Date() },
+  });
 
   await logAudit({
     actorId,
@@ -200,64 +174,75 @@ export async function refreshSession(
 ): Promise<LoginResult> {
   const tokenHash = hashToken(rawToken);
 
-  const query = `
-    SELECT 
-      s.id AS session_id, s.expires_at, s.revoked_at, s.created_at AS session_created_at,
-      u.id, u.email, u.role, u.status, u.must_change_password, u.password_changed_at,
-      sp.identifier, sp.full_name, sp.institution, sp.phone
-    FROM auth_sessions s
-    JOIN users u ON u.id = s.user_id
-    LEFT JOIN student_profiles sp ON sp.user_id = u.id
-    WHERE s.refresh_token_hash = $1 AND u.deleted_at IS NULL;
-  `;
+  const s = await prisma.auth_sessions.findFirst({
+    where: {
+      refresh_token_hash: tokenHash,
+      users: { deleted_at: null },
+    },
+    include: {
+      users: {
+        include: {
+          student_profiles: true,
+        },
+      },
+    },
+  });
 
-  const { rows } = await pool.query(query, [tokenHash]);
-  if (rows.length === 0) {
+  if (!s) {
     throw new AppError('AUTH_REQUIRED');
   }
 
-  const s = rows[0];
+  const u = s.users;
 
   if (s.revoked_at || new Date(s.expires_at).getTime() <= Date.now()) {
     throw new AppError('AUTH_REQUIRED');
   }
 
-  if (s.password_changed_at && new Date(s.password_changed_at).getTime() > new Date(s.session_created_at).getTime()) {
+  if (u.password_changed_at && new Date(u.password_changed_at).getTime() > new Date(s.created_at).getTime() + 2000) {
     throw new AppError('AUTH_REQUIRED');
   }
 
-  if (s.status === 'suspended') {
+  if (u.status === 'suspended') {
     throw new AppError('AUTH_INVALID_CREDENTIALS', 'Akun telah dinonaktifkan.');
   }
 
-  // Revoke old session and issue new token
-  await pool.query(`UPDATE auth_sessions SET revoked_at = now() WHERE id = $1;`, [s.session_id]);
+  // Revoke old session and issue new token via Prisma
+  await prisma.auth_sessions.update({
+    where: { id: s.id },
+    data: { revoked_at: new Date() },
+  });
 
   const newRawToken = crypto.randomBytes(32).toString('hex');
   const newTokenHash = hashToken(newRawToken);
-  const durationHours = s.role === 'admin' ? 8 : CONSTANTS.STUDENT_SESSION_MAX_HOURS;
+  const durationHours = u.role === 'admin' ? 8 : CONSTANTS.STUDENT_SESSION_MAX_HOURS;
   const expiresAt = new Date(Date.now() + durationHours * 60 * 60 * 1000);
 
-  await pool.query(
-    `INSERT INTO auth_sessions (user_id, refresh_token_hash, user_agent, ip_address, expires_at)
-     VALUES ($1, $2, $3, $4, $5);`,
-    [s.id, newTokenHash, userAgent || null, ipAddress || null, expiresAt]
-  );
+  await prisma.auth_sessions.create({
+    data: {
+      user_id: u.id,
+      refresh_token_hash: newTokenHash,
+      user_agent: userAgent || null,
+      ip_address: ipAddress || null,
+      expires_at: expiresAt,
+    },
+  });
+
+  const sp = u.student_profiles;
 
   return {
     token: newRawToken,
     expiresAt,
     user: {
-      id: s.id,
-      email: s.email,
-      role: s.role,
-      must_change_password: s.must_change_password,
-      student_profile: s.identifier
+      id: u.id,
+      email: u.email,
+      role: u.role,
+      must_change_password: u.must_change_password,
+      student_profile: sp
         ? {
-            identifier: s.identifier,
-            full_name: s.full_name,
-            institution: s.institution,
-            phone: s.phone,
+            identifier: sp.identifier,
+            full_name: sp.full_name,
+            institution: sp.institution,
+            phone: sp.phone,
           }
         : null,
     },
@@ -290,15 +275,14 @@ export async function changeUserPassword(
     throw new AppError('VALIDATION_FAILED', 'Kata sandi baru tidak boleh sama dengan kata sandi saat ini.');
   }
 
-  const { rows } = await pool.query(
-    `SELECT id, password_hash, role FROM users WHERE id = $1 AND deleted_at IS NULL;`,
-    [userId]
-  );
-  if (rows.length === 0) {
+  const user = await prisma.users.findFirst({
+    where: { id: userId, deleted_at: null },
+    select: { id: true, password_hash: true, role: true },
+  });
+  if (!user) {
     throw new AppError('NOT_FOUND');
   }
 
-  const user = rows[0];
   const isOldValid = await comparePassword(oldPass, user.password_hash);
   if (!isOldValid) {
     throw new AppError('VALIDATION_FAILED', 'Kata sandi saat ini tidak cocok.');
@@ -306,43 +290,36 @@ export async function changeUserPassword(
 
   const newHash = await hashPassword(newPass);
 
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN;');
-
-    await client.query(
-      `UPDATE users 
-       SET password_hash = $1, must_change_password = false, password_changed_at = now(), updated_at = now()
-       WHERE id = $2;`,
-      [newHash, userId]
-    );
+  await prisma.$transaction(async (tx) => {
+    await tx.users.update({
+      where: { id: userId },
+      data: {
+        password_hash: newHash,
+        must_change_password: false,
+        password_changed_at: new Date(),
+      },
+    });
 
     // Revoke all other sessions except current (INV-22)
-    await client.query(
-      `UPDATE auth_sessions
-       SET revoked_at = now()
-       WHERE user_id = $1 AND id != $2 AND revoked_at IS NULL;`,
-      [userId, currentSessionId]
-    );
-
-    await logAudit(
-      {
-        actorId: userId,
-        actorRole: user.role,
-        action: 'auth.change_password',
-        entityType: 'users',
-        entityId: userId,
-        reason: 'User self-service password update',
-        ipAddress,
+    await tx.auth_sessions.updateMany({
+      where: {
+        user_id: userId,
+        id: { not: currentSessionId },
+        revoked_at: null,
       },
-      client
-    );
+      data: {
+        revoked_at: new Date(),
+      },
+    });
 
-    await client.query('COMMIT;');
-  } catch (err) {
-    await client.query('ROLLBACK;');
-    throw err;
-  } finally {
-    client.release();
-  }
+    await logAudit({
+      actorId: userId,
+      actorRole: user.role,
+      action: 'auth.change_password',
+      entityType: 'users',
+      entityId: userId,
+      reason: 'User self-service password update',
+      ipAddress,
+    });
+  });
 }

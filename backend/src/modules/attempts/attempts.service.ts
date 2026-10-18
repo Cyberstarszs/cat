@@ -126,46 +126,68 @@ export async function startExamAttempt(
 
     const selectedQuestionVersions: Array<{ questionVersionId: string }> = [];
 
-    for (const rule of rules) {
-      const alreadySelected = selectedQuestionVersions.map((q) => q.questionVersionId);
-      const diffCond = rule.difficulty ? `AND qv.difficulty = ${rule.difficulty}` : '';
-      const excludeCond = alreadySelected.length > 0 ? `AND qv.id <> ALL($3::uuid[])` : '';
-      const sampleQuery = `
-        SELECT qv.id AS question_version_id
-        FROM questions q
-        JOIN question_versions qv ON qv.id = q.current_version_id
-        WHERE q.category_id = $1 
-          AND q.status = 'active'
-          AND q.deleted_at IS NULL
-          ${diffCond}
-          ${excludeCond}
-        ORDER BY RANDOM()
-        LIMIT $2;
-      `;
-      const queryParams: any[] = [rule.category_id, rule.question_count];
-      if (alreadySelected.length > 0) {
-        queryParams.push(alreadySelected);
-      }
-      const { rows: sampled } = await client.query(sampleQuery, queryParams);
+    if (rules.length > 0) {
+      for (const rule of rules) {
+        const alreadySelected = selectedQuestionVersions.map((q) => q.questionVersionId);
+        const diffCond = rule.difficulty ? `AND qv.difficulty = ${rule.difficulty}` : '';
+        const yearCond = s.question_year ? `AND q.year = ${parseInt(s.question_year, 10)}` : '';
+        const excludeCond = alreadySelected.length > 0 ? `AND qv.id <> ALL($3::uuid[])` : '';
+        const sampleQuery = `
+          SELECT qv.id AS question_version_id
+          FROM questions q
+          JOIN question_versions qv ON qv.id = q.current_version_id
+          WHERE q.category_id = $1 
+            AND q.status = 'active'
+            AND q.deleted_at IS NULL
+            ${diffCond}
+            ${yearCond}
+            ${excludeCond}
+          ORDER BY RANDOM()
+          LIMIT $2;
+        `;
+        const queryParams: any[] = [rule.category_id, rule.question_count];
+        if (alreadySelected.length > 0) {
+          queryParams.push(alreadySelected);
+        }
+        const { rows: sampled } = await client.query(sampleQuery, queryParams);
 
-      if (sampled.length < rule.question_count) {
-        throw new AppError(
-          'QUESTION_POOL_INSUFFICIENT',
-          'Stok bank soal aktif tidak mencukupi untuk komposisi ujian saat ini.'
-        );
-      }
+        if (sampled.length < rule.question_count) {
+          const yearMsg = s.question_year ? ` untuk tahun ${s.question_year}` : '';
+          throw new AppError(
+            'QUESTION_POOL_INSUFFICIENT',
+            `Stok bank soal aktif${yearMsg} tidak mencukupi untuk komposisi ujian saat ini.`
+          );
+        }
 
-      for (const q of sampled) {
+        for (const q of sampled) {
+          selectedQuestionVersions.push({ questionVersionId: q.question_version_id });
+        }
+      }
+    } else {
+      // Fallback jika belum ada aturan komposisi subtes: ambil soal aktif sesuai tahun sesi
+      const yearCond = s.question_year ? `AND q.year = ${parseInt(s.question_year, 10)}` : '';
+      const limitCount = s.question_count || 100;
+      const { rows: allQuestions } = await client.query(
+        `SELECT qv.id AS question_version_id
+         FROM questions q
+         JOIN question_versions qv ON qv.id = q.current_version_id
+         WHERE q.status = 'active'
+           AND q.deleted_at IS NULL
+           ${yearCond}
+         ORDER BY RANDOM()
+         LIMIT $1;`,
+        [limitCount]
+      );
+      for (const q of allQuestions) {
         selectedQuestionVersions.push({ questionVersionId: q.question_version_id });
       }
     }
 
-    // Acak urutan soal jika shuffle_questions = true
-    if (s.shuffle_questions) {
-      for (let i = selectedQuestionVersions.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [selectedQuestionVersions[i], selectedQuestionVersions[j]] = [selectedQuestionVersions[j], selectedQuestionVersions[i]];
-      }
+    // Pastikan urutan soal SELALU diacak secara unik untuk setiap peserta (Fisher-Yates shuffle)
+    // Menjamin urutan soal berbeda untuk setiap peserta meskipun bersumber dari tahun/bank soal yang sama
+    for (let i = selectedQuestionVersions.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [selectedQuestionVersions[i], selectedQuestionVersions[j]] = [selectedQuestionVersions[j], selectedQuestionVersions[i]];
     }
 
     // Insert attempt_questions dan opsi
@@ -178,11 +200,10 @@ export async function startExamAttempt(
       );
 
       let optionIds = options.map((o) => o.id);
-      if (s.shuffle_options) {
-        for (let i = optionIds.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [optionIds[i], optionIds[j]] = [optionIds[j], optionIds[i]];
-        }
+      // Pastikan urutan opsi A-E juga diacak secara unik per peserta
+      for (let i = optionIds.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [optionIds[i], optionIds[j]] = [optionIds[j], optionIds[i]];
       }
 
       const { rows: aqRows } = await client.query(

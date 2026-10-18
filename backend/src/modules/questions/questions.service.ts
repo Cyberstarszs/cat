@@ -3,6 +3,7 @@ import { pool } from '../../db/connection.js';
 import { AppError } from '../../lib/errors.js';
 import { logAudit } from '../audit/audit.service.js';
 import { parseDocxQuestions } from './docx-parser.js';
+import { parseDocQuestions } from './doc-parser.js';
 
 export interface QuestionOptionInput {
   position: number;
@@ -18,6 +19,7 @@ export interface CreateQuestionInput {
   explanation?: string | null;
   options: QuestionOptionInput[];
   status?: 'draft' | 'active';
+  year?: number;
 }
 
 export async function createCategory(name: string, description?: string | null, actorId?: string, ipAddress?: string) {
@@ -83,11 +85,13 @@ export async function createQuestion(data: CreateQuestionInput, actorId: string,
   try {
     await client.query('BEGIN;');
 
+    const questionYear = data.year || new Date().getFullYear();
+
     const { rows: qRows } = await client.query(
-      `INSERT INTO questions (category_id, status, created_by)
-       VALUES ($1, $2, $3)
-       RETURNING id;`,
-      [data.category_id, data.status || 'draft', actorId]
+      `INSERT INTO questions (category_id, status, created_by, year)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, year;`,
+      [data.category_id, data.status || 'draft', actorId, questionYear]
     );
     const questionId = qRows[0].id;
 
@@ -116,7 +120,7 @@ export async function createQuestion(data: CreateQuestionInput, actorId: string,
         action: 'questions.create',
         entityType: 'questions',
         entityId: questionId,
-        afterData: { version_id: versionId, stem: data.stem },
+        afterData: { version_id: versionId, stem: data.stem, year: questionYear },
         ipAddress,
       },
       client
@@ -128,6 +132,7 @@ export async function createQuestion(data: CreateQuestionInput, actorId: string,
       id: questionId,
       current_version_id: versionId,
       version_no: 1,
+      year: questionYear,
     };
   } catch (err) {
     await client.query('ROLLBACK;');
@@ -377,23 +382,13 @@ export function parseAndPreviewQuestionsCSV(csvBuffer: Buffer): {
   };
 }
 
-export function parseAndPreviewQuestionsDocx(
-  docxBuffer: Buffer,
-  defaultCategory: string = 'Umum'
-): {
+function formatAndValidateParsedQuestions(parsed: any[]): {
   totalRows: number;
   validRows: number;
   invalidRows: number;
   rows: any[];
   parsedPayload: any[];
 } {
-  let parsed: any[];
-  try {
-    parsed = parseDocxQuestions(docxBuffer, defaultCategory);
-  } catch (err: any) {
-    throw new AppError('VALIDATION_FAILED', `Gagal membaca format DOCX: ${err.message}`);
-  }
-
   const previewRows: any[] = [];
   const parsedPayload: any[] = [];
 
@@ -457,10 +452,51 @@ export function parseAndPreviewQuestionsDocx(
   };
 }
 
+export function parseAndPreviewQuestionsDocx(
+  docxBuffer: Buffer,
+  defaultCategory: string = 'Umum'
+): {
+  totalRows: number;
+  validRows: number;
+  invalidRows: number;
+  rows: any[];
+  parsedPayload: any[];
+} {
+  let parsed: any[];
+  try {
+    parsed = parseDocxQuestions(docxBuffer, defaultCategory);
+  } catch (err: any) {
+    throw new AppError('VALIDATION_FAILED', `Gagal membaca format DOCX: ${err.message}`);
+  }
+
+  return formatAndValidateParsedQuestions(parsed);
+}
+
+export async function parseAndPreviewQuestionsDoc(
+  docBuffer: Buffer,
+  defaultCategory: string = 'Umum'
+): Promise<{
+  totalRows: number;
+  validRows: number;
+  invalidRows: number;
+  rows: any[];
+  parsedPayload: any[];
+}> {
+  let parsed: any[];
+  try {
+    parsed = await parseDocQuestions(docBuffer, defaultCategory);
+  } catch (err: any) {
+    throw new AppError('VALIDATION_FAILED', `Gagal membaca format DOC: ${err.message}`);
+  }
+
+  return formatAndValidateParsedQuestions(parsed);
+}
+
 export async function commitQuestionsImport(
   parsedQuestions: any[],
   actorId: string,
-  ipAddress?: string
+  ipAddress?: string,
+  importYear?: number
 ): Promise<{ totalImported: number }> {
   const client = await pool.connect();
   try {
@@ -489,11 +525,13 @@ export async function commitQuestionsImport(
         catCache.set(q.categoryName.toLowerCase(), catId!);
       }
 
+      const qYear = q.year || importYear || new Date().getFullYear();
+
       const { rows: qRows } = await client.query(
-        `INSERT INTO questions (category_id, status, created_by)
-         VALUES ($1, 'active', $2)
+        `INSERT INTO questions (category_id, status, created_by, year)
+         VALUES ($1, 'active', $2, $3)
          RETURNING id;`,
-        [catId, actorId]
+        [catId, actorId, qYear]
       );
       const questionId = qRows[0].id;
 
@@ -651,7 +689,7 @@ export async function previewCorrectionImpact(
 export async function getQuestionPreview(questionId: string) {
   const { rows } = await pool.query(
     `SELECT 
-      q.id, q.status, c.name AS category_name,
+      q.id, q.status, q.year, c.name AS category_name,
       qv.id AS version_id, qv.version_no, qv.stem, qv.difficulty, qv.weight, qv.explanation, qv.created_at
      FROM questions q
      JOIN question_categories c ON c.id = q.category_id

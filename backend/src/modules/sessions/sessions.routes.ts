@@ -10,6 +10,7 @@ import {
   setSessionAccessCode,
   previewEnrollStudents,
   enrollStudents,
+  getCandidateStudents,
   extendAllAttempts,
   publishSessionResults,
   regradeSession,
@@ -25,6 +26,7 @@ const createSessionSchema = z.object({
   ends_at: z.string().datetime(),
   capacity: z.number().int().positive().optional().nullable(),
   access_code: z.string().min(4).max(30).optional().nullable(),
+  question_year: z.coerce.number().int().min(1900).max(2100).optional().nullable(),
 });
 
 const updateSessionSchema = z.object({
@@ -32,11 +34,13 @@ const updateSessionSchema = z.object({
   starts_at: z.string().datetime().optional(),
   ends_at: z.string().datetime().optional(),
   capacity: z.number().int().positive().optional().nullable(),
+  question_year: z.coerce.number().int().min(1900).max(2100).optional().nullable(),
 });
 
 const accessCodeSchema = z.object({
   access_code: z.string().optional().nullable(),
 });
+
 
 const extendEndSchema = z.object({
   extra_minutes: z.number().int().min(1).max(180),
@@ -96,7 +100,7 @@ export const sessionRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
       const dataQuery = `
         SELECT 
           s.id, s.exam_id, s.code, s.name, s.starts_at, s.ends_at, s.capacity,
-          s.status, (s.access_code_hash IS NOT NULL) AS has_access_code, s.created_at,
+          s.status, s.question_year, (s.access_code_hash IS NOT NULL) AS has_access_code, s.created_at,
           e.title AS exam_title, e.duration_minutes,
           COUNT(DISTINCT se.id) AS enrolled_count
         FROM exam_sessions s
@@ -186,6 +190,10 @@ export const sessionRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
       if (parse.data.capacity !== undefined) {
         updates.push(`capacity = $${idx++}`);
         params.push(parse.data.capacity || null);
+      }
+      if (parse.data.question_year !== undefined) {
+        updates.push(`question_year = $${idx++}`);
+        params.push(parse.data.question_year || null);
       }
 
       params.push(id);
@@ -300,6 +308,16 @@ export const sessionRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
       );
 
       return reply.send({ data: rows });
+    },
+  });
+
+  // GET /sessions/:id/candidates (Admin - FR-S04 List Candidates & Auto Allocation)
+  fastify.get('/sessions/:id/candidates', {
+    preHandler: [requireRoles(['admin'])],
+    handler: async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const result = await getCandidateStudents(id);
+      return reply.send(result);
     },
   });
 
@@ -463,6 +481,20 @@ export const sessionRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
 
   // POST /sessions/:id/start (M, FR-T03)
   fastify.post('/sessions/:id/start', {
+    preHandler: [requireRoles(['student'])],
+    handler: async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const user = request.user!;
+      const parse = startAttemptSchema.safeParse(request.body || {});
+      const accessCode = parse.success ? parse.data.access_code : undefined;
+
+      const result = await startExamAttempt(id, user.id, accessCode, request.ip);
+      return reply.send({ success: true, ...result });
+    },
+  });
+
+  // POST /sessions/:id/start-attempt (Frontend alias)
+  fastify.post('/sessions/:id/start-attempt', {
     preHandler: [requireRoles(['student'])],
     handler: async (request, reply) => {
       const { id } = request.params as { id: string };

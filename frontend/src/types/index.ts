@@ -79,9 +79,50 @@ export interface ExamSession {
   exam_title?: string;
   passing_score?: number;
   duration_minutes?: number;
+  capacity?: number | null;
+  question_year?: number | null;
   enrolled_count?: number;
   completed_count?: number;
   created_at: string;
+}
+
+export interface CandidateStudent {
+  identifier: string;
+  full_name: string;
+  institution: string | null;
+  email: string;
+  status:
+    | 'available'
+    | 'already_enrolled'
+    | 'enrolled_other_session'
+    | 'schedule_overlap'
+    | 'already_passed'
+    | 'quota_exceeded'
+    | 'suspended';
+  status_reason: string;
+  is_eligible: boolean;
+  other_session_name?: string | null;
+}
+
+export interface CandidateResponse {
+  session: {
+    id: string;
+    name: string;
+    code: string;
+    starts_at: string;
+    ends_at: string;
+    capacity: number;
+    current_enrolled: number;
+    remaining_slots: number;
+  };
+  candidates: CandidateStudent[];
+  stats: {
+    total_students: number;
+    available_count: number;
+    enrolled_this_session: number;
+    enrolled_other_session: number;
+    ineligible_count: number;
+  };
 }
 
 export interface SessionEnrollment {
@@ -116,15 +157,18 @@ export interface QuestionVersion {
 
 export interface Question {
   id: string;
-  code: string;
+  code?: string;
   category_id: string;
   category_name?: string;
   category_code?: string;
-  difficulty?: string;
+  difficulty?: string | number;
   current_version_id?: string;
+  version_id?: string;
   version_number?: number;
+  version_no?: number;
   stem?: string;
   weight?: number;
+  year?: number;
   options?: QuestionOption[];
   created_at: string;
 }

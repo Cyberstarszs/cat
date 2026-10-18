@@ -10,6 +10,7 @@ export const pool = new Pool({
   min: env.DB_POOL_MIN,
   idleTimeoutMillis: env.DB_IDLE_TIMEOUT_MS,
   connectionTimeoutMillis: env.DB_CONNECTION_TIMEOUT_MS,
+  options: '-c timezone=UTC',
 });
 
 export const db = new Kysely<any>({
@@ -17,6 +18,13 @@ export const db = new Kysely<any>({
     pool,
   }),
 });
+
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from '../generated/prisma/client.js';
+
+const prismaAdapter = new PrismaPg(pool);
+export const prisma = new PrismaClient({ adapter: prismaAdapter });
+
 
 export function getPoolMetrics() {
   const total = pool.totalCount;

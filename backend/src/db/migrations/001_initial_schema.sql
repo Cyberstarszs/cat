@@ -1,3 +1,4 @@
+-- src/db/migrations/001_initial_schema.sql
 -- =============================================================================
 -- CAT GOVERNANCE - INITIAL SCHEMA MIGRATION (001_initial_schema.sql)
 -- 23 Tables for General Public Competency Test at FIA
@@ -133,11 +134,13 @@ CREATE TABLE IF NOT EXISTS questions (
     category_id UUID NOT NULL REFERENCES question_categories(id) ON DELETE RESTRICT,
     status publish_state NOT NULL DEFAULT 'draft',
     current_version_id UUID,
+    year INT NOT NULL DEFAULT EXTRACT(YEAR FROM CURRENT_DATE),
     created_by UUID NOT NULL REFERENCES users(id),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     deleted_at TIMESTAMPTZ
 );
-CREATE INDEX IF NOT EXISTS idx_questions_category_status ON questions(category_id, status);
+CREATE INDEX IF NOT EXISTS idx_questions_category_status_year ON questions(category_id, status, year);
+CREATE INDEX IF NOT EXISTS idx_questions_year ON questions(year);
 
 CREATE TABLE IF NOT EXISTS question_versions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -230,6 +233,7 @@ CREATE TABLE IF NOT EXISTS exam_sessions (
     ends_at TIMESTAMPTZ NOT NULL,
     capacity INT CHECK (capacity > 0),
     access_code_hash TEXT,
+    question_year INT,
     status session_state NOT NULL DEFAULT 'draft',
     created_by UUID NOT NULL REFERENCES users(id),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),

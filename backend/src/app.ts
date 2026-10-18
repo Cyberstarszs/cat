@@ -51,6 +51,19 @@ export async function buildApp(): Promise<FastifyInstance> {
   await fastify.register(cors, {
     origin: true,
     credentials: true,
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+  });
+
+  fastify.addContentTypeParser('application/json', { parseAs: 'string' }, (_req, body: string, done) => {
+    if (!body || body.trim() === '') {
+      done(null, {});
+      return;
+    }
+    try {
+      done(null, JSON.parse(body));
+    } catch (err: any) {
+      done(err, undefined);
+    }
   });
 
   await fastify.register(cookie, {

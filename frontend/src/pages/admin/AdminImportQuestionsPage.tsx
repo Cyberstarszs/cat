@@ -45,7 +45,7 @@ interface PreviewRow {
 interface PreviewResponse {
   success: boolean;
   filename: string;
-  file_type: 'docx' | 'csv';
+  file_type: 'docx' | 'doc' | 'csv';
   total_rows: number;
   valid_rows: number;
   invalid_rows: number;
@@ -58,6 +58,7 @@ export const AdminImportQuestionsPage: React.FC = () => {
   const { showToast } = useToast();
 
   const [file, setFile] = useState<File | null>(null);
+  const [importYear, setImportYear] = useState<number>(new Date().getFullYear());
   const [previewData, setPreviewData] = useState<PreviewResponse | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [committing, setCommitting] = useState(false);
@@ -103,10 +104,10 @@ export const AdminImportQuestionsPage: React.FC = () => {
 
     setCommitting(true);
     try {
-      const res = await questionService.commitImportQuestions(previewData.valid_payload);
+      const res = await questionService.commitImportQuestions(previewData.valid_payload, importYear);
       const totalImported = res.total_imported || res.imported_count || previewData.valid_payload.length;
       setCommittedCount(totalImported);
-      showToast(`Sukses menyimpan ${totalImported} butir soal ke bank soal aktif!`, 'success');
+      showToast(`Sukses menyimpan ${totalImported} butir soal ke bank soal aktif tahun ${importYear}!`, 'success');
       setPreviewData(null);
       setFile(null);
     } catch (err: any) {
@@ -150,11 +151,11 @@ export const AdminImportQuestionsPage: React.FC = () => {
             BANK SOAL & ASESMEN AKADEMIK
           </div>
           <h1 className="font-display font-bold text-2xl text-[#24212b]">
-            Impor Massal Butir Soal (DOCX / CSV)
+            Impor Massal Butir Soal (DOC / DOCX / CSV)
           </h1>
           <p className="text-xs text-[#595562] mt-1 max-w-2xl leading-relaxed">
-            Unggah berkas naskah soal berformat Microsoft Word (<code>.docx</code>) seperti template 
-            <em> Tabulasi Soal Assessment LG</em> dengan kunci jawaban bertanda merah, atau berkas tabel CSV terstruktur.
+            Unggah berkas naskah soal berformat Microsoft Word (<code>.docx</code> / <code>.doc</code>) seperti template 
+            <em> Tabulasi Soal Assessment LG</em> dengan kunci jawaban bertanda merah atau penanda kunci (<code>*</code> / <code>Kunci:</code>), atau berkas tabel CSV terstruktur.
           </p>
         </div>
 
@@ -219,7 +220,7 @@ export const AdminImportQuestionsPage: React.FC = () => {
         >
           <div className="flex items-center gap-2">
             <HelpCircle className="w-4 h-4 text-[#754ead]" />
-            <span>Petunjuk Struktur Format Dokumen Word (.docx) & CSV</span>
+            <span>Petunjuk Struktur Format Dokumen Word (.docx / .doc) & CSV</span>
           </div>
           {showGuide ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </button>
@@ -229,7 +230,7 @@ export const AdminImportQuestionsPage: React.FC = () => {
             <div className="space-y-2 bg-white p-3.5 rounded border border-[#e6e1eb]">
               <div className="font-bold text-[#24212b] flex items-center gap-1.5">
                 <FileText className="w-3.5 h-3.5 text-[#583682]" />
-                Format Dokumen Word (.docx)
+                Format Dokumen Word (.docx / .doc)
               </div>
               <ul className="list-disc pl-4 space-y-1 text-[11px] leading-relaxed">
                 <li>
@@ -239,10 +240,10 @@ export const AdminImportQuestionsPage: React.FC = () => {
                   <strong>Teks Soal:</strong> Berisi pertanyaan atau studi kasus (boleh multi-paragraf untuk soal bacaan/analisis).
                 </li>
                 <li>
-                  <strong>Pilihan Opsi (A - E):</strong> Terdiri dari 5 pilihan opsi jawaban di bawah teks soal.
+                  <strong>Pilihan Opsi (A - E):</strong> Terdiri dari 5 pilihan opsi jawaban di bawah teks soal (bisa bertanda <code>A.</code>, <code>B.</code> atau berurutan).
                 </li>
                 <li>
-                  <strong className="text-[#b63b48]">Kunci Jawaban Merah:</strong> Opsi yang benar ditandai dengan teks font berwarna <span className="font-bold text-red-600">MERAH</span> (Word Text Color #FF0000). Sistem otomatis mendeteksi kunci dari warna ini!
+                  <strong className="text-[#b63b48]">Kunci Jawaban:</strong> Sistem otomatis mendeteksi kunci dari teks font berwarna <span className="font-bold text-red-600">MERAH</span> (Word #FF0000), tanda bintang (<code>*</code>), label <code>(Kunci)</code> pada opsi, atau baris <code>Kunci: [A-E]</code>.
                 </li>
               </ul>
             </div>
@@ -273,6 +274,27 @@ export const AdminImportQuestionsPage: React.FC = () => {
 
       {/* Upload Zone */}
       <Card hasShadow className="space-y-5 p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-[#faf9fc] rounded-[8px] border border-[#e6e1eb]">
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-[#24212b] mb-0.5">
+              Tahun Soal untuk Berkas Impor
+            </label>
+            <p className="text-[11px] text-[#595562]">
+              Seluruh butir soal yang berhasil diimpor dari berkas ini akan dicatat pada tahun yang dipilih.
+            </p>
+          </div>
+          <div className="w-full sm:w-44">
+            <input
+              type="number"
+              min={2000}
+              max={2100}
+              value={importYear}
+              onChange={(e) => setImportYear(Number(e.target.value))}
+              className="w-full h-10 px-3 bg-white border border-[#e6e1eb] rounded-[6px] text-xs font-bold text-[#24212b] outline-none focus:border-[#583682]"
+            />
+          </div>
+        </div>
+
         <div className="border-2 border-dashed border-[#cfc2df] hover:border-[#583682] rounded-[10px] p-8 text-center bg-[#faf9fc]/50 hover:bg-[#faf9fc] transition">
           <div className="w-12 h-12 rounded-full bg-[#eae2f5] text-[#583682] flex items-center justify-center mx-auto mb-3 shadow-xs">
             <Upload className="w-6 h-6" />
@@ -281,19 +303,19 @@ export const AdminImportQuestionsPage: React.FC = () => {
             Pilih atau Tarik Berkas Soal ke Sini
           </h3>
           <p className="text-xs text-[#595562] max-w-md mx-auto mb-4">
-            Mendukung berkas <strong>Microsoft Word (.docx)</strong> dan <strong>Comma-Separated Values (.csv)</strong>.
+            Mendukung berkas <strong>Microsoft Word (.docx / .doc)</strong> dan <strong>Comma-Separated Values (.csv)</strong>.
           </p>
 
           <input
             type="file"
-            accept=".docx,.csv"
+            accept=".docx,.doc,.csv"
             onChange={handleFileChange}
             id="question-file-upload"
             className="hidden"
           />
           <label htmlFor="question-file-upload">
             <span className="inline-flex min-h-[40px] px-6 rounded-[6px] font-sans font-bold text-xs tracking-wider uppercase items-center justify-center gap-2 bg-[#583682] text-white cursor-pointer hover:bg-[#352148] transition shadow-xs">
-              {file ? `Ganti Berkas: ${file.name}` : 'Pilih Berkas (.DOCX / .CSV)'}
+              {file ? `Ganti Berkas: ${file.name}` : 'Pilih Berkas (.DOC / .DOCX / .CSV)'}
             </span>
           </label>
         </div>
@@ -303,7 +325,7 @@ export const AdminImportQuestionsPage: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-[#faf9fc] rounded-[8px] border border-[#e6e1eb]">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-[6px] bg-white border border-[#e6e1eb] flex items-center justify-center shrink-0">
-                {file.name.toLowerCase().endsWith('.docx') ? (
+                {file.name.toLowerCase().endsWith('.docx') || file.name.toLowerCase().endsWith('.doc') ? (
                   <FileText className="w-5 h-5 text-[#583682]" />
                 ) : (
                   <FileSpreadsheet className="w-5 h-5 text-[#287a58]" />
@@ -314,8 +336,10 @@ export const AdminImportQuestionsPage: React.FC = () => {
                 <div className="text-[11px] text-[#595562] mt-0.5 flex items-center gap-2">
                   <span>{(file.size / 1024).toFixed(1)} KB</span>
                   <span>•</span>
-                  <Badge variant={file.name.toLowerCase().endsWith('.docx') ? 'purple' : 'success'}>
-                    {file.name.toLowerCase().endsWith('.docx') ? 'Microsoft Word (.docx)' : 'CSV Spreadsheet'}
+                  <Badge variant={file.name.toLowerCase().endsWith('.docx') || file.name.toLowerCase().endsWith('.doc') ? 'purple' : 'success'}>
+                    {file.name.toLowerCase().endsWith('.docx') || file.name.toLowerCase().endsWith('.doc')
+                      ? `Microsoft Word (${file.name.toLowerCase().endsWith('.doc') ? '.doc' : '.docx'})`
+                      : 'CSV Spreadsheet'}
                   </Badge>
                 </div>
               </div>
@@ -399,7 +423,7 @@ export const AdminImportQuestionsPage: React.FC = () => {
               className="bg-[#287a58] border-[#287a58] hover:bg-[#206346] text-xs font-bold py-2.5 px-5 shadow-xs shrink-0 flex items-center gap-2"
             >
               <Check className="w-4 h-4" />
-              Simpan Semua Soal ke Bank Soal ({previewData.valid_rows} Butir)
+              Simpan Semua Soal Tahun {importYear} ke Bank Soal ({previewData.valid_rows} Butir)
             </Button>
           </div>
 

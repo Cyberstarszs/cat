@@ -1,0 +1,464 @@
+generator client {
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["partialIndexes"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model appeals {
+  id                                String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  result_id                         String             @db.Uuid
+  student_id                        String             @db.Uuid
+  question_version_id               String?            @db.Uuid
+  message                           String
+  status                            appeal_state       @default(open)
+  response                          String?
+  responded_by                      String?            @db.Uuid
+  created_at                        DateTime           @default(now()) @db.Timestamptz(6)
+  responded_at                      DateTime?          @db.Timestamptz(6)
+  question_versions                 question_versions? @relation(fields: [question_version_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_appeals_responded_byTousers users?             @relation("appeals_responded_byTousers", fields: [responded_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  results                           results            @relation(fields: [result_id], references: [id], onUpdate: NoAction)
+  users_appeals_student_idTousers   users              @relation("appeals_student_idTousers", fields: [student_id], references: [id], onUpdate: NoAction)
+
+  @@index([result_id], map: "idx_appeals_result")
+  @@index([status], map: "idx_appeals_status")
+}
+
+model attempt_answers {
+  attempt_question_id String            @id @db.Uuid
+  question_version_id String            @db.Uuid
+  selected_option_id  String?           @db.Uuid
+  is_flagged          Boolean           @default(false)
+  client_seq          Int               @default(0)
+  answered_at         DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime          @default(now()) @db.Timestamptz(6)
+  is_correct          Boolean?
+  points_awarded      Decimal?          @db.Decimal(6, 2)
+  attempt_questions   attempt_questions @relation(fields: [attempt_question_id, question_version_id], references: [id, question_version_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_answers_attempt_question")
+  question_options    question_options? @relation(fields: [question_version_id, selected_option_id], references: [question_version_id, id], onUpdate: NoAction, map: "fk_answers_selected_option")
+
+  @@unique([attempt_question_id, question_version_id])
+}
+
+model attempt_events {
+  id          BigInt    @id @default(autoincrement())
+  attempt_id  String    @db.Uuid
+  event_type  String    @db.VarChar(30)
+  occurred_at DateTime  @default(now()) @db.Timestamptz(6)
+  client_time DateTime? @db.Timestamptz(6)
+  detail      Json?
+  attempts    attempts  @relation(fields: [attempt_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([attempt_id, occurred_at], map: "idx_attempt_events_time")
+}
+
+model attempt_questions {
+  id                  String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  attempt_id          String            @db.Uuid
+  question_version_id String            @db.Uuid
+  position            Int               @db.SmallInt
+  option_order        Json
+  attempt_answers     attempt_answers?
+  attempts            attempts          @relation(fields: [attempt_id], references: [id], onUpdate: NoAction)
+  question_versions   question_versions @relation(fields: [question_version_id], references: [id], onUpdate: NoAction)
+
+  @@unique([id, question_version_id], map: "uq_attempt_question_composite")
+  @@unique([attempt_id, position], map: "uq_attempt_question_pos")
+  @@unique([attempt_id, question_version_id], map: "uq_attempt_question_version")
+  @@index([attempt_id], map: "idx_attempt_questions_attempt")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model attempts {
+  id                  String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  enrollment_id       String              @unique(map: "uq_attempts_single_non_void", where: raw("(status <> 'void'::attempt_state)")) @db.Uuid
+  attempt_no          Int                 @default(1)
+  status              attempt_state       @default(in_progress)
+  started_at          DateTime            @default(now()) @db.Timestamptz(6)
+  deadline_at         DateTime            @db.Timestamptz(6)
+  extra_seconds       Int                 @default(0)
+  extension_reason    String?
+  submitted_at        DateTime?           @db.Timestamptz(6)
+  submit_reason       String?             @db.VarChar(20)
+  void_reason         String?
+  created_at          DateTime            @default(now()) @db.Timestamptz(6)
+  attempt_events      attempt_events[]
+  attempt_questions   attempt_questions[]
+  session_enrollments session_enrollments @relation(fields: [enrollment_id], references: [id], onUpdate: NoAction)
+  results             results?
+
+  @@unique([enrollment_id, attempt_no], map: "uq_attempt_enrollment_no")
+  @@index([status, deadline_at], map: "idx_attempts_status_deadline")
+}
+
+model audit_logs {
+  id          BigInt     @id @default(autoincrement())
+  actor_id    String?    @db.Uuid
+  actor_role  user_role?
+  action      String     @db.VarChar(60)
+  entity_type String     @db.VarChar(40)
+  entity_id   String?    @db.Uuid
+  reason      String?
+  before_data Json?
+  after_data  Json?
+  ip_address  String?    @db.Inet
+  created_at  DateTime   @default(now()) @db.Timestamptz(6)
+  users       users?     @relation(fields: [actor_id], references: [id], onUpdate: NoAction)
+
+  @@index([actor_id, created_at], map: "idx_audit_logs_actor")
+  @@index([entity_type, entity_id, created_at], map: "idx_audit_logs_entity")
+}
+
+model auth_sessions {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id            String    @db.Uuid
+  refresh_token_hash String    @unique
+  user_agent         String?
+  ip_address         String?   @db.Inet
+  created_at         DateTime  @default(now()) @db.Timestamptz(6)
+  expires_at         DateTime  @db.Timestamptz(6)
+  revoked_at         DateTime? @db.Timestamptz(6)
+  users              users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id], map: "idx_auth_sessions_user_id")
+}
+
+model certificate_counters {
+  year     Int @id @db.SmallInt
+  last_seq Int @default(0)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model certificates {
+  id                String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  result_id         String     @unique @db.Uuid
+  certificate_no    String     @unique @db.VarChar(40)
+  verification_code String     @unique @db.VarChar(64)
+  issued_at         DateTime   @default(now()) @db.Timestamptz(6)
+  expires_at        DateTime?  @db.Timestamptz(6)
+  status            cert_state @default(valid)
+  revoked_at        DateTime?  @db.Timestamptz(6)
+  revoke_source     String?    @db.VarChar(10)
+  revoked_reason    String?
+  issued_by         String?    @db.Uuid
+  users             users?     @relation(fields: [issued_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  results           results    @relation(fields: [result_id], references: [id], onUpdate: NoAction)
+
+  @@index([verification_code], map: "idx_certificates_verify_code")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model exam_question_rules {
+  id                  String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  exam_id             String              @db.Uuid
+  category_id         String              @db.Uuid
+  difficulty          Int?                @db.SmallInt
+  question_count      Int
+  question_categories question_categories @relation(fields: [category_id], references: [id], onUpdate: NoAction)
+  exams               exams               @relation(fields: [exam_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([exam_id, category_id, difficulty], map: "uq_exam_rules")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model exam_sessions {
+  id                  String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  exam_id             String                @db.Uuid
+  code                String                @unique @db.VarChar(30)
+  name                String                @db.VarChar(200)
+  starts_at           DateTime              @db.Timestamptz(6)
+  ends_at             DateTime              @db.Timestamptz(6)
+  capacity            Int?
+  access_code_hash    String?
+  status              session_state         @default(draft)
+  created_by          String                @db.Uuid
+  created_at          DateTime              @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime              @default(now()) @db.Timestamptz(6)
+  question_year       Int?
+  users               users                 @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  exams               exams                 @relation(fields: [exam_id], references: [id], onUpdate: NoAction)
+  session_enrollments session_enrollments[]
+
+  @@index([exam_id, status], map: "idx_sessions_exam_status")
+  @@index([starts_at, ends_at], map: "idx_sessions_time")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model exams {
+  id                       String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code                     String                @unique @db.VarChar(30)
+  title                    String                @db.VarChar(200)
+  description              String?
+  duration_minutes         Int
+  question_count           Int
+  passing_score            Decimal               @db.Decimal(5, 2)
+  shuffle_questions        Boolean               @default(true)
+  shuffle_options          Boolean               @default(true)
+  max_attempts_per_student Int                   @default(3) @db.SmallInt
+  allow_review             Boolean               @default(false)
+  status                   publish_state         @default(draft)
+  created_by               String                @db.Uuid
+  created_at               DateTime              @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime              @default(now()) @db.Timestamptz(6)
+  exam_question_rules      exam_question_rules[]
+  exam_sessions            exam_sessions[]
+  users                    users                 @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model notifications {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  recipient_id String    @db.Uuid
+  type         String    @db.VarChar(40)
+  title        String    @db.VarChar(200)
+  body         String?
+  entity_type  String?   @db.VarChar(40)
+  entity_id    String?   @db.Uuid
+  created_at   DateTime  @default(now()) @db.Timestamptz(6)
+  read_at      DateTime? @db.Timestamptz(6)
+  dedupe_key   String?   @db.VarChar(100)
+  users        users     @relation(fields: [recipient_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([recipient_id, dedupe_key], map: "uq_notifications_dedupe", where: raw("(dedupe_key IS NOT NULL)"))
+  @@index([recipient_id, read_at, created_at(sort: Desc)], map: "idx_notifications_recipient")
+}
+
+model question_categories {
+  id                  String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                String                @unique @db.VarChar(120)
+  description         String?
+  created_at          DateTime              @default(now()) @db.Timestamptz(6)
+  exam_question_rules exam_question_rules[]
+  questions           questions[]
+}
+
+model question_corrections {
+  id                                                                                        String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  question_version_id                                                                       String            @db.Uuid
+  type                                                                                      correction_type
+  old_option_id                                                                             String?           @db.Uuid
+  new_option_id                                                                             String?           @db.Uuid
+  reason                                                                                    String
+  created_by                                                                                String            @db.Uuid
+  created_at                                                                                DateTime          @default(now()) @db.Timestamptz(6)
+  question_options_question_corrections_question_version_id_new_option_idToquestion_options question_options? @relation("question_corrections_question_version_id_new_option_idToquestion_options", fields: [question_version_id, new_option_id], references: [question_version_id, id], onUpdate: NoAction, map: "fk_corrections_new_option")
+  question_options_question_corrections_question_version_id_old_option_idToquestion_options question_options? @relation("question_corrections_question_version_id_old_option_idToquestion_options", fields: [question_version_id, old_option_id], references: [question_version_id, id], onUpdate: NoAction, map: "fk_corrections_old_option")
+  users                                                                                     users             @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  question_versions                                                                         question_versions @relation(fields: [question_version_id], references: [id], onUpdate: NoAction)
+}
+
+model question_options {
+  id                                                                                            String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  question_version_id                                                                           String                 @unique(map: "uq_question_options_single_correct", where: raw("(is_correct = true)")) @db.Uuid
+  position                                                                                      Int                    @db.SmallInt
+  option_text                                                                                   String
+  is_correct                                                                                    Boolean                @default(false)
+  attempt_answers                                                                               attempt_answers[]
+  question_corrections_question_corrections_question_version_id_new_option_idToquestion_options question_corrections[] @relation("question_corrections_question_version_id_new_option_idToquestion_options")
+  question_corrections_question_corrections_question_version_id_old_option_idToquestion_options question_corrections[] @relation("question_corrections_question_version_id_old_option_idToquestion_options")
+  question_versions                                                                             question_versions      @relation(fields: [question_version_id], references: [id], onUpdate: NoAction)
+
+  @@unique([question_version_id, id], map: "uq_question_options_composite")
+  @@unique([question_version_id, position], map: "uq_question_options_position")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model question_versions {
+  id                                                        String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  question_id                                               String                 @db.Uuid
+  version_no                                                Int
+  stem                                                      String
+  difficulty                                                Int                    @db.SmallInt
+  weight                                                    Decimal                @default(1.00) @db.Decimal(5, 2)
+  explanation                                               String?
+  created_by                                                String                 @db.Uuid
+  created_at                                                DateTime               @default(now()) @db.Timestamptz(6)
+  appeals                                                   appeals[]
+  attempt_questions                                         attempt_questions[]
+  question_corrections                                      question_corrections[]
+  question_options                                          question_options?
+  users                                                     users                  @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  questions_question_versions_question_idToquestions        questions              @relation("question_versions_question_idToquestions", fields: [question_id], references: [id], onUpdate: NoAction)
+  questions_questions_current_version_idToquestion_versions questions[]            @relation("questions_current_version_idToquestion_versions")
+
+  @@unique([question_id, version_no], map: "uq_question_version_no")
+}
+
+/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+model questions {
+  id                                                                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  category_id                                                       String              @db.Uuid
+  status                                                            publish_state       @default(draft)
+  current_version_id                                                String?             @db.Uuid
+  created_by                                                        String              @db.Uuid
+  created_at                                                        DateTime            @default(now()) @db.Timestamptz(6)
+  deleted_at                                                        DateTime?           @db.Timestamptz(6)
+  year                                                              Int                 @default(dbgenerated("EXTRACT(year FROM CURRENT_DATE)"))
+  question_versions_question_versions_question_idToquestions        question_versions[] @relation("question_versions_question_idToquestions")
+  question_versions_questions_current_version_idToquestion_versions question_versions?  @relation("questions_current_version_idToquestion_versions", fields: [current_version_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_questions_current_version")
+  question_categories                                               question_categories @relation(fields: [category_id], references: [id], onUpdate: NoAction)
+  users                                                             users               @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([category_id, status], map: "idx_questions_category_status")
+  @@index([category_id, status, year], map: "idx_questions_category_status_year")
+  @@index([year], map: "idx_questions_year")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model results {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  attempt_id      String        @unique @db.Uuid
+  raw_score       Decimal       @db.Decimal(7, 2)
+  max_score       Decimal       @db.Decimal(7, 2)
+  score           Decimal       @db.Decimal(5, 2)
+  passing_score   Decimal       @db.Decimal(5, 2)
+  passed          Boolean
+  formula_version String        @default("v1") @db.VarChar(20)
+  revision_no     Int           @default(0)
+  status          result_state  @default(pending_publication)
+  graded_at       DateTime      @default(now()) @db.Timestamptz(6)
+  published_at    DateTime?     @db.Timestamptz(6)
+  published_by    String?       @db.Uuid
+  appeals         appeals[]
+  certificates    certificates?
+  attempts        attempts      @relation(fields: [attempt_id], references: [id], onUpdate: NoAction)
+  users           users?        @relation(fields: [published_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([status], map: "idx_results_status")
+}
+
+model schema_migrations {
+  id         Int      @id @default(autoincrement())
+  name       String   @unique @db.VarChar(255)
+  applied_at DateTime @default(now()) @db.Timestamptz(6)
+}
+
+model session_enrollments {
+  id                                             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  session_id                                     String           @db.Uuid
+  student_id                                     String           @db.Uuid
+  status                                         enrollment_state @default(registered)
+  registered_by                                  String?          @db.Uuid
+  registered_at                                  DateTime         @default(now()) @db.Timestamptz(6)
+  attempts                                       attempts?
+  users_session_enrollments_registered_byTousers users?           @relation("session_enrollments_registered_byTousers", fields: [registered_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  exam_sessions                                  exam_sessions    @relation(fields: [session_id], references: [id], onUpdate: NoAction)
+  users_session_enrollments_student_idTousers    users            @relation("session_enrollments_student_idTousers", fields: [student_id], references: [id], onUpdate: NoAction)
+
+  @@unique([session_id, student_id], map: "uq_session_student")
+  @@index([student_id], map: "idx_enrollments_student")
+}
+
+model student_profiles {
+  user_id     String   @id @db.Uuid
+  identifier  String   @unique(map: "uq_student_profiles_identifier") @db.VarChar(50)
+  full_name   String   @db.VarChar(150)
+  institution String?  @db.VarChar(150)
+  phone       String?  @db.VarChar(30)
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @default(now()) @db.Timestamptz(6)
+  users       users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model user_settings {
+  user_id     String   @id @db.Uuid
+  preferences Json     @default("{}")
+  updated_at  DateTime @default(now()) @db.Timestamptz(6)
+  users       users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model users {
+  id                                                           String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email                                                        String                 @db.VarChar(254)
+  password_hash                                                String
+  role                                                         user_role
+  status                                                       user_status            @default(active)
+  must_change_password                                         Boolean                @default(true)
+  failed_login_count                                           Int                    @default(0)
+  locked_until                                                 DateTime?              @db.Timestamptz(6)
+  last_login_at                                                DateTime?              @db.Timestamptz(6)
+  password_changed_at                                          DateTime?              @db.Timestamptz(6)
+  created_at                                                   DateTime               @default(now()) @db.Timestamptz(6)
+  updated_at                                                   DateTime               @default(now()) @db.Timestamptz(6)
+  deleted_at                                                   DateTime?              @db.Timestamptz(6)
+  appeals_appeals_responded_byTousers                          appeals[]              @relation("appeals_responded_byTousers")
+  appeals_appeals_student_idTousers                            appeals[]              @relation("appeals_student_idTousers")
+  audit_logs                                                   audit_logs[]
+  auth_sessions                                                auth_sessions[]
+  certificates                                                 certificates[]
+  exam_sessions                                                exam_sessions[]
+  exams                                                        exams[]
+  notifications                                                notifications[]
+  question_corrections                                         question_corrections[]
+  question_versions                                            question_versions[]
+  questions                                                    questions[]
+  results                                                      results[]
+  session_enrollments_session_enrollments_registered_byTousers session_enrollments[]  @relation("session_enrollments_registered_byTousers")
+  session_enrollments_session_enrollments_student_idTousers    session_enrollments[]  @relation("session_enrollments_student_idTousers")
+  student_profiles                                             student_profiles?
+  user_settings                                                user_settings?
+}
+
+enum appeal_state {
+  open
+  accepted
+  rejected
+}
+
+enum attempt_state {
+  in_progress
+  submitted
+  auto_submitted
+  graded
+  void
+}
+
+enum cert_state {
+  valid
+  revoked
+}
+
+enum correction_type {
+  key_changed
+  also_accept
+  annulled
+}
+
+enum enrollment_state {
+  registered
+  attended
+  absent
+  cancelled
+}
+
+enum publish_state {
+  draft
+  active
+  archived
+}
+
+enum result_state {
+  pending_publication
+  published
+}
+
+enum session_state {
+  draft
+  published
+  cancelled
+}
+
+enum user_role {
+  admin
+  student
+}
+
+enum user_status {
+  active
+  suspended
+}

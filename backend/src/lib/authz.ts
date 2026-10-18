@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { AppError } from './errors.js';
-import { pool } from '../db/connection.js';
+import { prisma } from '../db/prisma.js';
 import { hashToken } from './hash.js';
 
 export interface AuthenticatedUser {
@@ -30,35 +30,34 @@ export async function authenticate(request: FastifyRequest, reply: FastifyReply)
 
   const tokenHash = hashToken(token);
 
-  const query = `
-    SELECT 
-      u.id, u.email, u.role, u.status, u.must_change_password, u.password_changed_at,
-      s.id AS session_id, s.expires_at, s.revoked_at, s.created_at AS session_created_at
-    FROM auth_sessions s
-    JOIN users u ON u.id = s.user_id
-    WHERE s.refresh_token_hash = $1 AND u.deleted_at IS NULL
-    LIMIT 1;
-  `;
+  const session = await prisma.auth_sessions.findFirst({
+    where: {
+      refresh_token_hash: tokenHash,
+      users: { deleted_at: null },
+    },
+    include: {
+      users: true,
+    },
+  });
 
-  const { rows } = await pool.query(query, [tokenHash]);
-  if (rows.length === 0) {
+  if (!session) {
     throw new AppError('AUTH_REQUIRED');
   }
 
-  const session = rows[0];
+  const user = session.users;
 
   // Cek apakah sesi sudah dicabut atau kedaluwarsa
   if (session.revoked_at || new Date(session.expires_at).getTime() <= Date.now()) {
     throw new AppError('AUTH_REQUIRED');
   }
 
-  // Cek apakah password diganti setelah sesi dibuat
-  if (session.password_changed_at && new Date(session.password_changed_at).getTime() > new Date(session.session_created_at).getTime()) {
+  // Cek apakah password diganti setelah sesi dibuat (toleransi 2000ms untuk drift mikrodetik)
+  if (user.password_changed_at && new Date(user.password_changed_at).getTime() > new Date(session.created_at).getTime() + 2000) {
     throw new AppError('AUTH_REQUIRED');
   }
 
   // Cek apakah akun suspended
-  if (session.status === 'suspended') {
+  if (user.status === 'suspended') {
     throw new AppError('AUTH_INVALID_CREDENTIALS', 'Akun telah dinonaktifkan.');
   }
 
@@ -68,17 +67,17 @@ export async function authenticate(request: FastifyRequest, reply: FastifyReply)
     cleanUrl === '/api/v1/me/password' ||
     cleanUrl === '/api/v1/auth/change-password' ||
     cleanUrl === '/api/v1/auth/logout';
-  if (session.must_change_password && !isChangePasswordRoute) {
+  if (user.must_change_password && !isChangePasswordRoute) {
     throw new AppError('AUTH_PASSWORD_CHANGE_REQUIRED');
   }
 
   request.user = {
-    id: session.id,
-    email: session.email,
-    role: session.role,
-    status: session.status,
-    must_change_password: session.must_change_password,
-    session_id: session.session_id,
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    status: user.status,
+    must_change_password: user.must_change_password,
+    session_id: session.id,
   };
 }
 

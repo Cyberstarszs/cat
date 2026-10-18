@@ -96,6 +96,46 @@ export const attemptRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
     },
   });
 
+  // PUT /attempts/:id/answers (M, FR-T05 - Frontend autosave compatibility)
+  fastify.put('/attempts/:id/answers', {
+    preHandler: [requireRoles(['student'])],
+    handler: async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const user = request.user!;
+      const body = (request.body || {}) as {
+        attempt_question_id?: string;
+        selected_option_id?: string | null;
+        is_flagged?: boolean;
+        client_seq?: number;
+      };
+
+      const { attempt_question_id, selected_option_id, client_seq, is_flagged } = body;
+      if (!attempt_question_id) {
+        throw new AppError('VALIDATION_FAILED', 'attempt_question_id wajib diisi.');
+      }
+
+      // Cari nomor position berdasarkan attempt_question_id
+      const { rows: aqRows } = await pool.query(
+        `SELECT position FROM attempt_questions WHERE id = $1 AND attempt_id = $2;`,
+        [attempt_question_id, id]
+      );
+      if (aqRows.length === 0) {
+        throw new AppError('NOT_FOUND', 'Soal tidak ditemukan pada attempt ini.');
+      }
+
+      const result = await saveAttemptAnswer(
+        id,
+        aqRows[0].position,
+        selected_option_id || null,
+        is_flagged ?? false,
+        client_seq || 1,
+        user.id
+      );
+
+      return reply.send(result);
+    },
+  });
+
   // POST /attempts/:id/submit (M, FR-T09)
   fastify.post('/attempts/:id/submit', {
     preHandler: [requireRoles(['student'])],
@@ -127,20 +167,22 @@ export const attemptRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
     },
   });
 
-  // --- ADMIN ENDPOINTS ---
+  // --- ATTEMPT DETAIL ENDPOINT (ADMIN & STUDENT ANTI-IDOR) ---
 
-  // GET /attempts/:id (A, FR-T12)
+  // GET /attempts/:id (A & M, FR-T12, FR-T04)
   fastify.get('/attempts/:id', {
-    preHandler: [requireRoles(['admin'])],
+    preHandler: [requireRoles(['admin', 'student'])],
     handler: async (request, reply) => {
       const { id } = request.params as { id: string };
+      const user = request.user!;
 
       const { rows } = await pool.query(
         `SELECT 
           a.*,
+          se.student_id,
           sp.identifier, sp.full_name, sp.institution, u.email,
           s.id AS session_id, s.name AS session_name, s.code AS session_code,
-          e.id AS exam_id, e.title AS exam_title, e.passing_score
+          e.id AS exam_id, e.title AS exam_title, e.duration_minutes, e.passing_score
          FROM attempts a
          JOIN session_enrollments se ON se.id = a.enrollment_id
          JOIN student_profiles sp ON sp.user_id = se.student_id
@@ -154,7 +196,44 @@ export const attemptRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
       if (rows.length === 0) throw new AppError('NOT_FOUND');
       const att = rows[0];
 
-      // Ambil jawaban dan hasil jika ada
+      // Anti-IDOR: Peserta hanya dapat melihat percobaan miliknya sendiri
+      if (user.role === 'student' && att.student_id !== user.id) {
+        throw new AppError('NOT_FOUND');
+      }
+
+      // Jika diakses oleh siswa: kembalikan struktur soal dan opsi teracak tanpa membocorkan is_correct
+      if (user.role === 'student') {
+        const { questions: rawQuestions } = await getAttemptQuestions(id, user.id);
+        const now = new Date();
+        const deadline = new Date(att.deadline_at);
+        const timeRemainingSeconds = Math.max(0, Math.floor((deadline.getTime() - now.getTime()) / 1000));
+
+        const formattedQuestions = rawQuestions.map((q) => ({
+          id: q.attempt_question_id,
+          question_version_id: q.attempt_question_id,
+          order_seq: q.position,
+          stem: q.stem,
+          weight: q.weight,
+          selected_option_id: q.selected_option_id,
+          is_doubtful: q.is_flagged,
+          options: q.options,
+        }));
+
+        return reply.send({
+          attempt: {
+            id: att.id,
+            session_id: att.session_id,
+            exam_title: att.exam_title,
+            status: att.status,
+            started_at: att.started_at,
+            duration_minutes: att.duration_minutes,
+            time_remaining_seconds: timeRemainingSeconds,
+            questions: formattedQuestions,
+          },
+        });
+      }
+
+      // Admin view: sertakan detail jawaban, kunci, dan skor
       const { rows: answers } = await pool.query(
         `SELECT 
           aq.position, qv.stem, qv.weight,

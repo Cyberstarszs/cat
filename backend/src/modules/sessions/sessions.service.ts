@@ -13,6 +13,7 @@ export interface CreateSessionInput {
   ends_at: string;
   capacity?: number | null;
   access_code?: string | null;
+  question_year?: number | null;
 }
 
 export async function createSession(data: CreateSessionInput, actorId: string, ipAddress?: string) {
@@ -49,8 +50,8 @@ export async function createSession(data: CreateSessionInput, actorId: string, i
 
   const { rows } = await pool.query(
     `INSERT INTO exam_sessions (
-      exam_id, code, name, starts_at, ends_at, capacity, access_code_hash, status, created_by
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'draft', $8)
+      exam_id, code, name, starts_at, ends_at, capacity, access_code_hash, question_year, status, created_by
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'draft', $9)
     RETURNING *;`,
     [
       data.exam_id,
@@ -58,8 +59,9 @@ export async function createSession(data: CreateSessionInput, actorId: string, i
       data.name.trim(),
       startsAt.toISOString(),
       endsAt.toISOString(),
-      data.capacity || null,
+      data.capacity ? parseInt(String(data.capacity), 10) : 27,
       accessCodeHash,
+      data.question_year ? parseInt(String(data.question_year), 10) : null,
       actorId,
     ]
   );
@@ -107,8 +109,8 @@ export async function publishSession(sessionId: string, actorId: string, ipAddre
     );
   }
 
-  // 2. Validasi kecukupan bank soal
-  await validateQuestionPoolSufficiency(s.exam_id);
+  // 2. Validasi kecukupan bank soal (memperhitungkan tahun soal jika disetel pada sesi)
+  await validateQuestionPoolSufficiency(s.exam_id, s.question_year);
 
   // 3. Update status to published
   const { rows } = await pool.query(
@@ -228,9 +230,10 @@ export async function enrollStudents(
       const cleanIdent = ident.trim();
       if (!cleanIdent) continue;
 
-      // Check capacity
-      if (s.capacity && currentEnrolled >= s.capacity) {
-        skipped.push({ identifier: cleanIdent, reason: 'Kapasitas sesi penuh' });
+      // Check capacity (Default max 27 per lab session)
+      const maxCapacity = s.capacity ?? 27;
+      if (currentEnrolled >= maxCapacity) {
+        skipped.push({ identifier: cleanIdent, reason: `Kapasitas sesi penuh (maksimal ${maxCapacity} peserta)` });
         continue;
       }
 
@@ -710,8 +713,9 @@ export async function previewEnrollStudents(
     const cleanIdent = ident.trim();
     if (!cleanIdent) continue;
 
-    if (s.capacity && simulatedEnrolled >= s.capacity) {
-      skippedStudents.push({ identifier: cleanIdent, reason: 'Kapasitas sesi penuh' });
+    const maxCapacity = s.capacity ?? 27;
+    if (simulatedEnrolled >= maxCapacity) {
+      skippedStudents.push({ identifier: cleanIdent, reason: `Kapasitas sesi penuh (maksimal ${maxCapacity} peserta)` });
       continue;
     }
 
@@ -808,5 +812,191 @@ export async function previewEnrollStudents(
     skipped_students: skippedStudents,
   };
 }
+
+export interface CandidateStudent {
+  identifier: string;
+  full_name: string;
+  institution: string | null;
+  email: string;
+  status:
+    | 'available'
+    | 'already_enrolled'
+    | 'enrolled_other_session'
+    | 'schedule_overlap'
+    | 'already_passed'
+    | 'quota_exceeded'
+    | 'suspended';
+  status_reason: string;
+  is_eligible: boolean;
+  other_session_name?: string | null;
+}
+
+export interface CandidateResponse {
+  session: {
+    id: string;
+    name: string;
+    code: string;
+    starts_at: string;
+    ends_at: string;
+    capacity: number;
+    current_enrolled: number;
+    remaining_slots: number;
+  };
+  candidates: CandidateStudent[];
+  stats: {
+    total_students: number;
+    available_count: number;
+    enrolled_this_session: number;
+    enrolled_other_session: number;
+    ineligible_count: number;
+  };
+}
+
+export async function getCandidateStudents(sessionId: string): Promise<CandidateResponse> {
+  const { rows: sessionRows } = await pool.query(
+    `SELECT s.*, e.id AS exam_id, e.title AS exam_title, e.max_attempts_per_student
+     FROM exam_sessions s
+     JOIN exams e ON e.id = s.exam_id
+     WHERE s.id = $1;`,
+    [sessionId]
+  );
+  if (sessionRows.length === 0) throw new AppError('NOT_FOUND', 'Sesi ujian tidak ditemukan');
+  const s = sessionRows[0];
+
+  const { rows: countRows } = await pool.query(
+    'SELECT COUNT(*) AS total FROM session_enrollments WHERE session_id = $1;',
+    [sessionId]
+  );
+  const current_enrolled = parseInt(countRows[0].total, 10);
+  const capacity = s.capacity ?? 27;
+  const remaining_slots = Math.max(0, capacity - current_enrolled);
+
+  const query = `
+    SELECT 
+      sp.identifier,
+      sp.full_name,
+      sp.institution,
+      u.id AS user_id,
+      u.email,
+      u.status AS user_status,
+      EXISTS(
+        SELECT 1 FROM session_enrollments se 
+        WHERE se.session_id = $1 AND se.student_id = u.id
+      ) AS is_enrolled_here,
+      (
+        SELECT es2.name FROM session_enrollments se2
+        JOIN exam_sessions es2 ON es2.id = se2.session_id
+        WHERE se2.student_id = u.id AND es2.exam_id = $2 AND es2.id <> $1 AND es2.status <> 'cancelled'
+        ORDER BY es2.starts_at ASC
+        LIMIT 1
+      ) AS other_session_name,
+      (
+        SELECT es3.name FROM session_enrollments se3
+        JOIN exam_sessions es3 ON es3.id = se3.session_id
+        WHERE se3.student_id = u.id 
+          AND es3.id <> $1 
+          AND es3.status <> 'cancelled'
+          AND (es3.starts_at < $4 AND es3.ends_at > $3)
+        LIMIT 1
+      ) AS overlap_session_name,
+      EXISTS(
+        SELECT 1 FROM results r
+        JOIN attempts a ON a.id = r.attempt_id
+        JOIN session_enrollments se4 ON se4.id = a.enrollment_id
+        JOIN exam_sessions es4 ON es4.id = se4.session_id
+        WHERE se4.student_id = u.id AND es4.exam_id = $2 AND r.passed = true AND r.status = 'published'
+      ) AS has_passed,
+      (
+        SELECT COUNT(*) FROM attempts a
+        JOIN session_enrollments se5 ON se5.id = a.enrollment_id
+        JOIN exam_sessions es5 ON es5.id = se5.session_id
+        WHERE se5.student_id = u.id AND es5.exam_id = $2 AND a.status <> 'void'
+      ) AS attempts_used
+    FROM student_profiles sp
+    JOIN users u ON u.id = sp.user_id
+    WHERE u.deleted_at IS NULL AND u.role = 'student'
+    ORDER BY sp.identifier ASC;
+  `;
+
+  const { rows } = await pool.query(query, [s.id, s.exam_id, s.starts_at, s.ends_at]);
+
+  let available_count = 0;
+  let enrolled_this_session = 0;
+  let enrolled_other_session = 0;
+  let ineligible_count = 0;
+
+  const candidates: CandidateStudent[] = rows.map((row) => {
+    let status: CandidateStudent['status'] = 'available';
+    let status_reason = 'Siap dialokasikan';
+    let is_eligible = true;
+
+    if (row.is_enrolled_here) {
+      status = 'already_enrolled';
+      status_reason = 'Sudah terdaftar di sesi ini';
+      is_eligible = false;
+      enrolled_this_session++;
+    } else if (row.user_status === 'suspended') {
+      status = 'suspended';
+      status_reason = 'Akun mahasiswa dinonaktifkan';
+      is_eligible = false;
+      ineligible_count++;
+    } else if (row.has_passed) {
+      status = 'already_passed';
+      status_reason = 'Sudah lulus ujian ini';
+      is_eligible = false;
+      ineligible_count++;
+    } else if (parseInt(row.attempts_used || '0', 10) >= (s.max_attempts_per_student || 1)) {
+      status = 'quota_exceeded';
+      status_reason = 'Batas kesempatan ujian habis';
+      is_eligible = false;
+      ineligible_count++;
+    } else if (row.overlap_session_name) {
+      status = 'schedule_overlap';
+      status_reason = `Jadwal bentrok dengan sesi "${row.overlap_session_name}"`;
+      is_eligible = false;
+      ineligible_count++;
+    } else if (row.other_session_name) {
+      status = 'enrolled_other_session';
+      status_reason = `Sudah terjadwal di sesi "${row.other_session_name}"`;
+      is_eligible = false;
+      enrolled_other_session++;
+    } else {
+      available_count++;
+    }
+
+    return {
+      identifier: row.identifier,
+      full_name: row.full_name,
+      institution: row.institution || null,
+      email: row.email,
+      status,
+      status_reason,
+      is_eligible,
+      other_session_name: row.other_session_name || null,
+    };
+  });
+
+  return {
+    session: {
+      id: s.id,
+      name: s.name,
+      code: s.code,
+      starts_at: s.starts_at,
+      ends_at: s.ends_at,
+      capacity,
+      current_enrolled,
+      remaining_slots,
+    },
+    candidates,
+    stats: {
+      total_students: candidates.length,
+      available_count,
+      enrolled_this_session,
+      enrolled_other_session,
+      ineligible_count,
+    },
+  };
+}
+
 
 

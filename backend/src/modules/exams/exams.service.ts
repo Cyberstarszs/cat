@@ -50,7 +50,10 @@ export async function assertExamNotLocked(examId: string): Promise<void> {
 /**
  * Validasi kecukupan bank soal aktif terhadap aturan komposisi (QUESTION_POOL_INSUFFICIENT)
  */
-export async function validateQuestionPoolSufficiency(examId: string): Promise<void> {
+export async function validateQuestionPoolSufficiency(
+  examId: string,
+  questionYear?: number | null
+): Promise<void> {
   const rulesQuery = `
     SELECT r.id, r.category_id, r.difficulty, r.question_count, c.name AS category_name
     FROM exam_question_rules r
@@ -61,6 +64,7 @@ export async function validateQuestionPoolSufficiency(examId: string): Promise<v
 
   for (const rule of rules) {
     const diffCondition = rule.difficulty ? `AND qv.difficulty = ${rule.difficulty}` : '';
+    const yearCondition = questionYear ? `AND q.year = ${parseInt(String(questionYear), 10)}` : '';
     const poolCheck = `
       SELECT COUNT(DISTINCT q.id) AS available
       FROM questions q
@@ -68,15 +72,17 @@ export async function validateQuestionPoolSufficiency(examId: string): Promise<v
       WHERE q.category_id = $1 
         AND q.status = 'active'
         AND q.deleted_at IS NULL
-        ${diffCondition};
+        ${diffCondition}
+        ${yearCondition};
     `;
     const { rows: poolRows } = await pool.query(poolCheck, [rule.category_id]);
     const available = parseInt(poolRows[0].available, 10);
 
     if (available < rule.question_count) {
+      const yearText = questionYear ? ` tahun ${questionYear}` : '';
       throw new AppError(
         'QUESTION_POOL_INSUFFICIENT',
-        `Bank soal untuk kategori "${rule.category_name}"${rule.difficulty ? ` (tingkat ${rule.difficulty})` : ''} tidak mencukupi (dibutuhkan ${rule.question_count}, tersedia ${available}).`
+        `Bank soal untuk kategori "${rule.category_name}"${rule.difficulty ? ` (tingkat ${rule.difficulty})` : ''}${yearText} tidak mencukupi (dibutuhkan ${rule.question_count}, tersedia ${available}).`
       );
     }
   }

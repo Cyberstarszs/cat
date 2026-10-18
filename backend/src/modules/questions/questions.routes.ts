@@ -13,6 +13,7 @@ import {
   getQuestionPreview,
   parseAndPreviewQuestionsCSV,
   parseAndPreviewQuestionsDocx,
+  parseAndPreviewQuestionsDoc,
   commitQuestionsImport,
 } from './questions.service.js';
 
@@ -22,24 +23,51 @@ const categorySchema = z.object({
   description: z.string().optional().nullable(),
 });
 
-const questionOptionSchema = z.object({
-  position: z.number().int().min(1),
-  option_text: z.string().min(1),
-  is_correct: z.boolean(),
-});
+const questionOptionSchema = z
+  .object({
+    position: z.number().int().min(1).optional(),
+    label: z.string().optional(),
+    option_text: z.string().optional(),
+    text: z.string().optional(),
+    is_correct: z.boolean(),
+  })
+  .transform((val, ctx) => {
+    const text = val.option_text || val.text;
+    if (!text || !text.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Teks opsi harus diisi',
+      });
+    }
+    let pos = val.position;
+    if (!pos && val.label) {
+      const charCode = val.label.toUpperCase().charCodeAt(0);
+      if (charCode >= 65 && charCode <= 90) {
+        pos = charCode - 64;
+      }
+    }
+    return {
+      position: pos || 1,
+      option_text: (text || '').trim(),
+      is_correct: !!val.is_correct,
+    };
+  });
 
 const createQuestionSchema = z.object({
   category_id: z.string().uuid(),
+  code: z.string().optional(),
   stem: z.string().min(3),
-  difficulty: z.number().int().min(1).max(3),
-  weight: z.number().positive().optional(),
+  difficulty: z.coerce.number().int().min(1).max(3).optional().default(1),
+  weight: z.coerce.number().positive().optional().default(1.0),
   explanation: z.string().optional().nullable(),
   options: z.array(questionOptionSchema).min(2),
   status: z.enum(['draft', 'active']).optional(),
+  year: z.coerce.number().int().min(1900).max(2100).optional(),
 });
 
-const updateQuestionStatusSchema = z.object({
-  status: z.enum(['draft', 'active', 'archived']),
+const updateQuestionSchema = z.object({
+  status: z.enum(['draft', 'active', 'archived']).optional(),
+  year: z.coerce.number().int().min(1900).max(2100).optional(),
 });
 
 const correctionSchema = z.object({
@@ -135,17 +163,26 @@ export const questionRoutes: FastifyPluginAsync = async (fastify: FastifyInstanc
   fastify.delete('/categories/:id', deleteCategoryHandler);
 
   // --- BANK SOAL ---
+  fastify.get('/questions/years', async (_request, reply) => {
+    const { rows } = await pool.query(
+      `SELECT DISTINCT year FROM questions WHERE deleted_at IS NULL ORDER BY year DESC;`
+    );
+    const years = rows.map((r: any) => r.year).filter((y: any) => y !== null && y !== undefined);
+    return reply.send({ data: years });
+  });
+
   fastify.get('/questions', async (request, reply) => {
     const query = request.query as {
       category_id?: string;
       status?: string;
       difficulty?: string;
       search?: string;
+      year?: string;
       limit?: string;
       offset?: string;
     };
 
-    const limit = Math.min(Math.max(parseInt(query.limit || '25', 10), 1), 100);
+    const limit = Math.min(Math.max(parseInt(query.limit || '1000', 10), 1), 5000);
     const offset = Math.max(parseInt(query.offset || '0', 10), 0);
 
     const conditions: string[] = ['q.deleted_at IS NULL'];
@@ -163,6 +200,10 @@ export const questionRoutes: FastifyPluginAsync = async (fastify: FastifyInstanc
     if (query.difficulty) {
       conditions.push(`qv.difficulty = $${idx++}`);
       params.push(parseInt(query.difficulty, 10));
+    }
+    if (query.year) {
+      conditions.push(`q.year = $${idx++}`);
+      params.push(parseInt(query.year, 10));
     }
     if (query.search) {
       conditions.push(`qv.stem ILIKE $${idx++}`);
@@ -182,9 +223,14 @@ export const questionRoutes: FastifyPluginAsync = async (fastify: FastifyInstanc
 
     const dataQuery = `
       SELECT 
-        q.id, q.category_id, q.status, q.created_at,
+        q.id, q.category_id, q.status, q.year, q.created_at,
         c.name AS category_name,
-        qv.id AS version_id, qv.version_no, qv.stem, qv.difficulty, qv.weight, qv.explanation
+        COALESCE('Q-' || UPPER(SUBSTRING(q.id::text, 1, 8)), 'Q-0000') AS code,
+        qv.id AS current_version_id,
+        qv.id AS version_id,
+        qv.version_no AS version_number,
+        qv.version_no,
+        qv.stem, qv.difficulty, qv.weight, qv.explanation
       FROM questions q
       JOIN question_categories c ON c.id = q.category_id
       LEFT JOIN question_versions qv ON qv.id = q.current_version_id
@@ -211,9 +257,14 @@ export const questionRoutes: FastifyPluginAsync = async (fastify: FastifyInstanc
 
     const { rows } = await pool.query(
       `SELECT 
-        q.id, q.category_id, q.status, q.created_at,
+        q.id, q.category_id, q.status, q.year, q.created_at,
         c.name AS category_name,
-        qv.id AS current_version_id, qv.version_no, qv.stem, qv.difficulty, qv.weight, qv.explanation
+        COALESCE('Q-' || UPPER(SUBSTRING(q.id::text, 1, 8)), 'Q-0000') AS code,
+        qv.id AS current_version_id,
+        qv.id AS version_id,
+        qv.version_no AS version_number,
+        qv.version_no,
+        qv.stem, qv.difficulty, qv.weight, qv.explanation
        FROM questions q
        JOIN question_categories c ON c.id = q.category_id
        JOIN question_versions qv ON qv.id = q.current_version_id
@@ -232,17 +283,42 @@ export const questionRoutes: FastifyPluginAsync = async (fastify: FastifyInstanc
       [question.current_version_id]
     );
 
-    return reply.send({ question: { ...question, options } });
+    const formattedOptions = options.map((opt: any, idx: number) => ({
+      id: opt.id,
+      position: opt.position,
+      label: String.fromCharCode(65 + idx),
+      text: opt.option_text,
+      option_text: opt.option_text,
+      is_correct: opt.is_correct,
+    }));
+
+    return reply.send({ question: { ...question, options: formattedOptions } });
   });
 
   fastify.patch('/questions/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
-    const parse = updateQuestionStatusSchema.safeParse(request.body);
-    if (!parse.success) throw new AppError('VALIDATION_FAILED', 'Format status salah', parse.error.format());
+    const parse = updateQuestionSchema.safeParse(request.body);
+    if (!parse.success) throw new AppError('VALIDATION_FAILED', 'Format pembaruan butir soal salah', parse.error.format());
 
+    const updates: string[] = [];
+    const params: any[] = [];
+    let idx = 1;
+
+    if (parse.data.status !== undefined) {
+      updates.push(`status = $${idx++}`);
+      params.push(parse.data.status);
+    }
+    if (parse.data.year !== undefined) {
+      updates.push(`year = $${idx++}`);
+      params.push(parse.data.year);
+    }
+
+    if (updates.length === 0) return reply.send({ success: true });
+
+    params.push(id);
     const { rows } = await pool.query(
-      `UPDATE questions SET status = $1 WHERE id = $2 AND deleted_at IS NULL RETURNING id, status;`,
-      [parse.data.status, id]
+      `UPDATE questions SET ${updates.join(', ')} WHERE id = $${idx} AND deleted_at IS NULL RETURNING id, status, year;`,
+      params
     );
     if (rows.length === 0) throw new AppError('NOT_FOUND');
 
@@ -328,27 +404,38 @@ export const questionRoutes: FastifyPluginAsync = async (fastify: FastifyInstanc
     return reply.status(201).send({ success: true, correction: result });
   });
 
-  // --- IMPOR SOAL CSV & DOCX (FR-Q06) ---
+  // --- IMPOR SOAL CSV & DOCX / DOC (FR-Q06) ---
   fastify.post('/questions/import/preview', async (request, reply) => {
     const data = await request.file();
-    if (!data) throw new AppError('VALIDATION_FAILED', 'Berkas impor (.docx / .csv) tidak ditemukan.');
+    if (!data) throw new AppError('VALIDATION_FAILED', 'Berkas impor (.docx / .doc / .csv) tidak ditemukan.');
 
     const filename = (data.filename || '').toLowerCase();
     const buffer = await data.toBuffer();
 
     let preview;
+    let fileType: 'docx' | 'doc' | 'csv' = 'docx';
+
     if (filename.endsWith('.docx')) {
-      preview = parseAndPreviewQuestionsDocx(buffer);
+      fileType = 'docx';
+      try {
+        preview = parseAndPreviewQuestionsDocx(buffer);
+      } catch {
+        preview = await parseAndPreviewQuestionsDoc(buffer);
+      }
+    } else if (filename.endsWith('.doc')) {
+      fileType = 'doc';
+      preview = await parseAndPreviewQuestionsDoc(buffer);
     } else if (filename.endsWith('.csv') || filename.endsWith('.txt')) {
+      fileType = 'csv';
       preview = parseAndPreviewQuestionsCSV(buffer);
     } else {
-      throw new AppError('VALIDATION_FAILED', 'Format berkas tidak didukung. Harap unggah berkas bertipe .DOCX atau .CSV.');
+      throw new AppError('VALIDATION_FAILED', 'Format berkas tidak didukung. Harap unggah berkas bertipe .DOC, .DOCX, atau .CSV.');
     }
 
     return reply.send({
       success: true,
       filename: data.filename,
-      file_type: filename.endsWith('.docx') ? 'docx' : 'csv',
+      file_type: fileType,
       total_rows: preview.totalRows,
       valid_rows: preview.validRows,
       invalid_rows: preview.invalidRows,
@@ -358,13 +445,14 @@ export const questionRoutes: FastifyPluginAsync = async (fastify: FastifyInstanc
   });
 
   fastify.post('/questions/import/commit', async (request, reply) => {
-    const body = request.body as { questions?: any[]; items?: any[] };
+    const body = request.body as { questions?: any[]; items?: any[]; year?: number | string };
     const payload = body?.questions || body?.items;
     if (!payload || !Array.isArray(payload) || payload.length === 0) {
       throw new AppError('VALIDATION_FAILED', 'Daftar butir soal untuk diimpor tidak boleh kosong.');
     }
 
-    const result = await commitQuestionsImport(payload, request.user!.id, request.ip);
+    const importYear = body.year ? parseInt(String(body.year), 10) : undefined;
+    const result = await commitQuestionsImport(payload, request.user!.id, request.ip, importYear);
     return reply.send({
       success: true,
       total_imported: result.totalImported,
