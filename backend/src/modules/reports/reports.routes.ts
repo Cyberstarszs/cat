@@ -10,6 +10,7 @@ import {
   exportSessionResultsCSV,
   exportExamResultsCSV,
 } from './reports.service.js';
+import { generateSessionCredentialsPDF } from '../sessions/sessions.pdf.js';
 
 export const reportRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
   fastify.addHook('preHandler', authenticate);
@@ -49,6 +50,23 @@ export const reportRoutes: FastifyPluginAsync = async (fastify: FastifyInstance)
     reply.header('Content-Type', 'text/csv; charset=utf-8');
     reply.header('Content-Disposition', `attachment; filename="hasil_sesi_${id.slice(0, 8)}.csv"`);
     return reply.send(csvContent);
+  });
+
+  // GET /reports/sessions/:id/credentials-pdf
+  fastify.get('/reports/sessions/:id/credentials-pdf', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { pdfBuffer, sessionCode } = await generateSessionCredentialsPDF(
+      id,
+      request.user!.id,
+      request.ip
+    );
+
+    reply.header('Content-Type', 'application/pdf');
+    reply.header(
+      'Content-Disposition',
+      `attachment; filename="Kredensial_Peserta_${sessionCode}.pdf"`
+    );
+    return reply.send(pdfBuffer);
   });
 
   // GET /reports/exams/:id/export (A, FR-L03)

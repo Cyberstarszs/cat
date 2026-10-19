@@ -179,6 +179,7 @@ export async function createStudentUser(
             full_name: data.fullName.trim(),
             institution: cleanInstitution,
             phone: data.phone?.trim() || null,
+            initial_password: tempPassword,
           },
         },
         user_settings: {
@@ -475,9 +476,9 @@ export async function commitStudentImport(
       const inst = student.institution?.trim() || (userRole === 'umum' ? 'Umum' : 'ADMINISTRASI PUBLIK');
 
       await client.query(
-        `INSERT INTO student_profiles (user_id, identifier, full_name, institution, phone)
-         VALUES ($1, $2, $3, $4, $5);`,
-        [userId, student.identifier, student.fullName, inst, student.phone || null]
+        `INSERT INTO student_profiles (user_id, identifier, full_name, institution, phone, initial_password)
+         VALUES ($1, $2, $3, $4, $5, $6);`,
+        [userId, student.identifier, student.fullName, inst, student.phone || null, tempPassword]
       );
 
       await client.query(
@@ -581,6 +582,13 @@ export async function resetUserPassword(
         must_change_password: false,
       },
     });
+
+    if (targetUser.role !== 'admin') {
+      await tx.student_profiles.updateMany({
+        where: { user_id: targetUserId },
+        data: { initial_password: tempPassword },
+      });
+    }
 
     // Revoke all sessions for target user
     await tx.auth_sessions.updateMany({

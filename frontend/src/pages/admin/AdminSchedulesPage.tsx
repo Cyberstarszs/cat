@@ -29,6 +29,7 @@ import {
   Info,
   Filter,
   RefreshCw,
+  Printer,
 } from 'lucide-react';
 
 export const AdminSchedulesPage: React.FC = () => {
@@ -80,6 +81,7 @@ export const AdminSchedulesPage: React.FC = () => {
   const [viewEnrollmentsModalOpen, setViewEnrollmentsModalOpen] = useState(false);
   const [enrolledStudents, setEnrolledStudents] = useState<SessionEnrollment[]>([]);
   const [loadingEnrollments, setLoadingEnrollments] = useState(false);
+  const [downloadingPdfId, setDownloadingPdfId] = useState<string | null>(null);
 
   const fetchSessionsAndExams = async () => {
     setLoading(true);
@@ -374,6 +376,30 @@ export const AdminSchedulesPage: React.FC = () => {
     }
   };
 
+  const handleExportCredentialsPDF = async (sess: ExamSession) => {
+    if ((sess.enrolled_count || 0) === 0) {
+      showToast(`Belum ada peserta yang didaftarkan ke sesi "${sess.name}".`, 'warning');
+      return;
+    }
+    setDownloadingPdfId(sess.id);
+    try {
+      const blob = await sessionService.exportSessionCredentialsPDF(sess.id);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Kredensial_Peserta_${sess.code}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      showToast(`Kartu kredensial sesi "${sess.name}" berhasil diunduh dalam format PDF!`, 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Gagal mengunduh kartu kredensial PDF.', 'error');
+    } finally {
+      setDownloadingPdfId(null);
+    }
+  };
+
   const filteredSessions = sessions.filter(
     (s) =>
       s.code.toLowerCase().includes(search.toLowerCase()) ||
@@ -523,6 +549,14 @@ export const AdminSchedulesPage: React.FC = () => {
                             <Edit2 className="w-4 h-4" />
                           </button>
                         )}
+                        <button
+                          onClick={() => handleExportCredentialsPDF(sess)}
+                          disabled={downloadingPdfId === sess.id}
+                          className="p-1.5 text-amber-600 hover:bg-amber-50 rounded transition"
+                          title="Cetak / Export Kartu Kredensial Peserta (PDF Siap Print)"
+                        >
+                          <Printer className={`w-4 h-4 ${downloadingPdfId === sess.id ? 'animate-pulse' : ''}`} />
+                        </button>
                         <button
                           onClick={() => handleExportCSV(sess)}
                           className="p-1.5 text-gray-500 hover:text-[#583682] hover:bg-[#faf9fc] rounded transition"
@@ -1148,7 +1182,19 @@ export const AdminSchedulesPage: React.FC = () => {
             </div>
           )}
 
-          <div className="flex justify-end pt-2 border-t border-[#e6e1eb]">
+          <div className="flex items-center justify-between pt-2 border-t border-[#e6e1eb]">
+            {activeSessionForEnroll && enrolledStudents.length > 0 ? (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => handleExportCredentialsPDF(activeSessionForEnroll)}
+                isLoading={downloadingPdfId === activeSessionForEnroll.id}
+                leftIcon={<Printer className="w-3.5 h-3.5 text-amber-600" />}
+                className="text-xs"
+              >
+                Cetak Kartu Kredensial PDF ({enrolledStudents.length} Peserta)
+              </Button>
+            ) : <div />}
             <Button variant="ghost" onClick={() => setViewEnrollmentsModalOpen(false)}>
               Tutup
             </Button>

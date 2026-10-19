@@ -16,6 +16,7 @@ import {
   finalizeSession,
   regradeSession,
 } from './sessions.service.js';
+import { generateSessionCredentialsPDF } from './sessions.pdf.js';
 import { startExamAttempt } from '../attempts/attempts.service.js';
 import { logAudit } from '../audit/audit.service.js';
 
@@ -373,6 +374,26 @@ export const sessionRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
 
       const result = await enrollStudents(id, parse.data.student_identifiers, request.user!.id, request.ip);
       return reply.send({ success: true, ...result });
+    },
+  });
+
+  // GET /sessions/:id/credentials/pdf (Admin - Export Printable Credentials PDF)
+  fastify.get('/sessions/:id/credentials/pdf', {
+    preHandler: [requireRoles(['admin'])],
+    handler: async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const { pdfBuffer, sessionCode } = await generateSessionCredentialsPDF(
+        id,
+        request.user!.id,
+        request.ip
+      );
+
+      reply.header('Content-Type', 'application/pdf');
+      reply.header(
+        'Content-Disposition',
+        `attachment; filename="Kredensial_Peserta_${sessionCode}.pdf"`
+      );
+      return reply.send(pdfBuffer);
     },
   });
 

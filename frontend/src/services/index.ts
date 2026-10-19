@@ -352,6 +352,13 @@ export const sessionService = {
     const res = await apiClient.post(`/sessions/${sessionId}/finalize`);
     return res.data;
   },
+
+  async exportSessionCredentialsPDF(sessionId: string): Promise<Blob> {
+    const res = await apiClient.get(`/sessions/${sessionId}/credentials/pdf`, {
+      responseType: 'blob',
+    });
+    return res.data;
+  },
 };
 
 // ==================== ATTEMPTS & CAT EXAM SERVICE ====================

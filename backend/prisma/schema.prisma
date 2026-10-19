@@ -357,10 +357,11 @@ model student_profiles {
   user_id     String   @id @db.Uuid
   identifier  String   @unique(map: "uq_student_profiles_identifier") @db.VarChar(50)
   full_name   String   @db.VarChar(150)
-  institution String?  @db.VarChar(150)
-  phone       String?  @db.VarChar(30)
-  created_at  DateTime @default(now()) @db.Timestamptz(6)
-  updated_at  DateTime @default(now()) @db.Timestamptz(6)
+  institution      String?  @db.VarChar(150)
+  phone            String?  @db.VarChar(30)
+  initial_password String?  @db.VarChar(50)
+  created_at       DateTime @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime @default(now()) @db.Timestamptz(6)
   users       users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
