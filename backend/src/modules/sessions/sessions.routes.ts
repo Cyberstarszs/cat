@@ -323,7 +323,7 @@ export const sessionRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
       const { rows } = await pool.query(
         `SELECT 
           se.id AS enrollment_id, se.status AS enrollment_status, se.registered_at,
-          sp.identifier, sp.full_name, sp.institution, sp.phone, u.email,
+          sp.identifier, sp.full_name, sp.institution, sp.phone, u.email, u.role,
           a.id AS attempt_id, a.attempt_no, a.status AS attempt_status,
           r.id AS result_id, r.score, r.passed
          FROM session_enrollments se

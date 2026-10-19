@@ -92,6 +92,7 @@ export interface CandidateStudent {
   identifier: string;
   full_name: string;
   institution: string | null;
+  role?: string;
   email: string;
   status:
     | 'available'
@@ -134,6 +135,7 @@ export interface SessionEnrollment {
   enrolled_at: string;
   identifier?: string;
   full_name?: string;
+  role?: string;
   email?: string;
   institution?: string;
   attempt_status?: string;

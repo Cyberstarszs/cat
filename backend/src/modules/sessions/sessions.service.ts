@@ -875,6 +875,7 @@ export interface CandidateStudent {
   identifier: string;
   full_name: string;
   institution: string | null;
+  role?: string;
   email: string;
   status:
     | 'available'
@@ -935,6 +936,7 @@ export async function getCandidateStudents(sessionId: string): Promise<Candidate
       sp.full_name,
       sp.institution,
       u.id AS user_id,
+      u.role AS user_role,
       u.email,
       u.status AS user_status,
       EXISTS(
@@ -972,7 +974,7 @@ export async function getCandidateStudents(sessionId: string): Promise<Candidate
       ) AS attempts_used
     FROM student_profiles sp
     JOIN users u ON u.id = sp.user_id
-    WHERE u.deleted_at IS NULL AND u.role = 'student'
+    WHERE u.deleted_at IS NULL AND u.role IN ('student', 'mahasiswa', 'umum')
     ORDER BY sp.identifier ASC;
   `;
 
@@ -995,7 +997,7 @@ export async function getCandidateStudents(sessionId: string): Promise<Candidate
       enrolled_this_session++;
     } else if (row.user_status === 'suspended') {
       status = 'suspended';
-      status_reason = 'Akun mahasiswa dinonaktifkan';
+      status_reason = 'Akun peserta dinonaktifkan';
       is_eligible = false;
       ineligible_count++;
     } else if (row.has_passed) {
@@ -1026,6 +1028,7 @@ export async function getCandidateStudents(sessionId: string): Promise<Candidate
       identifier: row.identifier,
       full_name: row.full_name,
       institution: row.institution || null,
+      role: row.user_role || 'mahasiswa',
       email: row.email,
       status,
       status_reason,

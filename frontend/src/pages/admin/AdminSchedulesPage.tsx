@@ -221,12 +221,12 @@ export const AdminSchedulesPage: React.FC = () => {
     }
     const available = candidateData.candidates.filter((c) => c.status === 'available');
     if (available.length === 0) {
-      showToast('Tidak ada mahasiswa belum terjadwal yang siap dialokasikan.', 'info');
+      showToast('Tidak ada peserta belum terjadwal yang siap dialokasikan.', 'info');
       return;
     }
     const toPick = available.slice(0, remainingSlots).map((c) => c.identifier);
     setSelectedIdentifiers(toPick);
-    showToast(`Otomatis memilih ${toPick.length} mahasiswa pertama yang belum terjadwal!`, 'success');
+    showToast(`Otomatis memilih ${toPick.length} peserta pertama yang belum terjadwal!`, 'success');
   };
 
   const toggleSelectCandidate = (identifier: string) => {
@@ -259,13 +259,13 @@ export const AdminSchedulesPage: React.FC = () => {
     const excessPart = list.slice(remainingSlots);
     setIdentifiersText(firstPart.join('\n'));
     setRemainingExcessNIMs(excessPart);
-    showToast(`${firstPart.length} NIM dimasukkan ke sesi ini. ${excessPart.length} sisa NIM disiapkan untuk sesi lain.`, 'info');
+    showToast(`${firstPart.length} nomor peserta dimasukkan ke sesi ini. ${excessPart.length} sisa nomor peserta disiapkan untuk sesi lain.`, 'info');
   };
 
   const handleCopyExcessNIMs = () => {
     if (remainingExcessNIMs.length === 0) return;
     navigator.clipboard.writeText(remainingExcessNIMs.join('\n'));
-    showToast(`${remainingExcessNIMs.length} NIM berhasil disalin ke clipboard!`, 'success');
+    showToast(`${remainingExcessNIMs.length} nomor peserta berhasil disalin ke clipboard!`, 'success');
   };
 
   const getActiveIdentifiers = (): string[] => {
@@ -282,14 +282,14 @@ export const AdminSchedulesPage: React.FC = () => {
     if (!activeSessionForEnroll) return;
     const list = getActiveIdentifiers();
     if (list.length === 0) {
-      showToast('Pilih atau masukkan minimal 1 NIM peserta terlebih dahulu.', 'warning');
+      showToast('Pilih atau masukkan minimal 1 NIM / No. Peserta terlebih dahulu.', 'warning');
       return;
     }
     setPreviewingEnroll(true);
     try {
       const data = await sessionService.previewEnrollments(activeSessionForEnroll.id, list);
       setEnrollPreview(data);
-      showToast(`Pratinjau: ${data.valid_count || list.length} siap didaftarkan.`, 'info');
+      showToast(`Pratinjau: ${data.valid_count || list.length} peserta siap didaftarkan.`, 'info');
     } catch (err: any) {
       showToast(err.message || 'Gagal memeriksa tabrakan jadwal peserta.', 'error');
     } finally {
@@ -301,7 +301,7 @@ export const AdminSchedulesPage: React.FC = () => {
     if (!activeSessionForEnroll) return;
     const list = getActiveIdentifiers();
     if (list.length === 0) {
-      showToast('Pilih atau masukkan minimal 1 NIM peserta terlebih dahulu.', 'warning');
+      showToast('Pilih atau masukkan minimal 1 NIM / No. Peserta terlebih dahulu.', 'warning');
       return;
     }
     const remainingSlots = candidateData?.session?.remaining_slots ?? (activeSessionForEnroll?.capacity || 27);
@@ -313,7 +313,14 @@ export const AdminSchedulesPage: React.FC = () => {
     setEnrolling(true);
     try {
       const res = await sessionService.enrollStudents(activeSessionForEnroll.id, list);
-      showToast(`Berhasil mendaftarkan ${res.enrolled || list.length} peserta ke sesi ini!`, 'success');
+      if (res.skipped && res.skipped.length > 0) {
+        showToast(
+          `Pendaftaran selesai: ${res.enrolled} peserta berhasil didaftarkan, ${res.skipped.length} dilewati (cek preview untuk alasan).`,
+          'warning'
+        );
+      } else {
+        showToast(`Berhasil mendaftarkan ${res.enrolled || list.length} peserta ke sesi ini!`, 'success');
+      }
       setEnrollModalOpen(false);
       fetchSessionsAndExams();
     } catch (err: any) {
@@ -381,8 +388,10 @@ export const AdminSchedulesPage: React.FC = () => {
       const q = candidateSearch.toLowerCase();
       const mId = cand.identifier.toLowerCase().includes(q);
       const mName = cand.full_name.toLowerCase().includes(q);
+      const mEmail = cand.email ? cand.email.toLowerCase().includes(q) : false;
+      const mRole = cand.role ? cand.role.toLowerCase().includes(q) : false;
       const mInst = cand.institution ? cand.institution.toLowerCase().includes(q) : false;
-      return mId || mName || mInst;
+      return mId || mName || mEmail || mRole || mInst;
     }
     return true;
   });
@@ -654,7 +663,7 @@ export const AdminSchedulesPage: React.FC = () => {
         isOpen={enrollModalOpen}
         onClose={() => setEnrollModalOpen(false)}
         title={`Daftarkan Peserta: ${activeSessionForEnroll?.name}`}
-        description="Alokasikan mahasiswa ke sesi ujian ini (Maksimal 27 peserta per sesi lab)."
+        description="Alokasikan peserta ujian (Mahasiswa & Umum) ke sesi ujian ini."
         maxWidth="3xl"
       >
         <div className="space-y-4">
@@ -685,7 +694,7 @@ export const AdminSchedulesPage: React.FC = () => {
             <div>
               <div className="text-[11px] text-[#595562]">Belum Terjadwal:</div>
               <div className="font-bold text-[#24212b]">
-                {candidateData?.stats.available_count ?? 0} Mahasiswa
+                {candidateData?.stats.available_count ?? 0} Peserta
               </div>
             </div>
           </div>
@@ -702,7 +711,7 @@ export const AdminSchedulesPage: React.FC = () => {
               }`}
             >
               <Users className="w-3.5 h-3.5" />
-              <span>Pilih dari Daftar Mahasiswa (Checklist & Otomatis)</span>
+              <span>Pilih dari Daftar Peserta (Checklist & Otomatis)</span>
             </button>
             <button
               type="button"
@@ -714,7 +723,7 @@ export const AdminSchedulesPage: React.FC = () => {
               }`}
             >
               <Edit2 className="w-3.5 h-3.5" />
-              <span>Input Manual / Tempel NIM</span>
+              <span>Input Manual / Tempel NIM / No. Peserta</span>
             </button>
           </div>
 
@@ -740,7 +749,7 @@ export const AdminSchedulesPage: React.FC = () => {
                       candidateData?.session?.remaining_slots ?? 27,
                       candidateData?.stats.available_count || 0
                     )}{' '}
-                    Mahasiswa)
+                    Peserta)
                   </Button>
 
                   {selectedIdentifiers.length > 0 && (
@@ -759,16 +768,16 @@ export const AdminSchedulesPage: React.FC = () => {
                     onClick={() => activeSessionForEnroll && fetchCandidatesForSession(activeSessionForEnroll.id)}
                     disabled={loadingCandidates}
                     className="p-1.5 text-gray-500 hover:text-[#583682] hover:bg-[#faf9fc] rounded border border-[#e6e1eb]"
-                    title="Muat ulang daftar mahasiswa"
+                    title="Muat ulang daftar peserta"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${loadingCandidates ? 'animate-spin' : ''}`} />
                   </button>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <div className="w-44">
+                  <div className="w-52">
                     <Input
-                      placeholder="Cari NIM/Nama..."
+                      placeholder="Cari NIM/No. Peserta, nama, email..."
                       value={candidateSearch}
                       onChange={(e) => setCandidateSearch(e.target.value)}
                       className="text-xs h-8"
@@ -784,7 +793,7 @@ export const AdminSchedulesPage: React.FC = () => {
                       Belum Terjadwal ({candidateData?.stats.available_count ?? 0})
                     </option>
                     <option value="all">
-                      Semua ({candidateData?.stats.total_students ?? 0})
+                      Semua Peserta ({candidateData?.stats.total_students ?? 0})
                     </option>
                     <option value="other_session">
                       Sesi Lain ({candidateData?.stats.enrolled_other_session ?? 0})
@@ -804,14 +813,15 @@ export const AdminSchedulesPage: React.FC = () => {
                     </div>
                   ) : filteredCandidates.length === 0 ? (
                     <div className="p-6 text-center text-xs text-[#595562]">
-                      {candidateSearch ? 'Tidak ada mahasiswa yang cocok dengan pencarian.' : 'Tidak ada mahasiswa pada filter ini.'}
+                      {candidateSearch ? 'Tidak ada peserta yang cocok dengan pencarian.' : 'Tidak ada peserta pada filter ini.'}
                     </div>
                   ) : (
                     <table className="w-full text-left text-xs">
                       <thead className="bg-[#faf9fc] border-b border-[#e6e1eb] text-[#595562] font-bold sticky top-0 z-10">
                         <tr>
                           <th className="p-2.5 w-10 text-center">Pilih</th>
-                          <th className="p-2.5">NIM / Identitas</th>
+                          <th className="p-2.5 w-24">Peran</th>
+                          <th className="p-2.5">NIM / No. Peserta</th>
                           <th className="p-2.5">Nama & Email</th>
                           <th className="p-2.5">Institusi / Prodi</th>
                           <th className="p-2.5">Status</th>
@@ -848,6 +858,17 @@ export const AdminSchedulesPage: React.FC = () => {
                                   onChange={() => toggleSelectCandidate(cand.identifier)}
                                   className="w-4 h-4 rounded text-[#583682] border-gray-300 focus:ring-[#583682]"
                                 />
+                              </td>
+                              <td className="p-2.5">
+                                {cand.role === 'umum' ? (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                    UMUM
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                                    MAHASISWA
+                                  </span>
+                                )}
                               </td>
                               <td className="p-2.5 font-mono font-bold text-[#583682]">{cand.identifier}</td>
                               <td className="p-2.5">
@@ -920,13 +941,13 @@ export const AdminSchedulesPage: React.FC = () => {
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-[#24212b] mb-1.5">
-                  Daftar NIM / Nomor Identitas (Satu per baris atau dipisahkan koma)
+                  Daftar NIM / Nomor Peserta (Satu per baris, titik koma, atau dipisahkan koma)
                 </label>
                 <textarea
                   rows={4}
                   value={identifiersText}
                   onChange={(e) => setIdentifiersText(e.target.value)}
-                  placeholder="20261001&#10;20261002&#10;20261003"
+                  placeholder="20261001&#10;UMUM-100234&#10;20261003"
                   className="w-full p-3 font-mono text-xs bg-white border border-[#e6e1eb] rounded outline-none focus:border-[#583682]"
                 />
               </div>
@@ -1086,18 +1107,35 @@ export const AdminSchedulesPage: React.FC = () => {
               <table className="w-full text-left text-xs">
                 <thead className="bg-[#faf9fc] border-b border-[#e6e1eb] text-[#595562] font-bold">
                   <tr>
-                    <th className="p-3">NIM / Identitas</th>
+                    <th className="p-3">Peran</th>
+                    <th className="p-3">NIM / No. Peserta</th>
                     <th className="p-3">Nama Lengkap</th>
-                    <th className="p-3">Email</th>
+                    <th className="p-3">Email & Institusi</th>
                     <th className="p-3">Status Ujian</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#e6e1eb]">
                   {enrolledStudents.map((st) => (
                     <tr key={st.id} className="hover:bg-[#faf9fc]">
+                      <td className="p-3">
+                        {st.role === 'umum' ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                            UMUM
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                            MAHASISWA
+                          </span>
+                        )}
+                      </td>
                       <td className="p-3 font-mono font-bold text-[#583682]">{st.identifier}</td>
                       <td className="p-3 font-semibold text-[#24212b]">{st.full_name}</td>
-                      <td className="p-3 text-[#595562]">{st.email}</td>
+                      <td className="p-3 text-[#595562]">
+                        <div>{st.email}</div>
+                        {st.institution && (
+                          <div className="text-[10px] text-[#595562]">{st.institution}</div>
+                        )}
+                      </td>
                       <td className="p-3">
                         <Badge variant={st.attempt_status === 'submitted' ? 'success' : 'neutral'}>
                           {st.attempt_status || 'Belum Mengambil'}
