@@ -41,8 +41,12 @@ export async function startExamAttempt(
     const s = sessionRows[0];
 
     // Cek apakah sesi aktif
-    if (s.status !== 'published') {
-      throw new AppError('SESSION_NOT_OPEN', 'Sesi ujian belum dipublikasikan atau sudah dibatalkan.');
+    if (s.status === 'cancelled') {
+      throw new AppError('SESSION_NOT_OPEN', 'Sesi ujian telah dibatalkan.');
+    }
+    if (s.status === 'draft') {
+      await client.query(`UPDATE exam_sessions SET status = 'published', updated_at = now() WHERE id = $1;`, [sessionId]);
+      s.status = 'published';
     }
 
     // Cek jadwal jendela mulai (BR-03)

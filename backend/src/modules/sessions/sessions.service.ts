@@ -51,7 +51,7 @@ export async function createSession(data: CreateSessionInput, actorId: string, i
   const { rows } = await pool.query(
     `INSERT INTO exam_sessions (
       exam_id, code, name, starts_at, ends_at, capacity, access_code_hash, question_year, status, created_by
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'draft', $9)
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'published', $9)
     RETURNING *;`,
     [
       data.exam_id,

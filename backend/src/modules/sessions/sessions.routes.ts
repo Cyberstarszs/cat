@@ -144,9 +144,9 @@ export const sessionRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
     },
   });
 
-  // GET /sessions/:id (A)
+  // GET /sessions/:id (A, M)
   fastify.get('/sessions/:id', {
-    preHandler: [requireRoles(['admin'])],
+    preHandler: [requireRoles(['admin', 'student'])],
     handler: async (request, reply) => {
       const { id } = request.params as { id: string };
 
