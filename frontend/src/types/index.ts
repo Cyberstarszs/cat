@@ -17,6 +17,7 @@ export interface StudentProfile {
   user_id: string;
   identifier: string; // NIM atau Nomor Peserta
   full_name: string;
+  email?: string;
   institution?: string;
   phone?: string;
   role?: UserRole;
@@ -342,4 +343,15 @@ export interface ApiErrorResponse {
     message: string;
     details?: any;
   };
+}
+
+export interface PaginationMeta {
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  meta: PaginationMeta;
 }

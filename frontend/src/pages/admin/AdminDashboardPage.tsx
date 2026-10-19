@@ -30,8 +30,8 @@ export const AdminDashboardPage: React.FC = () => {
     const fetchDashboard = async () => {
       setLoading(true);
       try {
-        const [students, exams, questions, sessions, logs] = await Promise.all([
-          userService.getStudents().catch(() => []),
+        const [studentsRes, exams, questions, sessions, logs] = await Promise.all([
+          userService.getStudents({ limit: 1 }).catch(() => ({ data: [], meta: { total: 0, limit: 1, offset: 0 } })),
           examService.getExams().catch(() => []),
           questionService.getQuestions().catch(() => []),
           sessionService.getSessions().catch(() => []),
@@ -39,7 +39,7 @@ export const AdminDashboardPage: React.FC = () => {
         ]);
 
         setStats({
-          studentsCount: students.length,
+          studentsCount: studentsRes.meta?.total ?? studentsRes.data?.length ?? 0,
           examsCount: exams.length,
           questionsCount: questions.length,
           sessionsCount: sessions.length,

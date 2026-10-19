@@ -9,14 +9,44 @@ import { Modal } from '../../components/ui/Modal';
 import { CardSkeleton } from '../../components/ui/Skeleton';
 import { EmptyState, ErrorAlert } from '../../components/ui/EmptyState';
 import { Badge } from '../../components/ui/Badge';
-import { Plus, Upload, User, Search, Download, CheckCircle2, KeyRound, Copy, Check, RefreshCw, Info } from 'lucide-react';
+import {
+  Plus,
+  Upload,
+  User,
+  Search,
+  Download,
+  CheckCircle2,
+  KeyRound,
+  Copy,
+  Check,
+  RefreshCw,
+  Info,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  RotateCcw,
+  Filter,
+  X,
+} from 'lucide-react';
 
 export const AdminParticipantsPage: React.FC = () => {
   const { showToast } = useToast();
   const [students, setStudents] = useState<StudentProfile[]>([]);
+  const [totalStudents, setTotalStudents] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Search & Filter State
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState<'all' | 'mahasiswa' | 'umum'>('all');
+  const [institutionFilter, setInstitutionFilter] = useState('all');
+  const [institutionsList, setInstitutionsList] = useState<string[]>([]);
+
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
 
   // Add single student modal
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -71,12 +101,43 @@ export const AdminParticipantsPage: React.FC = () => {
     }
   };
 
+  const loadInstitutions = async () => {
+    try {
+      const data = await userService.getInstitutions();
+      const defaults = ['ADMINISTRASI PUBLIK', 'Umum'];
+      const merged = Array.from(new Set([...defaults, ...(data || [])])).filter(Boolean);
+      setInstitutionsList(merged);
+    } catch {
+      setInstitutionsList(['ADMINISTRASI PUBLIK', 'Umum']);
+    }
+  };
+
+  useEffect(() => {
+    loadInstitutions();
+  }, []);
+
+  // Debounce search input by 350ms
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 350);
+    return () => clearTimeout(handler);
+  }, [search]);
+
   const fetchStudents = async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await userService.getStudents();
-      setStudents(data);
+      const res = await userService.getStudents({
+        search: debouncedSearch.trim() || undefined,
+        role: roleFilter !== 'all' ? roleFilter : undefined,
+        institution: institutionFilter !== 'all' ? institutionFilter : undefined,
+        limit,
+        offset: (page - 1) * limit,
+      });
+      setStudents(res.data);
+      setTotalStudents(res.meta?.total ?? res.data.length);
     } catch (err: any) {
       setError(err.message || 'Gagal memuat daftar peserta.');
     } finally {
@@ -86,7 +147,57 @@ export const AdminParticipantsPage: React.FC = () => {
 
   useEffect(() => {
     fetchStudents();
-  }, []);
+  }, [page, limit, debouncedSearch, roleFilter, institutionFilter]);
+
+  const handleRoleFilterChange = (newRole: 'all' | 'mahasiswa' | 'umum') => {
+    setRoleFilter(newRole);
+    setPage(1);
+  };
+
+  const handleInstitutionFilterChange = (newInst: string) => {
+    setInstitutionFilter(newInst);
+    setPage(1);
+  };
+
+  const handleLimitChange = (newLimit: number) => {
+    setLimit(newLimit);
+    setPage(1);
+  };
+
+  const handleResetFilters = () => {
+    setSearch('');
+    setDebouncedSearch('');
+    setRoleFilter('all');
+    setInstitutionFilter('all');
+    setPage(1);
+  };
+
+  const totalPages = Math.max(1, Math.ceil(totalStudents / limit));
+  const fromIndex = totalStudents === 0 ? 0 : (page - 1) * limit + 1;
+  const toIndex = Math.min(page * limit, totalStudents);
+  const isFiltered = Boolean(search.trim() || roleFilter !== 'all' || institutionFilter !== 'all');
+
+  const getPaginationPages = () => {
+    const pages: (number | string)[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (page > 3) {
+        pages.push('...');
+      }
+      const start = Math.max(2, page - 1);
+      const end = Math.min(totalPages - 1, page + 1);
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      if (page < totalPages - 2) {
+        pages.push('...');
+      }
+      pages.push(totalPages);
+    }
+    return pages;
+  };
 
   const handleAddStudent = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,6 +227,7 @@ export const AdminParticipantsPage: React.FC = () => {
       }
 
       fetchStudents();
+      loadInstitutions();
     } catch (err: any) {
       showToast(err.message || 'Gagal mendaftarkan peserta.', 'error');
     } finally {
@@ -139,6 +251,7 @@ export const AdminParticipantsPage: React.FC = () => {
         import_id: res.import_id,
       });
       fetchStudents();
+      loadInstitutions();
     } catch (err: any) {
       showToast(err.message || 'Gagal mengimpor berkas CSV peserta.', 'error');
     } finally {
@@ -162,14 +275,6 @@ export const AdminParticipantsPage: React.FC = () => {
     URL.revokeObjectURL(url);
     document.body.removeChild(a);
   };
-
-  const filteredStudents = students.filter(
-    (s) =>
-      s.identifier.toLowerCase().includes(search.toLowerCase()) ||
-      s.full_name.toLowerCase().includes(search.toLowerCase()) ||
-      (s.institution && s.institution.toLowerCase().includes(search.toLowerCase())) ||
-      (s.role && s.role.toLowerCase().includes(search.toLowerCase()))
-  );
 
   const handleResetPassword = async () => {
     if (!activeStudentForReset) return;
@@ -334,14 +439,108 @@ export const AdminParticipantsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Search Input */}
-      <div className="max-w-md">
-        <Input
-          placeholder="Cari NIM, nama, atau instansi peserta..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          leftIcon={<Search className="w-4 h-4 text-gray-400" />}
-        />
+      {/* Search and Filters Toolbar */}
+      <div className="bg-white p-4 rounded-xl border border-[#e6e1eb] shadow-xs space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-center">
+          {/* Main search input */}
+          <div className="lg:col-span-5 relative">
+            <Input
+              placeholder="Cari NIM, nama lengkap, atau email..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              leftIcon={<Search className="w-4 h-4 text-gray-400" />}
+              className="pr-8"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition cursor-pointer"
+                title="Hapus teks pencarian"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Role Filter */}
+          <div className="lg:col-span-3">
+            <select
+              value={roleFilter}
+              onChange={(e) => handleRoleFilterChange(e.target.value as any)}
+              className="w-full min-h-[46px] px-3.5 bg-white border border-[#e6e1eb] focus:border-[#583682] rounded-[6px] text-xs font-medium text-[#24212b] outline-none transition cursor-pointer"
+            >
+              <option value="all">Semua Kategori (Mahasiswa & Umum)</option>
+              <option value="mahasiswa">Hanya Mahasiswa</option>
+              <option value="umum">Hanya Umum</option>
+            </select>
+          </div>
+
+          {/* Institution Filter */}
+          <div className="lg:col-span-2">
+            <select
+              value={institutionFilter}
+              onChange={(e) => handleInstitutionFilterChange(e.target.value)}
+              className="w-full min-h-[46px] px-3.5 bg-white border border-[#e6e1eb] focus:border-[#583682] rounded-[6px] text-xs font-medium text-[#24212b] outline-none transition cursor-pointer"
+            >
+              <option value="all">Semua Instansi</option>
+              {institutionsList.map((inst) => (
+                <option key={inst} value={inst}>
+                  {inst}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Items per page & Reset Button */}
+          <div className="lg:col-span-2 flex items-center gap-2">
+            <select
+              value={limit}
+              onChange={(e) => handleLimitChange(Number(e.target.value))}
+              className="w-full min-h-[46px] px-3 bg-white border border-[#e6e1eb] focus:border-[#583682] rounded-[6px] text-xs font-medium text-[#24212b] outline-none transition cursor-pointer"
+              title="Jumlah baris per halaman"
+            >
+              <option value={10}>10 / hal</option>
+              <option value={25}>25 / hal</option>
+              <option value={50}>50 / hal</option>
+              <option value={100}>100 / hal</option>
+            </select>
+
+            {isFiltered && (
+              <Button
+                variant="secondary"
+                onClick={handleResetFilters}
+                className="min-h-[46px] px-3 text-xs shrink-0 text-[#b63b48] hover:bg-[#b63b48]/10 border-[#e6e1eb]"
+                title="Reset semua filter"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Filter stats & Reset link */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#f2eff6] text-xs text-[#595562]">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-medium">
+              Total Ditemukan: <strong className="text-[#24212b]">{totalStudents}</strong> peserta
+            </span>
+            {isFiltered && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#eae2f5] text-[#583682] text-[11px] font-semibold">
+                <Filter className="w-3 h-3" /> Filter Aktif
+              </span>
+            )}
+          </div>
+
+          {isFiltered && (
+            <button
+              onClick={handleResetFilters}
+              className="text-[#583682] hover:underline font-medium text-[11px] inline-flex items-center gap-1 cursor-pointer"
+            >
+              <RotateCcw className="w-3 h-3" /> Bersihkan Filter
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Table Card */}
@@ -350,25 +549,37 @@ export const AdminParticipantsPage: React.FC = () => {
           <div className="p-6">
             <CardSkeleton />
           </div>
-        ) : filteredStudents.length === 0 ? (
+        ) : students.length === 0 ? (
           <div className="p-8">
-            <EmptyState
-              title="Belum Ada Peserta Terdaftar"
-              description="Daftarkan mahasiswa atau peserta eksternal untuk mulai mengikutsertakan mereka ke dalam sesi CAT."
-              icon={<User className="w-8 h-8 text-[#583682]" />}
-              action={{
-                label: 'Tambah Peserta Pertama',
-                onClick: () => {
-                  setRole('mahasiswa');
-                  setIdentifier('');
-                  setFullName('');
-                  setEmail('');
-                  setInstitution('ADMINISTRASI PUBLIK');
-                  setPhone('');
-                  setAddModalOpen(true);
-                },
-              }}
-            />
+            {isFiltered ? (
+              <EmptyState
+                title="Tidak Ada Peserta yang Sesuai"
+                description={`Tidak ditemukan data peserta dengan kriteria filter saat ini (Pencarian: "${search || '-'}", Peran: ${roleFilter === 'all' ? 'Semua' : roleFilter}, Instansi: ${institutionFilter === 'all' ? 'Semua' : institutionFilter}).`}
+                icon={<Search className="w-8 h-8 text-[#583682]" />}
+                action={{
+                  label: 'Reset Semua Filter',
+                  onClick: handleResetFilters,
+                }}
+              />
+            ) : (
+              <EmptyState
+                title="Belum Ada Peserta Terdaftar"
+                description="Daftarkan mahasiswa atau peserta eksternal untuk mulai mengikutsertakan mereka ke dalam sesi CAT."
+                icon={<User className="w-8 h-8 text-[#583682]" />}
+                action={{
+                  label: 'Tambah Peserta Pertama',
+                  onClick: () => {
+                    setRole('mahasiswa');
+                    setIdentifier('');
+                    setFullName('');
+                    setEmail('');
+                    setInstitution('ADMINISTRASI PUBLIK');
+                    setPhone('');
+                    setAddModalOpen(true);
+                  },
+                }}
+              />
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -377,7 +588,7 @@ export const AdminParticipantsPage: React.FC = () => {
                 <tr>
                   <th className="px-6 py-3.5">Peran / Kategori</th>
                   <th className="px-6 py-3.5">NIM / No. Identitas</th>
-                  <th className="px-6 py-3.5">Nama Lengkap</th>
+                  <th className="px-6 py-3.5">Nama & Email</th>
                   <th className="px-6 py-3.5">Instansi</th>
                   <th className="px-6 py-3.5">Telepon</th>
                   <th className="px-6 py-3.5">Terdaftar Pada</th>
@@ -385,7 +596,7 @@ export const AdminParticipantsPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#e6e1eb]">
-                {filteredStudents.map((st) => (
+                {students.map((st) => (
                   <tr key={st.id} className="hover:bg-[#faf9fc]/80 transition">
                     <td className="px-6 py-4">
                       <Badge variant={st.role === 'umum' ? 'info' : 'royal'}>
@@ -395,7 +606,10 @@ export const AdminParticipantsPage: React.FC = () => {
                     <td className="px-6 py-4 font-mono font-bold text-[#583682]">
                       <span className="bg-[#eae2f5] px-2 py-0.5 rounded">{st.identifier}</span>
                     </td>
-                    <td className="px-6 py-4 font-bold text-[#24212b] text-sm">{st.full_name}</td>
+                    <td className="px-6 py-4">
+                      <div className="font-bold text-[#24212b] text-sm">{st.full_name}</div>
+                      {st.email && <div className="text-[11px] text-[#595562] font-mono mt-0.5">{st.email}</div>}
+                    </td>
                     <td className="px-6 py-4 text-[#595562]">{st.institution || (st.role === 'umum' ? 'Umum' : 'ADMINISTRASI PUBLIK')}</td>
                     <td className="px-6 py-4 text-[#595562]">{st.phone || '-'}</td>
                     <td className="px-6 py-4 text-gray-400">
@@ -409,8 +623,8 @@ export const AdminParticipantsPage: React.FC = () => {
                           setCopiedReset(false);
                           setResetModalOpen(true);
                         }}
-                        className="p-1.5 text-gray-500 hover:text-[#583682] hover:bg-[#eae2f5] rounded transition"
-                        title="Reset Sandi Peserta"
+                        className="p-1.5 text-gray-500 hover:text-[#583682] hover:bg-[#eae2f5] rounded transition cursor-pointer"
+                        title="Reset Sandi Peserta (6 Angka)"
                       >
                         <KeyRound className="w-4 h-4" />
                       </button>
@@ -419,6 +633,90 @@ export const AdminParticipantsPage: React.FC = () => {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Pagination Footer */}
+        {totalStudents > 0 && (
+          <div className="px-6 py-4 bg-[#faf9fc] border-t border-[#e6e1eb] flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-xs text-[#595562]">
+              Menampilkan <span className="font-semibold text-[#24212b]">{fromIndex}</span> -{' '}
+              <span className="font-semibold text-[#24212b]">{toIndex}</span> dari{' '}
+              <span className="font-semibold text-[#24212b]">{totalStudents}</span> peserta
+            </div>
+
+            <div className="flex items-center gap-1.5 flex-wrap justify-center">
+              {/* First Page */}
+              <button
+                type="button"
+                onClick={() => setPage(1)}
+                disabled={page === 1}
+                className="p-1.5 rounded border border-[#e6e1eb] bg-white text-[#595562] hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                title="Halaman Pertama"
+              >
+                <ChevronsLeft className="w-4 h-4" />
+              </button>
+
+              {/* Prev Page */}
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="p-1.5 rounded border border-[#e6e1eb] bg-white text-[#595562] hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                title="Halaman Sebelumnya"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              {/* Page Numbers */}
+              {getPaginationPages().map((pNum, idx) => {
+                if (pNum === '...') {
+                  return (
+                    <span key={`ellipsis-${idx}`} className="px-2 py-1 text-xs text-gray-400 font-semibold select-none">
+                      ...
+                    </span>
+                  );
+                }
+
+                const isCurrent = pNum === page;
+                return (
+                  <button
+                    key={`page-${pNum}`}
+                    type="button"
+                    onClick={() => setPage(Number(pNum))}
+                    className={`min-w-[32px] h-[32px] px-2 rounded text-xs font-bold transition cursor-pointer ${
+                      isCurrent
+                        ? 'bg-[#583682] text-white shadow-xs'
+                        : 'border border-[#e6e1eb] bg-white text-[#595562] hover:bg-[#eae2f5]/50 hover:text-[#583682]'
+                    }`}
+                  >
+                    {pNum}
+                  </button>
+                );
+              })}
+
+              {/* Next Page */}
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="p-1.5 rounded border border-[#e6e1eb] bg-white text-[#595562] hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                title="Halaman Berikutnya"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+
+              {/* Last Page */}
+              <button
+                type="button"
+                onClick={() => setPage(totalPages)}
+                disabled={page === totalPages}
+                className="p-1.5 rounded border border-[#e6e1eb] bg-white text-[#595562] hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                title="Halaman Terakhir"
+              >
+                <ChevronsRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         )}
       </Card>

@@ -19,6 +19,7 @@ import {
   StudentProfile,
   CandidateResponse,
   CandidateStudent,
+  PaginatedResponse,
 } from '../types';
 
 // ==================== AUTH SERVICE ====================
@@ -467,8 +468,19 @@ export const resultService = {
 
 // ==================== USERS & STUDENTS SERVICE ====================
 export const userService = {
-  async getStudents(params?: { search?: string }): Promise<StudentProfile[]> {
-    const res = await apiClient.get<{ data: StudentProfile[] }>('/students', { params });
+  async getStudents(params?: {
+    search?: string;
+    role?: string;
+    institution?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<PaginatedResponse<StudentProfile>> {
+    const res = await apiClient.get<PaginatedResponse<StudentProfile>>('/students', { params });
+    return res.data;
+  },
+
+  async getInstitutions(): Promise<string[]> {
+    const res = await apiClient.get<{ data: string[] }>('/students/institutions');
     return res.data.data;
   },
 

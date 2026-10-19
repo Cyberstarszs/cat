@@ -264,6 +264,17 @@ export const userRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =
     });
   });
 
+  // GET /students/institutions
+  fastify.get('/students/institutions', async (_request, reply) => {
+    const { rows } = await pool.query(
+      `SELECT DISTINCT institution 
+       FROM student_profiles 
+       WHERE institution IS NOT NULL AND TRIM(institution) != ''
+       ORDER BY institution ASC;`
+    );
+    return reply.send({ data: rows.map((r: any) => r.institution) });
+  });
+
   // GET /students (FR-U01)
   fastify.get('/students', async (request, reply) => {
     const query = request.query as {
@@ -271,23 +282,31 @@ export const userRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =
       search?: string;
       limit?: string;
       offset?: string;
+      role?: string;
     };
 
-    const limit = Math.min(Math.max(parseInt(query.limit || '25', 10), 1), 100);
+    const limit = Math.min(Math.max(parseInt(query.limit || '10', 10), 1), 100);
     const offset = Math.max(parseInt(query.offset || '0', 10), 0);
 
-    const conditions: string[] = ['u.deleted_at IS NULL', "u.role IN ('student', 'mahasiswa', 'umum')"];
+    const conditions: string[] = ['u.deleted_at IS NULL'];
     const params: any[] = [];
     let paramIndex = 1;
 
-    if (query.institution) {
-      conditions.push(`sp.institution ILIKE $${paramIndex++}`);
-      params.push(`%${query.institution}%`);
+    if (query.role && ['mahasiswa', 'umum', 'student'].includes(query.role.toLowerCase())) {
+      conditions.push(`u.role = $${paramIndex++}`);
+      params.push(query.role.toLowerCase());
+    } else {
+      conditions.push("u.role IN ('student', 'mahasiswa', 'umum')");
     }
 
-    if (query.search) {
-      conditions.push(`(sp.identifier ILIKE $${paramIndex} OR sp.full_name ILIKE $${paramIndex} OR u.email ILIKE $${paramIndex})`);
-      params.push(`%${query.search}%`);
+    if (query.institution && query.institution.trim()) {
+      conditions.push(`sp.institution ILIKE $${paramIndex++}`);
+      params.push(`%${query.institution.trim()}%`);
+    }
+
+    if (query.search && query.search.trim()) {
+      conditions.push(`(sp.identifier ILIKE $${paramIndex} OR sp.full_name ILIKE $${paramIndex} OR u.email ILIKE $${paramIndex} OR sp.institution ILIKE $${paramIndex})`);
+      params.push(`%${query.search.trim()}%`);
       paramIndex++;
     }
 
