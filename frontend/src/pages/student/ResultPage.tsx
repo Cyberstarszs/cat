@@ -226,6 +226,57 @@ export const ResultPage: React.FC = () => {
               Tim verifikator dan panitia ujian FIA akan mereview butir soal dan memberitahukan hasilnya kepada Anda.
             </p>
           </div>
+        ) : result.has_appeal ? (
+          <div className="space-y-4">
+            <div className="p-4 bg-[#faf9fc] rounded border border-[#e6e1eb] space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-[#24212b]">Status Sanggahan</span>
+                <Badge
+                  variant={
+                    result.appeal_status === 'accepted' || result.appeal_status === 'approved'
+                      ? 'success'
+                      : result.appeal_status === 'rejected'
+                      ? 'danger'
+                      : 'purple'
+                  }
+                >
+                  {result.appeal_status === 'accepted' || result.appeal_status === 'approved'
+                    ? 'DISETUJUI'
+                    : result.appeal_status === 'rejected'
+                    ? 'DITOLAK'
+                    : 'SEDANG DITINJAU'}
+                </Badge>
+              </div>
+
+              {result.appeal_message && (
+                <div>
+                  <div className="text-[11px] font-bold text-[#595562] uppercase tracking-wider">Catatan Anda:</div>
+                  <div className="text-xs text-[#24212b] mt-1 p-2.5 bg-white rounded border border-[#e6e1eb] whitespace-pre-wrap">
+                    {result.appeal_message}
+                  </div>
+                </div>
+              )}
+
+              {result.appeal_response ? (
+                <div className="pt-2 border-t border-[#e6e1eb]">
+                  <div className="text-[11px] font-bold text-[#583682] uppercase tracking-wider">Tanggapan Panitia:</div>
+                  <div className="text-xs text-[#24212b] mt-1 p-2.5 bg-[#eae2f5]/40 rounded border border-[#e6e1eb] whitespace-pre-wrap">
+                    {result.appeal_response}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-[11px] text-[#595562] italic">
+                  Sanggahan Anda sedang dalam antrean verifikasi oleh panitia dan tim penguji.
+                </p>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end pt-2 border-t border-[#e6e1eb]">
+              <Button type="button" variant="secondary" onClick={() => setAppealModalOpen(false)}>
+                Tutup
+              </Button>
+            </div>
+          </div>
         ) : (
           <form onSubmit={handleSubmitAppeal} className="space-y-4">
             <div className="text-xs text-[#595562] leading-relaxed p-3 bg-[#faf9fc] rounded border border-[#e6e1eb]">

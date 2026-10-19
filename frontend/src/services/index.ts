@@ -425,7 +425,10 @@ export const resultService = {
   },
 
   async submitAppeal(resultId: string, reason: string): Promise<Appeal> {
-    const res = await apiClient.post<{ appeal: Appeal }>(`/results/${resultId}/appeals`, { reason });
+    const res = await apiClient.post<{ appeal: Appeal }>(`/results/${resultId}/appeals`, {
+      reason,
+      message: reason,
+    });
     return res.data.appeal;
   },
 

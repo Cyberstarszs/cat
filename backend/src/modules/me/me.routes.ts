@@ -5,6 +5,7 @@ import { authenticate, requireRoles } from '../../lib/authz.js';
 import { AppError } from '../../lib/errors.js';
 import { CONSTANTS } from '../../config/constants.js';
 import { sanitizeStudentReview } from '../../lib/serializer.js';
+import { logAudit } from '../audit/audit.service.js';
 
 const updateProfileSchema = z.object({
   phone: z.string().optional().nullable(),
@@ -15,10 +16,18 @@ const updateSettingsSchema = z.object({
   preferences: z.record(z.string(), z.any()),
 });
 
-const submitAppealSchema = z.object({
-  question_version_id: z.string().uuid().optional().nullable(),
-  message: z.string().min(5).max(1000, 'Pesan sanggah maksimal 1000 karakter'),
-});
+const submitAppealSchema = z
+  .object({
+    question_version_id: z.string().uuid().optional().nullable(),
+    message: z.string().max(1000).optional(),
+    reason: z.string().max(1000).optional(),
+  })
+  .refine(
+    (data) =>
+      (data.message && data.message.trim().length >= 3) ||
+      (data.reason && data.reason.trim().length >= 3),
+    { message: 'Alasan atau pesan sanggahan minimal 3 karakter.' }
+  );
 
 export const meRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
   fastify.addHook('preHandler', authenticate);
@@ -293,37 +302,42 @@ export const meRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => 
 
   // POST /me/results/:id/appeals (M only, FR-R07)
   fastify.post('/me/results/:id/appeals', {
-    preHandler: [requireRoles(['student'])],
+    preHandler: [requireRoles(['student', 'admin'])],
     handler: async (request, reply) => {
       const user = request.user!;
       const { id } = request.params as { id: string };
 
-      const parseResult = submitAppealSchema.safeParse(request.body);
+      const parseResult = submitAppealSchema.safeParse(request.body || {});
       if (!parseResult.success) {
         throw new AppError('VALIDATION_FAILED', 'Format pengajuan sanggah salah', parseResult.error.format());
       }
 
-      const { question_version_id, message } = parseResult.data;
+      const { question_version_id } = parseResult.data;
+      const appealText = (parseResult.data.message || parseResult.data.reason)!.trim();
 
-      // Cek apakah hasil milik mahasiswa dan sudah dipublikasikan
+      // Cek apakah hasil milik mahasiswa
       const { rows } = await pool.query(
-        `SELECT r.id, r.published_at, se.student_id
+        `SELECT r.id, r.status, r.published_at, r.graded_at, se.student_id
          FROM results r
          JOIN attempts a ON a.id = r.attempt_id
          JOIN session_enrollments se ON se.id = a.enrollment_id
-         WHERE r.id = $1 AND r.status = 'published';`,
+         WHERE r.id = $1;`,
         [id]
       );
 
-      if (rows.length === 0 || rows[0].student_id !== user.id) {
-        throw new AppError('NOT_FOUND');
+      if (rows.length === 0) {
+        throw new AppError('NOT_FOUND', 'Hasil ujian tidak ditemukan.');
       }
 
       const resRow = rows[0];
+      if (user.role === 'student' && resRow.student_id !== user.id) {
+        throw new AppError('NOT_FOUND');
+      }
 
-      // Periksa batas waktu sanggah (APPEAL_WINDOW_DAYS = 7 hari sejak publikasi)
+      // Periksa batas waktu sanggah (APPEAL_WINDOW_DAYS = 7 hari sejak publikasi atau penilaian)
+      const baseDate = resRow.published_at ? new Date(resRow.published_at) : new Date(resRow.graded_at || Date.now());
       const appealDeadline = new Date(
-        new Date(resRow.published_at).getTime() + CONSTANTS.APPEAL_WINDOW_DAYS * 24 * 60 * 60 * 1000
+        baseDate.getTime() + CONSTANTS.APPEAL_WINDOW_DAYS * 24 * 60 * 60 * 1000
       );
       if (Date.now() > appealDeadline.getTime()) {
         throw new AppError(
@@ -332,12 +346,33 @@ export const meRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => 
         );
       }
 
+      // Cek apakah sudah ada sanggahan terbuka untuk hasil ini
+      const { rows: existingOpen } = await pool.query(
+        `SELECT id FROM appeals WHERE result_id = $1 AND status = 'open';`,
+        [id]
+      );
+      if (existingOpen.length > 0) {
+        throw new AppError('CONFLICT', 'Sanggahan untuk hasil ujian ini sudah diajukan dan sedang dalam proses peninjauan panitia.');
+      }
+
+      const targetStudentId = user.role === 'student' ? user.id : resRow.student_id;
       const { rows: appealRows } = await pool.query(
         `INSERT INTO appeals (result_id, student_id, question_version_id, message, status)
          VALUES ($1, $2, $3, $4, 'open')
          RETURNING id, result_id, student_id, question_version_id, message, status, created_at;`,
-        [id, user.id, question_version_id || null, message]
+        [id, targetStudentId, question_version_id || null, appealText]
       );
+
+      await logAudit({
+        actorId: user.id,
+        actorRole: user.role,
+        action: 'appeals.submit',
+        entityType: 'appeals',
+        entityId: appealRows[0].id,
+        reason: appealText,
+        afterData: appealRows[0],
+        ipAddress: request.ip,
+      });
 
       return reply.status(201).send({
         success: true,

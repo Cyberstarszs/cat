@@ -235,7 +235,9 @@ export interface ExamResult {
   certificate_id?: string;
   certificate_no?: string;
   has_appeal?: boolean;
-  appeal_status?: 'pending' | 'approved' | 'rejected';
+  appeal_status?: string;
+  appeal_message?: string;
+  appeal_response?: string;
 }
 
 export interface ResultDetail extends ExamResult {

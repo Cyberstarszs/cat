@@ -1,8 +1,24 @@
 import { FastifyInstance, FastifyPluginAsync } from 'fastify';
+import { z } from 'zod';
 import { pool } from '../../db/connection.js';
 import { authenticate, requireRoles } from '../../lib/authz.js';
 import { AppError } from '../../lib/errors.js';
+import { CONSTANTS } from '../../config/constants.js';
+import { logAudit } from '../audit/audit.service.js';
 import { publishSessionResults } from '../sessions/sessions.service.js';
+
+const submitAppealSchema = z
+  .object({
+    question_version_id: z.string().uuid().optional().nullable(),
+    message: z.string().max(1000).optional(),
+    reason: z.string().max(1000).optional(),
+  })
+  .refine(
+    (data) =>
+      (data.message && data.message.trim().length >= 3) ||
+      (data.reason && data.reason.trim().length >= 3),
+    { message: 'Alasan atau pesan sanggahan minimal 3 karakter.' }
+  );
 
 export const resultRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
   fastify.addHook('preHandler', authenticate);
@@ -109,7 +125,14 @@ export const resultRoutes: FastifyPluginAsync = async (fastify: FastifyInstance)
           s.id AS session_id, s.name AS session_name, s.code AS session_code,
           e.id AS exam_id, e.title AS exam_title, e.allow_review,
           c.id AS certificate_id, c.certificate_no, c.verification_code, c.status AS cert_status,
-          se.student_id
+          se.student_id,
+          (ap.id IS NOT NULL) AS has_appeal,
+          ap.id AS appeal_id,
+          ap.status AS appeal_status,
+          ap.message AS appeal_message,
+          ap.response AS appeal_response,
+          ap.created_at AS appeal_created_at,
+          ap.responded_at AS appeal_responded_at
          FROM results r
          JOIN attempts a ON a.id = r.attempt_id
          JOIN session_enrollments se ON se.id = a.enrollment_id
@@ -118,6 +141,13 @@ export const resultRoutes: FastifyPluginAsync = async (fastify: FastifyInstance)
          JOIN exam_sessions s ON s.id = se.session_id
          JOIN exams e ON e.id = s.exam_id
          LEFT JOIN certificates c ON c.result_id = r.id AND c.status = 'valid'
+         LEFT JOIN LATERAL (
+           SELECT id, status, message, response, created_at, responded_at
+           FROM appeals
+           WHERE result_id = r.id
+           ORDER BY created_at DESC
+           LIMIT 1
+         ) ap ON true
          WHERE r.id = $1;`,
         [id]
       );
@@ -179,6 +209,88 @@ export const resultRoutes: FastifyPluginAsync = async (fastify: FastifyInstance)
       const { sessionId } = request.params as { sessionId: string };
       const result = await publishSessionResults(sessionId, request.user!.id, request.ip);
       return reply.send({ success: true, result });
+    },
+  });
+
+  // POST /results/:id/appeals (M, FR-R07)
+  fastify.post('/results/:id/appeals', {
+    preHandler: [requireRoles(['student', 'admin'])],
+    handler: async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const user = request.user!;
+
+      const parseResult = submitAppealSchema.safeParse(request.body || {});
+      if (!parseResult.success) {
+        throw new AppError('VALIDATION_FAILED', 'Format pengajuan sanggah salah', parseResult.error.format());
+      }
+
+      const { question_version_id } = parseResult.data;
+      const appealText = (parseResult.data.message || parseResult.data.reason)!.trim();
+
+      // Cek apakah hasil ujian valid dan milik mahasiswa
+      const { rows } = await pool.query(
+        `SELECT r.id, r.status, r.published_at, r.graded_at, se.student_id
+         FROM results r
+         JOIN attempts a ON a.id = r.attempt_id
+         JOIN session_enrollments se ON se.id = a.enrollment_id
+         WHERE r.id = $1;`,
+        [id]
+      );
+
+      if (rows.length === 0) {
+        throw new AppError('NOT_FOUND', 'Hasil ujian tidak ditemukan.');
+      }
+
+      const resRow = rows[0];
+      if (user.role === 'student' && resRow.student_id !== user.id) {
+        throw new AppError('NOT_FOUND');
+      }
+
+      // Periksa batas waktu sanggah (APPEAL_WINDOW_DAYS = 7 hari sejak hasil diterbitkan atau dinilai)
+      const baseDate = resRow.published_at ? new Date(resRow.published_at) : new Date(resRow.graded_at || Date.now());
+      const appealDeadline = new Date(
+        baseDate.getTime() + CONSTANTS.APPEAL_WINDOW_DAYS * 24 * 60 * 60 * 1000
+      );
+      if (Date.now() > appealDeadline.getTime()) {
+        throw new AppError(
+          'APPEAL_WINDOW_CLOSED',
+          `Batas waktu pengajuan sanggah (${CONSTANTS.APPEAL_WINDOW_DAYS} hari sejak hasil diterbitkan) telah berakhir.`
+        );
+      }
+
+      // Cek apakah sudah ada sanggahan terbuka untuk hasil ini
+      const { rows: existingOpen } = await pool.query(
+        `SELECT id FROM appeals WHERE result_id = $1 AND status = 'open';`,
+        [id]
+      );
+      if (existingOpen.length > 0) {
+        throw new AppError('CONFLICT', 'Sanggahan untuk hasil ujian ini sudah diajukan dan sedang dalam proses peninjauan panitia.');
+      }
+
+      // Masukkan ke tabel appeals
+      const targetStudentId = user.role === 'student' ? user.id : resRow.student_id;
+      const { rows: appealRows } = await pool.query(
+        `INSERT INTO appeals (result_id, student_id, question_version_id, message, status)
+         VALUES ($1, $2, $3, $4, 'open')
+         RETURNING id, result_id, student_id, question_version_id, message, status, created_at;`,
+        [id, targetStudentId, question_version_id || null, appealText]
+      );
+
+      await logAudit({
+        actorId: user.id,
+        actorRole: user.role,
+        action: 'appeals.submit',
+        entityType: 'appeals',
+        entityId: appealRows[0].id,
+        reason: appealText,
+        afterData: appealRows[0],
+        ipAddress: request.ip,
+      });
+
+      return reply.status(201).send({
+        success: true,
+        appeal: appealRows[0],
+      });
     },
   });
 };

@@ -28,6 +28,8 @@ export const ERROR_CODES = {
   LAST_ADMIN: { status: 409, message: 'Admin aktif terakhir tidak boleh dinonaktifkan atau dihapus.' },
   CORRECTION_INVALID: { status: 409, message: 'Koreksi soal tidak valid atau menghasilkan total skor nol.' },
   APPEAL_WINDOW_CLOSED: { status: 409, message: 'Batas waktu pengajuan sanggah sudah berakhir.' },
+  CONFLICT: { status: 409, message: 'Operasi konflik dengan status atau data yang ada.' },
+  APPEAL_ALREADY_EXISTS: { status: 409, message: 'Sanggahan untuk hasil ujian ini sudah diajukan dan sedang diproses.' },
   INTERNAL_ERROR: { status: 500, message: 'Terjadi kesalahan internal pada server.' },
 } as const;
 
