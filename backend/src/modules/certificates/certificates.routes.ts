@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { pool } from '../../db/connection.js';
-import { authenticate, requireRoles } from '../../lib/authz.js';
+import { authenticate, requireRoles, isStudentRole } from '../../lib/authz.js';
 import { AppError } from '../../lib/errors.js';
 import {
   revokeCertificate,
@@ -96,7 +96,7 @@ export const certificateRoutes: FastifyPluginAsync = async (fastify: FastifyInst
       const user = request.user!;
 
       // Cek izin akses jika mahasiswa (anti-IDOR, INV-14)
-      if (user.role === 'student') {
+      if (isStudentRole(user.role)) {
         const { rows } = await pool.query(
           `SELECT se.student_id
            FROM certificates c

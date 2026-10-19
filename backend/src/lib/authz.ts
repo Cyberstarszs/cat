@@ -5,6 +5,10 @@ import { hashToken } from './hash.js';
 
 export type AppUserRole = 'admin' | 'student' | 'mahasiswa' | 'umum';
 
+export function isStudentRole(role?: string): boolean {
+  return role === 'student' || role === 'mahasiswa' || role === 'umum';
+}
+
 export interface AuthenticatedUser {
   id: string;
   email: string;

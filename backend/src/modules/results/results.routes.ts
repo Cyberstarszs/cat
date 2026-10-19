@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { pool } from '../../db/connection.js';
-import { authenticate, requireRoles } from '../../lib/authz.js';
+import { authenticate, requireRoles, isStudentRole } from '../../lib/authz.js';
 import { AppError } from '../../lib/errors.js';
 import { CONSTANTS } from '../../config/constants.js';
 import { logAudit } from '../audit/audit.service.js';
@@ -155,7 +155,7 @@ export const resultRoutes: FastifyPluginAsync = async (fastify: FastifyInstance)
       if (rows.length === 0) throw new AppError('NOT_FOUND');
       const result = rows[0];
 
-      if (user.role === 'student' && result.student_id !== user.id) {
+      if (isStudentRole(user.role) && result.student_id !== user.id) {
         throw new AppError('NOT_FOUND');
       }
 
@@ -176,7 +176,7 @@ export const resultRoutes: FastifyPluginAsync = async (fastify: FastifyInstance)
         [result.attempt_id]
       );
 
-      if (user.role === 'student' && !result.allow_review) {
+      if (isStudentRole(user.role) && !result.allow_review) {
         for (const ans of answers) {
           delete ans.correct_label;
           delete ans.correct_text;
@@ -242,7 +242,7 @@ export const resultRoutes: FastifyPluginAsync = async (fastify: FastifyInstance)
       }
 
       const resRow = rows[0];
-      if (user.role === 'student' && resRow.student_id !== user.id) {
+      if (isStudentRole(user.role) && resRow.student_id !== user.id) {
         throw new AppError('NOT_FOUND');
       }
 
@@ -268,7 +268,7 @@ export const resultRoutes: FastifyPluginAsync = async (fastify: FastifyInstance)
       }
 
       // Masukkan ke tabel appeals
-      const targetStudentId = user.role === 'student' ? user.id : resRow.student_id;
+      const targetStudentId = isStudentRole(user.role) ? user.id : resRow.student_id;
       const { rows: appealRows } = await pool.query(
         `INSERT INTO appeals (result_id, student_id, question_version_id, message, status)
          VALUES ($1, $2, $3, $4, 'open')

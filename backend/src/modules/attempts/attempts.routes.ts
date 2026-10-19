@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { pool } from '../../db/connection.js';
-import { authenticate, requireRoles } from '../../lib/authz.js';
+import { authenticate, requireRoles, isStudentRole } from '../../lib/authz.js';
 import { AppError } from '../../lib/errors.js';
 import {
   getAttemptState,
@@ -195,7 +195,7 @@ export const attemptRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
       if (rows.length === 0) throw new AppError('NOT_FOUND', 'Hasil ujian belum tersedia.');
       const resData = rows[0];
 
-      if (user.role === 'student' && resData.student_id !== user.id) {
+      if (isStudentRole(user.role) && resData.student_id !== user.id) {
         throw new AppError('NOT_FOUND');
       }
 
@@ -250,12 +250,12 @@ export const attemptRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
       const att = rows[0];
 
       // Anti-IDOR: Peserta hanya dapat melihat percobaan miliknya sendiri
-      if (user.role === 'student' && att.student_id !== user.id) {
+      if (isStudentRole(user.role) && att.student_id !== user.id) {
         throw new AppError('NOT_FOUND');
       }
 
       // Jika diakses oleh siswa: kembalikan struktur soal dan opsi teracak tanpa membocorkan is_correct
-      if (user.role === 'student') {
+      if (isStudentRole(user.role)) {
         const { questions: rawQuestions } = await getAttemptQuestions(id, user.id);
         const now = new Date();
         const deadline = new Date(att.deadline_at);

@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { pool } from '../../db/connection.js';
-import { authenticate, requireRoles } from '../../lib/authz.js';
+import { authenticate, requireRoles, isStudentRole } from '../../lib/authz.js';
 import { AppError } from '../../lib/errors.js';
 import {
   createExam,
@@ -41,7 +41,7 @@ export const examRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =
   fastify.get('/exams', async (request, reply) => {
     const user = request.user!;
 
-    if (user.role === 'student') {
+    if (isStudentRole(user.role)) {
       const { rows } = await pool.query(
         `SELECT id, code, title, description, duration_minutes, question_count, passing_score
          FROM exams
@@ -88,7 +88,7 @@ export const examRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =
     if (rows.length === 0) throw new AppError('NOT_FOUND');
 
     const exam = rows[0];
-    if (user.role === 'student') {
+    if (isStudentRole(user.role)) {
       if (exam.status !== 'active') throw new AppError('NOT_FOUND');
       return reply.send({
         exam: {

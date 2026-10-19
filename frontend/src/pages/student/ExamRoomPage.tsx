@@ -57,12 +57,13 @@ export const ExamRoomPage: React.FC = () => {
       try {
         const data = await attemptService.getAttempt(attemptId);
         setAttempt(data);
-        setQuestions(data.questions || []);
-        setTimeRemaining(data.time_remaining_seconds || data.duration_minutes * 60);
+        const questionsList = data.questions || [];
+        setQuestions(questionsList);
+        setTimeRemaining(data.time_remaining_seconds || (data.duration_minutes ? data.duration_minutes * 60 : 0));
 
         // Prepopulate answers
         const ansMap: Record<string, string | null> = {};
-        data.questions.forEach((q) => {
+        questionsList.forEach((q) => {
           ansMap[q.id] = q.selected_option_id || null;
         });
         setSelectedAnswers(ansMap);

@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { pool } from '../../db/connection.js';
-import { authenticate, requireRoles } from '../../lib/authz.js';
+import { authenticate, requireRoles, isStudentRole } from '../../lib/authz.js';
 import { AppError } from '../../lib/errors.js';
 import { CONSTANTS } from '../../config/constants.js';
 import { sanitizeStudentReview } from '../../lib/serializer.js';
@@ -105,7 +105,7 @@ export const meRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => 
 
     const { phone, institution } = parseResult.data;
 
-    if (user.role === 'student') {
+    if (isStudentRole(user.role)) {
       const { rows } = await pool.query(
         `UPDATE student_profiles
          SET phone = COALESCE($1, phone),
@@ -330,7 +330,7 @@ export const meRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => 
       }
 
       const resRow = rows[0];
-      if (user.role === 'student' && resRow.student_id !== user.id) {
+      if (isStudentRole(user.role) && resRow.student_id !== user.id) {
         throw new AppError('NOT_FOUND');
       }
 
@@ -355,7 +355,7 @@ export const meRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => 
         throw new AppError('CONFLICT', 'Sanggahan untuk hasil ujian ini sudah diajukan dan sedang dalam proses peninjauan panitia.');
       }
 
-      const targetStudentId = user.role === 'student' ? user.id : resRow.student_id;
+      const targetStudentId = isStudentRole(user.role) ? user.id : resRow.student_id;
       const { rows: appealRows } = await pool.query(
         `INSERT INTO appeals (result_id, student_id, question_version_id, message, status)
          VALUES ($1, $2, $3, $4, 'open')
