@@ -592,3 +592,6 @@ export const reportService = {
     return res.data;
   },
 };
+
+// ==================== UNIRA MAHASISWA SERVICE ====================
+export * from './unira';

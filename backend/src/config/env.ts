@@ -23,6 +23,7 @@ const envSchema = z.object({
   BASE_URL: z.string().default('http://localhost:3000'),
   ADMIN_EMAIL: z.string().email().optional().default('admin@fia.kampus.ac.id'),
   ADMIN_PASSWORD: z.string().min(10).optional().default('AdminPassword123!'),
+  UNIRA_API_BASE_URL: z.string().default('https://api.unira.ac.id'),
 });
 
 const parsed = envSchema.safeParse(process.env);

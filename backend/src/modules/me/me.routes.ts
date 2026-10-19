@@ -4,6 +4,7 @@ import { pool } from '../../db/connection.js';
 import { authenticate, requireRoles, isStudentRole } from '../../lib/authz.js';
 import { AppError } from '../../lib/errors.js';
 import { CONSTANTS } from '../../config/constants.js';
+import { env } from '../../config/env.js';
 import { sanitizeStudentReview } from '../../lib/serializer.js';
 import { logAudit } from '../audit/audit.service.js';
 
@@ -120,6 +121,44 @@ export const meRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => 
     }
 
     return reply.send({ success: true, message: 'Profil admin tidak memerlukan perubahan.' });
+  });
+
+  // GET /me/photo (Ambil foto mahasiswa UNIRA langsung dari API UNIRA)
+  fastify.get('/me/photo', async (request, reply) => {
+    const user = request.user!;
+    const { rows } = await pool.query(
+      `SELECT identifier, institution FROM student_profiles WHERE user_id = $1;`,
+      [user.id]
+    );
+    if (rows.length === 0 || !rows[0].identifier) {
+      return reply.send({ photo_url: null });
+    }
+    const { identifier, institution } = rows[0];
+    if (
+      user.role === 'umum' ||
+      (institution && institution.toLowerCase() === 'umum') ||
+      !/^\d+$/.test(identifier.trim())
+    ) {
+      return reply.send({ photo_url: null });
+    }
+
+    try {
+      const baseUrl = env.UNIRA_API_BASE_URL.replace(/\/$/, '');
+      const response = await fetch(`${baseUrl}/v1/mahasiswa?filter[nim]=${encodeURIComponent(identifier.trim())}`, {
+        headers: { Accept: 'application/json' },
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!response.ok) return reply.send({ photo_url: null });
+      const json: any = await response.json();
+      if (json.data && json.data.length > 0 && json.data[0].attributes?.thumbnail) {
+        const thumb = json.data[0].attributes.thumbnail.trim();
+        const photoUrl = thumb.startsWith('http') ? thumb : `${baseUrl}/${thumb.replace(/^\//, '')}`;
+        return reply.send({ photo_url: photoUrl });
+      }
+      return reply.send({ photo_url: null });
+    } catch {
+      return reply.send({ photo_url: null });
+    }
   });
 
   // GET /me/settings (FR-U06)

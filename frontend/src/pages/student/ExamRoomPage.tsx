@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { attemptService } from '../../services';
 import { useAuth } from '../../context/AuthContext';
+import { useStudentPhoto } from '../../services/unira';
 import { AttemptDetail, AttemptQuestionItem } from '../../types';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -27,7 +28,8 @@ export const ExamRoomPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const attemptId = searchParams.get('attemptId');
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
+  const { photoUrl } = useStudentPhoto(profile?.identifier, user?.role, profile?.institution);
 
   const [attempt, setAttempt] = useState<AttemptDetail | null>(null);
   const [questions, setQuestions] = useState<AttemptQuestionItem[]>([]);
@@ -219,6 +221,17 @@ export const ExamRoomPage: React.FC = () => {
 
         {/* Real-time Timer display & Finish Button */}
         <div className="flex items-center gap-4">
+          {photoUrl && (
+            <div className="hidden sm:flex items-center gap-2 pr-2 border-r border-[#4d3363]">
+              <div className="w-8 h-8 rounded-full overflow-hidden border border-[#bda8d6] bg-[#4d3363] shrink-0">
+                <img src={photoUrl} alt="Foto" className="w-full h-full object-cover" />
+              </div>
+              <span className="text-xs text-[#eae2f5] font-semibold max-w-[110px] truncate hidden md:inline">
+                {profile?.full_name?.split(' ')[0]}
+              </span>
+            </div>
+          )}
+
           <div
             className={`flex items-center gap-2 px-3 py-1.5 rounded-[6px] border font-mono font-bold text-sm transition-colors ${
               isTimeCritical
@@ -267,17 +280,29 @@ export const ExamRoomPage: React.FC = () => {
           </div>
 
           <div className="flex flex-col items-center text-center p-4 bg-[#faf9fc] rounded border border-[#e6e1eb]">
-            <div className="w-16 h-16 rounded-full bg-[#eae2f5] text-[#583682] flex items-center justify-center font-bold text-xl mb-3">
-              <User className="w-8 h-8 stroke-1" />
+            <div className="w-20 h-20 rounded-full bg-[#eae2f5] text-[#583682] flex items-center justify-center font-bold text-xl mb-3 overflow-hidden border-2 border-[#583682]/20 shadow-inner">
+              {photoUrl ? (
+                <img
+                  src={photoUrl}
+                  alt={profile?.full_name || 'Foto Mahasiswa'}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
+              ) : (
+                <User className="w-10 h-10 stroke-1" />
+              )}
             </div>
             <h2 className="font-display font-bold text-base text-[#24212b]">
-              {profile?.full_name || 'Wahyu Hidayatullah'}
+              {profile?.full_name || 'Peserta Ujian'}
             </h2>
             <span className="text-xs text-[#595562] mt-0.5">
-              NIM {profile?.identifier || '202412345'}
+              {user?.role === 'umum' || profile?.identifier?.startsWith('UMUM') ? 'NO. PESERTA' : 'NIM'}{' '}
+              {profile?.identifier || '-'}
             </span>
             <span className="text-[11px] font-mono font-semibold text-[#583682] mt-0.5">
-              CAT-2026-{profile?.identifier || '001245'}
+              CAT-2026-{profile?.identifier ? profile.identifier.slice(-6) : '001245'}
             </span>
           </div>
 
@@ -439,9 +464,26 @@ export const ExamRoomPage: React.FC = () => {
         {/* Right Column: Question Navigator Palette (3 cols) */}
         <aside
           className={`${
-            mobileNavOpen ? 'block fixed inset-x-4 top-20 z-40 bg-white p-5 shadow-2xl rounded-[8px]' : 'hidden'
+            mobileNavOpen ? 'block fixed inset-x-4 top-20 z-40 bg-white p-5 shadow-2xl rounded-[8px] max-h-[85vh] overflow-y-auto' : 'hidden'
           } lg:block lg:col-span-3 bg-white border border-[#e6e1eb] rounded-[8px] p-5 shadow-sm space-y-4`}
         >
+          {/* Mobile Identity Header */}
+          <div className="lg:hidden flex items-center gap-3 p-3 bg-[#faf9fc] rounded border border-[#e6e1eb] mb-2">
+            <div className="w-10 h-10 rounded-full bg-[#eae2f5] text-[#583682] flex items-center justify-center overflow-hidden border border-[#d5cae8] shrink-0">
+              {photoUrl ? (
+                <img src={photoUrl} alt="Foto" className="w-full h-full object-cover" />
+              ) : (
+                <User className="w-5 h-5" />
+              )}
+            </div>
+            <div className="overflow-hidden">
+              <div className="text-xs font-bold text-[#24212b] truncate">{profile?.full_name || 'Peserta'}</div>
+              <div className="text-[10px] text-[#595562]">
+                {user?.role === 'umum' || profile?.identifier?.startsWith('UMUM') ? 'No' : 'NIM'}: {profile?.identifier || '-'}
+              </div>
+            </div>
+          </div>
+
           <div className="flex items-center justify-between pb-3 border-b border-[#e6e1eb]">
             <h3 className="font-display font-bold text-sm text-[#24212b]">
               NAVIGASI SOAL

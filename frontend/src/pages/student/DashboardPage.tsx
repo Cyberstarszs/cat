@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useStudentPhoto } from '../../services/unira';
 import { sessionService, resultService, notificationService, examService } from '../../services';
 import { ExamResult, NotificationItem, Exam } from '../../types';
 import { formatWIBDate, formatWIBTimeRange, formatWIBDateShort } from '../../utils/date';
@@ -20,6 +21,7 @@ import {
 
 export const DashboardPage: React.FC = () => {
   const { profile, user } = useAuth();
+  const { photoUrl } = useStudentPhoto(profile?.identifier, user?.role, profile?.institution);
   const navigate = useNavigate();
 
   const [sessions, setSessions] = useState<any[]>([]);
@@ -75,7 +77,19 @@ export const DashboardPage: React.FC = () => {
       {/* 2. Participant ID Card */}
       <section className="participant-card">
         <div className="participant-photo">
-          <User className="w-16 h-16 stroke-1" />
+          {photoUrl ? (
+            <img
+              src={photoUrl}
+              alt={profile?.full_name || 'Foto Mahasiswa'}
+              onError={(e) => {
+                (e.target as HTMLElement).style.display = 'none';
+              }}
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full text-gray-400 py-10">
+              <User className="w-16 h-16 stroke-1" />
+            </div>
+          )}
           <span>FOTO</span>
         </div>
 
@@ -85,20 +99,20 @@ export const DashboardPage: React.FC = () => {
 
           <div className="participant-data">
             <span>
-              <small>NIM</small>
+              <small>{user?.role === 'umum' || profile?.identifier?.startsWith('UMUM') ? 'NO. PESERTA' : 'NIM'}</small>
               <b>{profile?.identifier || '-'}</b>
             </span>
             <span>
-              <small>PROGRAM STUDI</small>
-              <b>Administrasi Publik</b>
+              <small>PROGRAM STUDI / INSTANSI</small>
+              <b>{profile?.institution || (user?.role === 'umum' ? 'Umum' : 'Administrasi Publik')}</b>
             </span>
             <span>
-              <small>FAKULTAS</small>
-              <b>Ilmu Administrasi</b>
+              <small>FAKULTAS / ASAL</small>
+              <b>{user?.role === 'umum' ? (profile?.institution || 'Peserta Umum') : 'Ilmu Administrasi'}</b>
             </span>
             <span>
-              <small>UNIVERSITAS</small>
-              <b>Universitas Madura</b>
+              <small>UNIVERSITAS / LEMBAGA</small>
+              <b>{user?.role === 'umum' ? 'CAT Mandiri' : 'Universitas Madura'}</b>
             </span>
           </div>
 

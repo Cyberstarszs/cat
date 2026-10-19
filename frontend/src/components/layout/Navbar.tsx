@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useStudentPhoto } from '../../services/unira';
 import logoImg from '../../assets/cat-governance-logo.png';
 import { FigmaIcon } from '../common/FigmaIcon';
 
@@ -10,6 +11,7 @@ export interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ minimal = false }) => {
   const { user, profile, isAuthenticated, logout } = useAuth();
+  const { photoUrl } = useStudentPhoto(profile?.identifier, user?.role, profile?.institution);
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -171,7 +173,17 @@ export const Navbar: React.FC<NavbarProps> = ({ minimal = false }) => {
                 title="Buka Dashboard Akun"
               >
                 <div className="header-profile-avatar" aria-hidden="true">
-                  {userInitial}
+                  {photoUrl ? (
+                    <img
+                      src={photoUrl}
+                      alt="Foto Profil"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    userInitial
+                  )}
                 </div>
                 <div className="header-profile-info">
                   <span className="header-profile-name">{displayName}</span>

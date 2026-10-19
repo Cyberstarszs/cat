@@ -228,6 +228,12 @@ footer .brand__logo { filter: brightness(0) invert(1); }
   font: 700 12px Manrope;
   display: grid;
   place-items: center;
+  overflow: hidden;
+}
+.header-profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .header-profile-info {
   display: flex;
