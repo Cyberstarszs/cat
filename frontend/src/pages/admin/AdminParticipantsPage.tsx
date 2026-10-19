@@ -485,13 +485,13 @@ export const AdminParticipantsPage: React.FC = () => {
               </div>
 
               <p className="text-[11px] text-[#595562]">
-                Berikan 6 digit angka ini kepada peserta. Peserta wajib mengganti kata sandi ini pada saat pertama kali login.
+                Berikan 6 digit angka ini kepada peserta. Peserta dapat langsung login menggunakan kata sandi ini.
               </p>
             </div>
           ) : (
             <div>
               <p className="text-xs text-[#595562] leading-relaxed">
-                Tindakan ini akan mereset kata sandi peserta <strong>{activeStudentForReset?.full_name} ({activeStudentForReset?.identifier})</strong> menjadi <strong>format 6 angka acak</strong> dan mewajibkan peserta untuk mengganti kata sandinya saat login berikutnya.
+                Tindakan ini akan mereset kata sandi peserta <strong>{activeStudentForReset?.full_name} ({activeStudentForReset?.identifier})</strong> menjadi <strong>format 6 angka acak baru</strong>.
               </p>
             </div>
           )}

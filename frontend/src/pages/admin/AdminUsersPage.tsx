@@ -141,7 +141,6 @@ export const AdminUsersPage: React.FC = () => {
                   <th className="px-6 py-3.5">Email Pengguna</th>
                   <th className="px-6 py-3.5">Peran (Role)</th>
                   <th className="px-6 py-3.5">Status Akun</th>
-                  <th className="px-6 py-3.5">Wajib Ganti Password</th>
                   <th className="px-6 py-3.5">Terdaftar Sejak</th>
                   <th className="px-6 py-3.5 text-right">Aksi</th>
                 </tr>
@@ -159,13 +158,6 @@ export const AdminUsersPage: React.FC = () => {
                       <Badge variant={u.status === 'active' ? 'success' : 'danger'}>
                         {u.status === 'active' ? 'AKTIF' : 'SUSPENDED'}
                       </Badge>
-                    </td>
-                    <td className="px-6 py-4 text-[#595562]">
-                      {u.must_change_password ? (
-                        <span className="text-[#a96817] font-semibold">Ya</span>
-                      ) : (
-                        <span className="text-[#287a58]">Tidak</span>
-                      )}
                     </td>
                     <td className="px-6 py-4 text-gray-400">
                       {new Date(u.created_at).toLocaleDateString('id-ID')}
@@ -260,13 +252,13 @@ export const AdminUsersPage: React.FC = () => {
               </div>
 
               <p className="text-[11px] text-[#595562]">
-                Berikan 6 digit angka ini kepada pemilik akun. Pengguna wajib mengganti kata sandi ini pada saat pertama kali login.
+                Berikan 6 digit angka ini kepada pemilik akun. Pengguna dapat langsung login menggunakan kata sandi ini.
               </p>
             </div>
           ) : (
             <div>
               <p className="text-xs text-[#595562] leading-relaxed">
-                Tindakan ini akan mereset kata sandi akun <strong>{activeUserForReset?.email}</strong> menjadi <strong>format 6 angka acak</strong> dan menandai akun agar wajib memperbarui sandinya saat pertama login.
+                Tindakan ini akan mereset kata sandi akun <strong>{activeUserForReset?.email}</strong> menjadi <strong>format 6 angka acak baru</strong>.
               </p>
             </div>
           )}

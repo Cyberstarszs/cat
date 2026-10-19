@@ -8,7 +8,7 @@ import { Button } from '../../components/ui/Button';
 import { User, Phone, Building, KeyRound, CheckCircle2 } from 'lucide-react';
 
 export const ProfilePage: React.FC = () => {
-  const { user, profile, refreshProfile, changePassword } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const { showToast } = useToast();
 
   // Profile fields
@@ -16,12 +16,6 @@ export const ProfilePage: React.FC = () => {
   const [phone, setPhone] = useState(profile?.phone || '');
   const [institution, setInstitution] = useState(profile?.institution || '');
   const [savingProfile, setSavingProfile] = useState(false);
-
-  // Password fields
-  const [oldPassword, setOldPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [savingPassword, setSavingPassword] = useState(false);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,31 +32,6 @@ export const ProfilePage: React.FC = () => {
       showToast(err.message || 'Gagal memperbarui profil.', 'error');
     } finally {
       setSavingProfile(false);
-    }
-  };
-
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newPassword.length < 8) {
-      showToast('Kata sandi baru minimal 8 karakter.', 'error');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      showToast('Konfirmasi kata sandi baru tidak cocok.', 'error');
-      return;
-    }
-
-    setSavingPassword(true);
-    try {
-      await changePassword(oldPassword, newPassword);
-      showToast('Kata sandi berhasil diubah!', 'success');
-      setOldPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-    } catch (err: any) {
-      showToast(err.message || 'Gagal mengubah kata sandi.', 'error');
-    } finally {
-      setSavingPassword(false);
     }
   };
 
@@ -135,47 +104,20 @@ export const ProfilePage: React.FC = () => {
           </form>
         </Card>
 
-        {/* Change Password Card */}
+        {/* Security & Password Info Card */}
         <Card hasShadow>
-          <h3 className="font-display font-bold text-base text-[#24212b] mb-4 pb-3 border-b border-[#e6e1eb] flex items-center gap-2">
+          <h3 className="font-display font-bold text-base text-[#24212b] mb-3 pb-3 border-b border-[#e6e1eb] flex items-center gap-2">
             <KeyRound className="w-4 h-4 text-[#583682]" />
-            Ganti Kata Sandi
+            Keamanan & Kata Sandi Akun
           </h3>
-
-          <form onSubmit={handleChangePassword} className="space-y-4 max-w-lg">
-            <Input
-              type="password"
-              label="Kata Sandi Lama"
-              required
-              value={oldPassword}
-              onChange={(e) => setOldPassword(e.target.value)}
-              placeholder="Masukkan kata sandi lama"
-            />
-
-            <Input
-              type="password"
-              label="Kata Sandi Baru"
-              required
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="Minimal 8 karakter"
-            />
-
-            <Input
-              type="password"
-              label="Konfirmasi Kata Sandi Baru"
-              required
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Ulangi kata sandi baru"
-            />
-
-            <div className="pt-2">
-              <Button type="submit" variant="secondary" isLoading={savingPassword}>
-                Perbarui Kata Sandi
-              </Button>
-            </div>
-          </form>
+          <div className="p-4 bg-[#faf9fc] rounded border border-[#e6e1eb] text-xs text-[#595562] leading-relaxed space-y-2">
+            <p>
+              Pengaturan dan reset kata sandi akun peserta dikelola secara terpusat oleh <strong>Administrator Sistem</strong> untuk menjamin keamanan dan ketertiban administrasi ujian.
+            </p>
+            <p>
+              Jika Anda memerlukan reset kata sandi, silakan hubungi pengawas atau panitia ujian CAT FIA UNIRA.
+            </p>
+          </div>
         </Card>
       </div>
     </div>

@@ -122,7 +122,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         token,
         isAuthenticated: !!token && !!user,
         isLoading,
-        mustChangePassword: !!user?.must_change_password,
+        mustChangePassword: false,
         login,
         logout,
         changePassword,

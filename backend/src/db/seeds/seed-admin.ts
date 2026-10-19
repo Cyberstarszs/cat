@@ -26,7 +26,7 @@ export async function seedAdmin(): Promise<void> {
 
     const { rows: userRows } = await client.query(
       `INSERT INTO users (email, password_hash, role, status, must_change_password)
-       VALUES ($1, $2, 'admin', 'active', true)
+       VALUES ($1, $2, 'admin', 'active', false)
        RETURNING id;`,
       [adminEmail, passwordHash]
     );

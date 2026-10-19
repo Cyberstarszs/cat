@@ -61,16 +61,6 @@ export async function authenticate(request: FastifyRequest, reply: FastifyReply)
     throw new AppError('AUTH_INVALID_CREDENTIALS', 'Akun telah dinonaktifkan.');
   }
 
-  // Cek must_change_password (FR-A03)
-  const cleanUrl = request.url.split('?')[0];
-  const isChangePasswordRoute =
-    cleanUrl === '/api/v1/me/password' ||
-    cleanUrl === '/api/v1/auth/change-password' ||
-    cleanUrl === '/api/v1/auth/logout';
-  if (user.must_change_password && !isChangePasswordRoute) {
-    throw new AppError('AUTH_PASSWORD_CHANGE_REQUIRED');
-  }
-
   request.user = {
     id: user.id,
     email: user.email,

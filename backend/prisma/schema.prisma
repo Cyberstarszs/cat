@@ -378,7 +378,7 @@ model users {
   password_hash                                                String
   role                                                         user_role
   status                                                       user_status            @default(active)
-  must_change_password                                         Boolean                @default(true)
+  must_change_password                                         Boolean                @default(false)
   failed_login_count                                           Int                    @default(0)
   locked_until                                                 DateTime?              @db.Timestamptz(6)
   last_login_at                                                DateTime?              @db.Timestamptz(6)

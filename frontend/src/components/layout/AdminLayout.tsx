@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { AdminSidebar } from './AdminSidebar';
 import { AdminHeader } from './AdminHeader';
-import { ForcePasswordModal } from '../common/ForcePasswordModal';
 
 export const AdminLayout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -37,8 +36,6 @@ export const AdminLayout: React.FC = () => {
           <Outlet />
         </main>
       </div>
-
-      <ForcePasswordModal />
     </div>
   );
 };

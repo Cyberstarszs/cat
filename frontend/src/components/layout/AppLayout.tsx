@@ -2,7 +2,6 @@ import React from 'react';
 import { Outlet } from 'react-router-dom';
 import { Navbar } from './Navbar';
 import { Footer } from './Footer';
-import { ForcePasswordModal } from '../common/ForcePasswordModal';
 
 export const AppLayout: React.FC = () => {
   return (
@@ -12,7 +11,6 @@ export const AppLayout: React.FC = () => {
         <Outlet />
       </main>
       <Footer />
-      <ForcePasswordModal />
     </div>
   );
 };

@@ -91,9 +91,14 @@ export const authRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =
     });
   });
 
-  // Handler ganti kata sandi (FR-A03 & INV-22)
+  // Handler ganti kata sandi - hanya untuk administrator
   const handleChangePassword = async (request: any, reply: any) => {
     const user = request.user!;
+
+    if (user.role !== 'admin') {
+      throw new AppError('FORBIDDEN', 'Hanya administrator yang memiliki wewenang untuk mengatur kata sandi.');
+    }
+
     const parseResult = changePasswordSchema.safeParse(request.body);
     if (!parseResult.success) {
       throw new AppError('VALIDATION_FAILED', 'Format kata sandi tidak memenuhi syarat (minimal 10 karakter)', parseResult.error.format());

@@ -70,7 +70,7 @@ export async function createAdminUser(
         password_hash: passwordHash,
         role: 'admin',
         status: 'active',
-        must_change_password: true,
+        must_change_password: false,
         user_settings: {
           create: { preferences: {} },
         },
@@ -140,7 +140,7 @@ export async function createStudentUser(
         password_hash: passwordHash,
         role: 'student',
         status: 'active',
-        must_change_password: true,
+        must_change_password: false,
         student_profiles: {
           create: {
             identifier: cleanIdentifier,
@@ -349,7 +349,7 @@ export async function commitStudentImport(
 
       const { rows: uRows } = await client.query(
         `INSERT INTO users (email, password_hash, role, status, must_change_password)
-         VALUES ($1, $2, 'student', 'active', true)
+         VALUES ($1, $2, 'student', 'active', false)
          RETURNING id;`,
         [student.email.toLowerCase(), passwordHash]
       );
@@ -455,7 +455,7 @@ export async function resetUserPassword(
       where: { id: targetUserId },
       data: {
         password_hash: passwordHash,
-        must_change_password: true,
+        must_change_password: false,
       },
     });
 
