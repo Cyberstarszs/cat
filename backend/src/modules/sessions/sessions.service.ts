@@ -407,7 +407,8 @@ export async function extendAllAttempts(
 export async function publishSessionResults(
   sessionId: string,
   adminActorId: string,
-  ipAddress?: string
+  ipAddress?: string,
+  forceFinalize = false
 ) {
   // 1. Verifikasi sesi
   const { rows: sRows } = await pool.query(
@@ -431,17 +432,17 @@ export async function publishSessionResults(
   const sessionEndsAt = new Date(session.ends_at);
 
   if (activeAttempts.length > 0) {
-    if (serverNow.getTime() < sessionEndsAt.getTime() + CONSTANTS.ANSWER_GRACE_SECONDS * 1000) {
+    if (!forceFinalize && serverNow.getTime() < sessionEndsAt.getTime() + CONSTANTS.ANSWER_GRACE_SECONDS * 1000) {
       throw new AppError(
         'SESSION_NOT_FINISHED',
         `Sesi belum selesai. Masih terdapat ${activeAttempts.length} peserta yang sedang mengerjakan ujian.`
       );
     }
 
-    // Jika waktu sesi sudah berakhir, auto-submit seluruh attempt yang masih in_progress
+    // Auto-submit seluruh attempt yang masih in_progress
     const { submitExamAttempt } = await import('../attempts/attempts.service.js');
     for (const att of activeAttempts) {
-      await submitExamAttempt(att.id, 'timeout', undefined, ipAddress);
+      await submitExamAttempt(att.id, forceFinalize ? 'forced' : 'timeout', undefined, ipAddress);
     }
   }
 
@@ -502,6 +503,54 @@ export async function publishSessionResults(
   } finally {
     client.release();
   }
+}
+
+export async function finalizeSession(
+  sessionId: string,
+  adminActorId: string,
+  ipAddress?: string
+) {
+  // 1. Verifikasi sesi
+  const { rows: sRows } = await pool.query(
+    `SELECT s.* FROM exam_sessions s WHERE s.id = $1;`,
+    [sessionId]
+  );
+  if (sRows.length === 0) throw new AppError('NOT_FOUND', 'Sesi ujian tidak ditemukan.');
+  const session = sRows[0];
+
+  if (session.status === 'cancelled') {
+    throw new AppError('VALIDATION_FAILED', 'Sesi yang telah dibatalkan tidak dapat difinalisasi.');
+  }
+
+  // 2. Submit paksa seluruh attempt in_progress & terbitkan hasil (forceFinalize = true)
+  const pubResult = await publishSessionResults(sessionId, adminActorId, ipAddress, true);
+
+  // 3. Majukan ends_at ke waktu sekarang jika sesi masih aktif/terjadwal
+  await pool.query(
+    `UPDATE exam_sessions
+     SET ends_at = LEAST(ends_at, now()), updated_at = now()
+     WHERE id = $1;`,
+    [sessionId]
+  );
+
+  // 4. Catat audit log
+  await logAudit({
+    actorId: adminActorId,
+    actorRole: 'admin',
+    action: 'sessions.finalize',
+    entityType: 'exam_sessions',
+    entityId: sessionId,
+    afterData: {
+      ...pubResult,
+    },
+    ipAddress,
+  });
+
+  return {
+    success: true,
+    message: 'Sesi berhasil difinalisasi dan seluruh attempt telah dinilai.',
+    ...pubResult,
+  };
 }
 
 export async function regradeSession(

@@ -13,6 +13,7 @@ import {
   getCandidateStudents,
   extendAllAttempts,
   publishSessionResults,
+  finalizeSession,
   regradeSession,
 } from './sessions.service.js';
 import { startExamAttempt } from '../attempts/attempts.service.js';
@@ -100,7 +101,20 @@ export const sessionRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
       const dataQuery = `
         SELECT 
           s.id, s.exam_id, s.code, s.name, s.starts_at, s.ends_at, s.capacity,
-          s.status, s.question_year, (s.access_code_hash IS NOT NULL) AS has_access_code, s.created_at,
+          CASE 
+            WHEN s.status = 'cancelled' THEN 'cancelled'
+            WHEN s.status = 'draft' THEN 'draft'
+            WHEN now() < s.starts_at THEN 'scheduled'
+            WHEN now() >= s.ends_at OR EXISTS (
+              SELECT 1 FROM results r 
+              JOIN attempts a ON a.id = r.attempt_id 
+              JOIN session_enrollments se ON se.id = a.enrollment_id 
+              WHERE se.session_id = s.id AND r.status = 'published'
+            ) THEN 'completed'
+            ELSE 'active'
+          END AS status,
+          s.status AS raw_status,
+          s.question_year, (s.access_code_hash IS NOT NULL) AS has_access_code, s.created_at,
           e.title AS exam_title, e.duration_minutes,
           COUNT(DISTINCT se.id) AS enrolled_count
         FROM exam_sessions s
@@ -138,7 +152,22 @@ export const sessionRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
 
       const { rows } = await pool.query(
         `SELECT 
-          s.*, (s.access_code_hash IS NOT NULL) AS has_access_code,
+          s.id, s.exam_id, s.code, s.name, s.starts_at, s.ends_at, s.capacity,
+          CASE 
+            WHEN s.status = 'cancelled' THEN 'cancelled'
+            WHEN s.status = 'draft' THEN 'draft'
+            WHEN now() < s.starts_at THEN 'scheduled'
+            WHEN now() >= s.ends_at OR EXISTS (
+              SELECT 1 FROM results r 
+              JOIN attempts a ON a.id = r.attempt_id 
+              JOIN session_enrollments se ON se.id = a.enrollment_id 
+              WHERE se.session_id = s.id AND r.status = 'published'
+            ) THEN 'completed'
+            ELSE 'active'
+          END AS status,
+          s.status AS raw_status,
+          s.question_year, (s.access_code_hash IS NOT NULL) AS has_access_code,
+          s.created_at, s.updated_at,
           e.title AS exam_title, e.duration_minutes, e.passing_score, e.question_count,
           COUNT(DISTINCT se.id) AS enrolled_count
          FROM exam_sessions s
@@ -456,6 +485,16 @@ export const sessionRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
       const { id } = request.params as { id: string };
       const result = await publishSessionResults(id, request.user!.id, request.ip);
       return reply.send({ success: true, ...result });
+    },
+  });
+
+  // POST /sessions/:id/finalize (A, FR-R02)
+  fastify.post('/sessions/:id/finalize', {
+    preHandler: [requireRoles(['admin'])],
+    handler: async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const result = await finalizeSession(id, request.user!.id, request.ip);
+      return reply.send(result);
     },
   });
 
