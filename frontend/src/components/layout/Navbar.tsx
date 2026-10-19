@@ -176,7 +176,7 @@ export const Navbar: React.FC<NavbarProps> = ({ minimal = false }) => {
                 <div className="header-profile-info">
                   <span className="header-profile-name">{displayName}</span>
                   <span className="header-profile-role">
-                    {user?.role === 'admin' ? 'ADMIN' : 'MHS'}
+                    {user?.role === 'admin' ? 'ADMIN' : user?.role === 'umum' ? 'UMUM' : 'MHS'}
                   </span>
                 </div>
               </button>

@@ -3,10 +3,12 @@ import { AppError } from './errors.js';
 import { prisma } from '../db/prisma.js';
 import { hashToken } from './hash.js';
 
+export type AppUserRole = 'admin' | 'student' | 'mahasiswa' | 'umum';
+
 export interface AuthenticatedUser {
   id: string;
   email: string;
-  role: 'admin' | 'student';
+  role: AppUserRole;
   status: 'active' | 'suspended';
   must_change_password: boolean;
   session_id: string;
@@ -74,13 +76,19 @@ export async function authenticate(request: FastifyRequest, reply: FastifyReply)
 /**
  * Middleware: Pemeriksaan otorisasi berbasis peran (INV-20).
  */
-export function requireRoles(roles: ('admin' | 'student')[]) {
+export function requireRoles(roles: (AppUserRole | string)[]) {
   return async (request: FastifyRequest, _reply: FastifyReply): Promise<void> => {
     if (!request.user) {
       throw new AppError('AUTH_REQUIRED');
     }
 
-    if (!roles.includes(request.user.role)) {
+    const effectiveRoles = new Set(roles);
+    if (effectiveRoles.has('student')) {
+      effectiveRoles.add('mahasiswa');
+      effectiveRoles.add('umum');
+    }
+
+    if (!effectiveRoles.has(request.user.role)) {
       throw new AppError('FORBIDDEN');
     }
   };

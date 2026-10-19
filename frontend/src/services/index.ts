@@ -473,11 +473,12 @@ export const userService = {
   },
 
   async createStudent(data: {
-    identifier: string;
+    identifier?: string;
     full_name: string;
     email: string;
     institution?: string;
     phone?: string;
+    role?: 'mahasiswa' | 'umum';
   }): Promise<{ student: StudentProfile; initial_password?: string }> {
     const res = await apiClient.post('/students', data);
     return res.data;

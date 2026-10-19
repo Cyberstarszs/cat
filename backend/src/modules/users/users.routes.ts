@@ -25,11 +25,12 @@ const updateAdminSchema = z.object({
 });
 
 const createStudentSchema = z.object({
-  identifier: z.string().min(1, 'Nomor Identitas wajib diisi'),
+  identifier: z.string().optional().nullable(),
   full_name: z.string().min(1, 'Nama lengkap wajib diisi'),
   email: z.string().email('Format email tidak valid'),
   institution: z.string().optional().nullable(),
   phone: z.string().optional().nullable(),
+  role: z.enum(['mahasiswa', 'umum', 'student']).optional(),
 });
 
 const updateStudentSchema = z.object({
@@ -47,7 +48,7 @@ export const userRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =
   // GET /users
   fastify.get('/users', async (request, reply) => {
     const query = request.query as {
-      role?: 'admin' | 'student';
+      role?: 'admin' | 'student' | 'mahasiswa' | 'umum';
       status?: 'active' | 'suspended';
       search?: string;
       limit?: string;
@@ -275,7 +276,7 @@ export const userRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =
     const limit = Math.min(Math.max(parseInt(query.limit || '25', 10), 1), 100);
     const offset = Math.max(parseInt(query.offset || '0', 10), 0);
 
-    const conditions: string[] = ['u.deleted_at IS NULL', "u.role = 'student'"];
+    const conditions: string[] = ['u.deleted_at IS NULL', "u.role IN ('student', 'mahasiswa', 'umum')"];
     const params: any[] = [];
     let paramIndex = 1;
 
@@ -303,7 +304,7 @@ export const userRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =
 
     const dataQuery = `
       SELECT 
-        u.id, u.email, u.status, u.must_change_password, u.last_login_at,
+        u.id, u.email, u.role, u.status, u.must_change_password, u.last_login_at,
         sp.identifier, sp.full_name, sp.institution, sp.phone, sp.created_at, sp.updated_at
       FROM student_profiles sp
       JOIN users u ON u.id = sp.user_id
@@ -328,7 +329,7 @@ export const userRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =
       throw new AppError('VALIDATION_FAILED', 'Validasi data peserta gagal', parseResult.error.format());
     }
 
-    const { identifier, full_name, email, institution, phone } = parseResult.data;
+    const { identifier, full_name, email, institution, phone, role } = parseResult.data;
     const actorId = request.user!.id;
     const ipAddress = request.ip;
 
@@ -339,6 +340,7 @@ export const userRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =
         email,
         institution,
         phone,
+        role,
       },
       actorId,
       ipAddress
@@ -350,6 +352,7 @@ export const userRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =
         id: result.id,
         identifier: result.identifier,
         email: result.email,
+        role: result.role,
       },
       initial_password: result.tempPassword,
     });
@@ -361,7 +364,7 @@ export const userRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =
 
     const { rows } = await pool.query(
       `SELECT 
-        u.id, u.email, u.status, u.must_change_password, u.last_login_at,
+        u.id, u.email, u.role, u.status, u.must_change_password, u.last_login_at,
         sp.identifier, sp.full_name, sp.institution, sp.phone, sp.created_at, sp.updated_at
        FROM student_profiles sp
        JOIN users u ON u.id = sp.user_id

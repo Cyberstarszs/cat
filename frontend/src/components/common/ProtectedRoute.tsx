@@ -27,13 +27,12 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ requiredRole }) 
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (requiredRole && user?.role !== requiredRole) {
-    if (user?.role === 'student' && requiredRole === 'admin') {
-      return <Navigate to="/dashboard" replace />;
-    }
-    if (user?.role === 'admin' && requiredRole === 'student') {
-      return <Navigate to="/admin/dashboard" replace />;
-    }
+  if (requiredRole === 'admin' && user?.role !== 'admin') {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (requiredRole === 'student' && user?.role === 'admin') {
+    return <Navigate to="/admin/dashboard" replace />;
   }
 
   return <Outlet />;

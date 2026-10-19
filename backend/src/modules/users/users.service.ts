@@ -100,17 +100,31 @@ export async function createAdminUser(
 
 export async function createStudentUser(
   data: {
-    identifier: string;
+    identifier?: string | null;
     fullName: string;
     email: string;
     institution?: string | null;
     phone?: string | null;
+    role?: 'mahasiswa' | 'umum' | 'student';
   },
   adminActorId: string,
   ipAddress?: string
-): Promise<{ id: string; identifier: string; email: string; tempPassword: string }> {
+): Promise<{ id: string; identifier: string; email: string; tempPassword: string; role: string }> {
   const cleanEmail = data.email.toLowerCase().trim();
-  const cleanIdentifier = data.identifier.trim();
+  const userRole = data.role === 'umum' ? 'umum' : 'mahasiswa';
+
+  let cleanIdentifier = data.identifier?.trim() || '';
+  if (userRole === 'mahasiswa') {
+    if (!cleanIdentifier) {
+      throw new AppError('VALIDATION_FAILED', 'NIM wajib diisi secara manual untuk mahasiswa.');
+    }
+  } else {
+    if (!cleanIdentifier) {
+      cleanIdentifier = `UMUM-${Date.now().toString().slice(-6)}`;
+    }
+  }
+
+  const cleanInstitution = data.institution?.trim() || (userRole === 'umum' ? 'Umum' : 'ADMINISTRASI PUBLIK');
 
   // Cek duplikasi via Prisma
   const existingEmail = await prisma.users.findFirst({
@@ -127,10 +141,10 @@ export async function createStudentUser(
     },
   });
   if (existingIdentifier) {
-    throw new AppError('VALIDATION_FAILED', 'Nomor Identitas sudah terdaftar.');
+    throw new AppError('VALIDATION_FAILED', `${userRole === 'mahasiswa' ? 'NIM' : 'Nomor Peserta'} sudah terdaftar.`);
   }
 
-  const tempPassword = generateSecureTempPassword();
+  const tempPassword = generateNumeric6DigitPassword();
   const passwordHash = await hashPassword(tempPassword);
 
   const newUser = await prisma.$transaction(async (tx) => {
@@ -138,14 +152,14 @@ export async function createStudentUser(
       data: {
         email: cleanEmail,
         password_hash: passwordHash,
-        role: 'student',
+        role: userRole as any,
         status: 'active',
         must_change_password: false,
         student_profiles: {
           create: {
             identifier: cleanIdentifier,
             full_name: data.fullName.trim(),
-            institution: data.institution?.trim() || null,
+            institution: cleanInstitution,
             phone: data.phone?.trim() || null,
           },
         },
@@ -162,7 +176,7 @@ export async function createStudentUser(
       action: 'students.create',
       entityType: 'users',
       entityId: user.id,
-      afterData: { identifier: cleanIdentifier, email: cleanEmail, full_name: data.fullName },
+      afterData: { identifier: cleanIdentifier, email: cleanEmail, full_name: data.fullName, role: userRole, institution: cleanInstitution },
       ipAddress,
     });
 
@@ -173,6 +187,7 @@ export async function createStudentUser(
     id: newUser.id,
     identifier: cleanIdentifier,
     email: cleanEmail,
+    role: userRole,
     tempPassword,
   };
 }

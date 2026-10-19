@@ -8,7 +8,8 @@ import { Input } from '../../components/ui/Input';
 import { Modal } from '../../components/ui/Modal';
 import { CardSkeleton } from '../../components/ui/Skeleton';
 import { EmptyState, ErrorAlert } from '../../components/ui/EmptyState';
-import { Plus, Upload, User, Search, Download, CheckCircle2, KeyRound, Copy, Check } from 'lucide-react';
+import { Badge } from '../../components/ui/Badge';
+import { Plus, Upload, User, Search, Download, CheckCircle2, KeyRound, Copy, Check, RefreshCw } from 'lucide-react';
 
 export const AdminParticipantsPage: React.FC = () => {
   const { showToast } = useToast();
@@ -19,13 +20,16 @@ export const AdminParticipantsPage: React.FC = () => {
 
   // Add single student modal
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [role, setRole] = useState<'mahasiswa' | 'umum'>('mahasiswa');
   const [identifier, setIdentifier] = useState('');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
-  const [institution, setInstitution] = useState('');
+  const [institution, setInstitution] = useState('ADMINISTRASI PUBLIK');
   const [phone, setPhone] = useState('');
   const [savingStudent, setSavingStudent] = useState(false);
   const [createdPasswordNotice, setCreatedPasswordNotice] = useState<{ identifier: string; pass: string } | null>(null);
+
+  const generateUmumIdentifier = () => `UMUM-${Math.floor(100000 + Math.random() * 900000)}`;
 
   // Reset password modal
   const [resetModalOpen, setResetModalOpen] = useState(false);
@@ -59,10 +63,15 @@ export const AdminParticipantsPage: React.FC = () => {
 
   const handleAddStudent = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (role === 'mahasiswa' && !identifier.trim()) {
+      showToast('NIM wajib diisi secara manual untuk peserta mahasiswa.', 'error');
+      return;
+    }
     setSavingStudent(true);
     try {
       const res = await userService.createStudent({
-        identifier: identifier.trim(),
+        role,
+        identifier: identifier.trim() || undefined,
         full_name: fullName.trim(),
         email: email.trim().toLowerCase(),
         institution: institution.trim() || undefined,
@@ -74,7 +83,7 @@ export const AdminParticipantsPage: React.FC = () => {
 
       if (res.initial_password) {
         setCreatedPasswordNotice({
-          identifier: identifier.trim(),
+          identifier: res.student?.identifier || identifier.trim(),
           pass: res.initial_password,
         });
       }
@@ -124,7 +133,8 @@ export const AdminParticipantsPage: React.FC = () => {
     (s) =>
       s.identifier.toLowerCase().includes(search.toLowerCase()) ||
       s.full_name.toLowerCase().includes(search.toLowerCase()) ||
-      (s.institution && s.institution.toLowerCase().includes(search.toLowerCase()))
+      (s.institution && s.institution.toLowerCase().includes(search.toLowerCase())) ||
+      (s.role && s.role.toLowerCase().includes(search.toLowerCase()))
   );
 
   const handleResetPassword = async () => {
@@ -196,10 +206,11 @@ export const AdminParticipantsPage: React.FC = () => {
           <Button
             variant="primary"
             onClick={() => {
-              setIdentifier(`FIA-${Date.now().toString().slice(-4)}`);
+              setRole('mahasiswa');
+              setIdentifier('');
               setFullName('');
               setEmail('');
-              setInstitution('FIA UNIRA');
+              setInstitution('ADMINISTRASI PUBLIK');
               setPhone('');
               setAddModalOpen(true);
             }}
@@ -275,7 +286,15 @@ export const AdminParticipantsPage: React.FC = () => {
               icon={<User className="w-8 h-8 text-[#583682]" />}
               action={{
                 label: 'Tambah Peserta Pertama',
-                onClick: () => setAddModalOpen(true),
+                onClick: () => {
+                  setRole('mahasiswa');
+                  setIdentifier('');
+                  setFullName('');
+                  setEmail('');
+                  setInstitution('ADMINISTRASI PUBLIK');
+                  setPhone('');
+                  setAddModalOpen(true);
+                },
               }}
             />
           </div>
@@ -284,7 +303,8 @@ export const AdminParticipantsPage: React.FC = () => {
             <table className="w-full text-left text-xs">
               <thead className="bg-[#faf9fc] border-b border-[#e6e1eb] text-[#595562] uppercase tracking-wider font-bold">
                 <tr>
-                  <th className="px-6 py-3.5">NIM / Nomor Identitas</th>
+                  <th className="px-6 py-3.5">Peran / Kategori</th>
+                  <th className="px-6 py-3.5">NIM / No. Identitas</th>
                   <th className="px-6 py-3.5">Nama Lengkap</th>
                   <th className="px-6 py-3.5">Instansi</th>
                   <th className="px-6 py-3.5">Telepon</th>
@@ -295,11 +315,16 @@ export const AdminParticipantsPage: React.FC = () => {
               <tbody className="divide-y divide-[#e6e1eb]">
                 {filteredStudents.map((st) => (
                   <tr key={st.id} className="hover:bg-[#faf9fc]/80 transition">
+                    <td className="px-6 py-4">
+                      <Badge variant={st.role === 'umum' ? 'info' : 'royal'}>
+                        {st.role === 'umum' ? 'UMUM' : 'MAHASISWA'}
+                      </Badge>
+                    </td>
                     <td className="px-6 py-4 font-mono font-bold text-[#583682]">
                       <span className="bg-[#eae2f5] px-2 py-0.5 rounded">{st.identifier}</span>
                     </td>
                     <td className="px-6 py-4 font-bold text-[#24212b] text-sm">{st.full_name}</td>
-                    <td className="px-6 py-4 text-[#595562]">{st.institution || 'Umum'}</td>
+                    <td className="px-6 py-4 text-[#595562]">{st.institution || (st.role === 'umum' ? 'Umum' : 'ADMINISTRASI PUBLIK')}</td>
                     <td className="px-6 py-4 text-[#595562]">{st.phone || '-'}</td>
                     <td className="px-6 py-4 text-gray-400">
                       {new Date(st.created_at).toLocaleDateString('id-ID')}
@@ -331,17 +356,109 @@ export const AdminParticipantsPage: React.FC = () => {
         isOpen={addModalOpen}
         onClose={() => setAddModalOpen(false)}
         title="Daftarkan Peserta Ujian Baru"
-        description="Sistem akan otomatis meng-generate akun login dan kata sandi sementara."
+        description="Pilih kategori peserta (Mahasiswa atau Umum). Sandi awal 6 angka akan diterbitkan otomatis."
       >
         <form onSubmit={handleAddStudent} className="space-y-4">
-          <Input
-            label="Nomor Identitas (NIM / No. Peserta)"
-            required
-            value={identifier}
-            onChange={(e) => setIdentifier(e.target.value)}
-            placeholder="Contoh: 20261001"
-            className="font-mono"
-          />
+          {/* Role selector */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-[#24212b]">
+              Kategori / Peran Peserta <span className="text-[#b63b48]">*</span>
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setRole('mahasiswa');
+                  setIdentifier('');
+                  setInstitution('ADMINISTRASI PUBLIK');
+                }}
+                className={`p-3 rounded-lg border text-left flex items-start justify-between transition cursor-pointer ${
+                  role === 'mahasiswa'
+                    ? 'border-[#583682] bg-[#f6f2fa] ring-1 ring-[#583682]'
+                    : 'border-[#e6e1eb] bg-white hover:border-[#cfc2df]'
+                }`}
+              >
+                <div>
+                  <div className="text-xs font-bold text-[#24212b]">Mahasiswa</div>
+                  <div className="text-[11px] text-[#595562] mt-0.5">Wajib isi NIM manual. Instansi: Administrasi Publik</div>
+                </div>
+                {role === 'mahasiswa' && (
+                  <span className="p-0.5 bg-[#583682] text-white rounded-full">
+                    <Check className="w-3.5 h-3.5" />
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setRole('umum');
+                  setIdentifier(generateUmumIdentifier());
+                  setInstitution('Umum');
+                }}
+                className={`p-3 rounded-lg border text-left flex items-start justify-between transition cursor-pointer ${
+                  role === 'umum'
+                    ? 'border-[#583682] bg-[#f6f2fa] ring-1 ring-[#583682]'
+                    : 'border-[#e6e1eb] bg-white hover:border-[#cfc2df]'
+                }`}
+              >
+                <div>
+                  <div className="text-xs font-bold text-[#24212b]">Umum</div>
+                  <div className="text-[11px] text-[#595562] mt-0.5">No. peserta otomatis. Instansi: Umum</div>
+                </div>
+                {role === 'umum' && (
+                  <span className="p-0.5 bg-[#583682] text-white rounded-full">
+                    <Check className="w-3.5 h-3.5" />
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Identifier input */}
+          {role === 'mahasiswa' ? (
+            <div>
+              <Input
+                label="NIM (Nomor Induk Mahasiswa)"
+                required
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                placeholder="Wajib diisi manual, contoh: 20261001"
+                className="font-mono"
+              />
+              <p className="text-[11px] text-[#595562] mt-1">
+                Mahasiswa wajib menggunakan NIM resmi dan diisi secara manual.
+              </p>
+            </div>
+          ) : (
+            <div>
+              <div className="flex items-end gap-2">
+                <div className="flex-1">
+                  <Input
+                    label="Nomor Peserta (Dibuat Otomatis)"
+                    required
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
+                    placeholder="UMUM-XXXXXX"
+                    className="font-mono bg-[#faf9fc]"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setIdentifier(generateUmumIdentifier())}
+                  leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
+                  className="text-xs h-[42px]"
+                  title="Generate nomor peserta acak baru"
+                >
+                  Acak
+                </Button>
+              </div>
+              <p className="text-[11px] text-[#595562] mt-1">
+                Nomor peserta untuk kategori Umum dibuat secara otomatis oleh sistem.
+              </p>
+            </div>
+          )}
 
           <Input
             label="Nama Lengkap"
@@ -357,22 +474,31 @@ export const AdminParticipantsPage: React.FC = () => {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="budi@fia.kampus.ac.id"
+            placeholder={role === 'mahasiswa' ? 'budi@student.unira.ac.id' : 'budi@gmail.com'}
           />
 
           <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Instansi / Asal"
-              value={institution}
-              onChange={(e) => setInstitution(e.target.value)}
-              placeholder="FIA UNIRA atau Umum"
-            />
-            <Input
-              label="Nomor Telepon"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="08123456789"
-            />
+            <div>
+              <Input
+                label="Instansi / Program Studi"
+                required
+                value={institution}
+                onChange={(e) => setInstitution(e.target.value)}
+                placeholder={role === 'mahasiswa' ? 'ADMINISTRASI PUBLIK' : 'Umum'}
+              />
+              <p className="text-[10px] text-[#595562] mt-0.5">
+                {role === 'mahasiswa' ? 'Default: ADMINISTRASI PUBLIK' : 'Default: Umum'}
+              </p>
+            </div>
+            <div>
+              <Input
+                label="Nomor Telepon"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="08123456789"
+              />
+              <p className="text-[10px] text-gray-400 mt-0.5">Opsional</p>
+            </div>
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#e6e1eb]">

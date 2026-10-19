@@ -3,7 +3,7 @@ import { pool } from '../../db/connection.js';
 
 export interface AuditLogInput {
   actorId?: string | null;
-  actorRole?: 'admin' | 'student' | null;
+  actorRole?: string | null;
   action: string;
   entityType: string;
   entityId?: string | null;

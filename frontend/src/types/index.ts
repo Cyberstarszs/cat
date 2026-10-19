@@ -1,6 +1,6 @@
 // Centralized Type Definitions matching Backend API Contracts
 
-export type UserRole = 'admin' | 'student';
+export type UserRole = 'admin' | 'mahasiswa' | 'umum' | 'student';
 export type UserStatus = 'active' | 'suspended';
 
 export interface User {
@@ -19,6 +19,7 @@ export interface StudentProfile {
   full_name: string;
   institution?: string;
   phone?: string;
+  role?: UserRole;
   created_at: string;
 }
 

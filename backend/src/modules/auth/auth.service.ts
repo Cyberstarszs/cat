@@ -11,7 +11,7 @@ export interface LoginResult {
   user: {
     id: string;
     email: string;
-    role: 'admin' | 'student';
+    role: string;
     must_change_password: boolean;
     student_profile?: {
       identifier: string;
@@ -92,8 +92,8 @@ export async function loginUser(
     },
   });
 
-  // Cabut sesi aktif sebelumnya jika mahasiswa (INV-22: single active session untuk integritas ujian)
-  if (user.role === 'student') {
+  // Cabut sesi aktif sebelumnya jika mahasiswa/umum (INV-22: single active session untuk integritas ujian)
+  if (user.role !== 'admin') {
     await prisma.auth_sessions.updateMany({
       where: { user_id: user.id, revoked_at: null },
       data: { revoked_at: new Date() },
@@ -149,7 +149,7 @@ export async function loginUser(
 export async function logoutSession(
   sessionId: string,
   actorId: string,
-  actorRole: 'admin' | 'student',
+  actorRole: string,
   ipAddress?: string
 ): Promise<void> {
   await prisma.auth_sessions.updateMany({

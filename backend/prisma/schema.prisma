@@ -456,6 +456,8 @@ enum session_state {
 enum user_role {
   admin
   student
+  mahasiswa
+  umum
 }
 
 enum user_status {

@@ -150,7 +150,7 @@ export const AdminUsersPage: React.FC = () => {
                   <tr key={u.id} className="hover:bg-[#faf9fc]/80 transition">
                     <td className="px-6 py-4 font-bold text-[#24212b]">{u.email}</td>
                     <td className="px-6 py-4">
-                      <Badge variant={u.role === 'admin' ? 'purple' : 'neutral'}>
+                      <Badge variant={u.role === 'admin' ? 'purple' : u.role === 'umum' ? 'info' : 'royal'}>
                         {u.role.toUpperCase()}
                       </Badge>
                     </td>
