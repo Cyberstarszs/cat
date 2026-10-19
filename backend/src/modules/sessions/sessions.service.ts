@@ -525,10 +525,19 @@ export async function finalizeSession(
   // 2. Submit paksa seluruh attempt in_progress & terbitkan hasil (forceFinalize = true)
   const pubResult = await publishSessionResults(sessionId, adminActorId, ipAddress, true);
 
-  // 3. Majukan ends_at ke waktu sekarang jika sesi masih aktif/terjadwal
+  // 3. Majukan ends_at ke waktu sekarang (dan sesuaikan starts_at jika belum mulai agar tidak melanggar chk_sessions_time)
   await pool.query(
     `UPDATE exam_sessions
-     SET ends_at = LEAST(ends_at, now()), updated_at = now()
+     SET starts_at = CASE 
+                       WHEN starts_at >= now() THEN now() - interval '1 second' 
+                       ELSE starts_at 
+                     END,
+         ends_at = CASE 
+                     WHEN starts_at >= now() THEN now() 
+                     ELSE LEAST(ends_at, now()) 
+                   END,
+         status = 'published',
+         updated_at = now()
      WHERE id = $1;`,
     [sessionId]
   );

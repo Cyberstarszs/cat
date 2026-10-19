@@ -103,14 +103,14 @@ export const sessionRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
           s.id, s.exam_id, s.code, s.name, s.starts_at, s.ends_at, s.capacity,
           CASE 
             WHEN s.status = 'cancelled' THEN 'cancelled'
-            WHEN s.status = 'draft' THEN 'draft'
-            WHEN now() < s.starts_at THEN 'scheduled'
             WHEN now() >= s.ends_at OR EXISTS (
               SELECT 1 FROM results r 
               JOIN attempts a ON a.id = r.attempt_id 
               JOIN session_enrollments se ON se.id = a.enrollment_id 
               WHERE se.session_id = s.id AND r.status = 'published'
             ) THEN 'completed'
+            WHEN s.status = 'draft' THEN 'draft'
+            WHEN now() < s.starts_at THEN 'scheduled'
             ELSE 'active'
           END AS status,
           s.status AS raw_status,
@@ -155,14 +155,14 @@ export const sessionRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
           s.id, s.exam_id, s.code, s.name, s.starts_at, s.ends_at, s.capacity,
           CASE 
             WHEN s.status = 'cancelled' THEN 'cancelled'
-            WHEN s.status = 'draft' THEN 'draft'
-            WHEN now() < s.starts_at THEN 'scheduled'
             WHEN now() >= s.ends_at OR EXISTS (
               SELECT 1 FROM results r 
               JOIN attempts a ON a.id = r.attempt_id 
               JOIN session_enrollments se ON se.id = a.enrollment_id 
               WHERE se.session_id = s.id AND r.status = 'published'
             ) THEN 'completed'
+            WHEN s.status = 'draft' THEN 'draft'
+            WHEN now() < s.starts_at THEN 'scheduled'
             ELSE 'active'
           END AS status,
           s.status AS raw_status,
