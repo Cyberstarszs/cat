@@ -501,9 +501,15 @@ export const userService = {
     await apiClient.patch(`/users/${userId}`, { status });
   },
 
-  async resetPassword(userId: string): Promise<{ new_password: string }> {
-    const res = await apiClient.post(`/users/${userId}/reset-password`);
-    return res.data;
+  async resetPassword(userId: string): Promise<{ new_password: string; temp_password: string }> {
+    const res = await apiClient.post<{
+      success: boolean;
+      temp_password?: string;
+      new_password?: string;
+      message?: string;
+    }>(`/users/${userId}/reset-password`);
+    const pass = res.data.new_password || res.data.temp_password || '';
+    return { new_password: pass, temp_password: pass };
   },
 };
 

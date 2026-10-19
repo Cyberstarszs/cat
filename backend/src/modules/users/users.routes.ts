@@ -245,6 +245,7 @@ export const userRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =
     return reply.send({
       success: true,
       temp_password: result.tempPassword,
+      new_password: result.tempPassword,
       message: 'Kata sandi berhasil direset. Berikan kata sandi baru kepada pengguna.',
     });
   });

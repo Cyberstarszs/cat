@@ -4,7 +4,7 @@ import { stringify } from 'csv-stringify/sync';
 import { pool } from '../../db/connection.js';
 import { prisma } from '../../db/prisma.js';
 import { AppError } from '../../lib/errors.js';
-import { generateSecureTempPassword, hashPassword } from '../../lib/hash.js';
+import { generateSecureTempPassword, generateNumeric6DigitPassword, hashPassword } from '../../lib/hash.js';
 import { logAudit } from '../audit/audit.service.js';
 import { CONSTANTS } from '../../config/constants.js';
 
@@ -447,7 +447,7 @@ export async function resetUserPassword(
     throw new AppError('NOT_FOUND');
   }
 
-  const tempPassword = generateSecureTempPassword();
+  const tempPassword = generateNumeric6DigitPassword();
   const passwordHash = await hashPassword(tempPassword);
 
   await prisma.$transaction(async (tx) => {

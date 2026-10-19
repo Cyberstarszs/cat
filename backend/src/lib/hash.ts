@@ -45,5 +45,11 @@ export function generateTempPassword(): string {
   return pwd.split('').sort(() => crypto.randomInt(3) - 1).join('');
 }
 
+export function generateNumeric6DigitPassword(): string {
+  // Generates exactly 6-digit numeric string (100000 to 999999) using crypto
+  return crypto.randomInt(100000, 1000000).toString();
+}
+
 export const comparePassword = verifyPassword;
 export const generateSecureTempPassword = generateTempPassword;
+

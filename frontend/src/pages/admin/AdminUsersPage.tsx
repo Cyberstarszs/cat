@@ -9,7 +9,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { CardSkeleton } from '../../components/ui/Skeleton';
 import { EmptyState, ErrorAlert } from '../../components/ui/EmptyState';
-import { Users, KeyRound, ShieldAlert, CheckCircle2, Search, UserX, UserCheck } from 'lucide-react';
+import { Users, KeyRound, ShieldAlert, CheckCircle2, Search, UserX, UserCheck, Copy, Check } from 'lucide-react';
 
 export const AdminUsersPage: React.FC = () => {
   const { showToast } = useToast();
@@ -23,6 +23,7 @@ export const AdminUsersPage: React.FC = () => {
   const [activeUserForReset, setActiveUserForReset] = useState<User | null>(null);
   const [newGeneratedPass, setNewGeneratedPass] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -55,14 +56,35 @@ export const AdminUsersPage: React.FC = () => {
   const handleResetPassword = async () => {
     if (!activeUserForReset) return;
     setResetting(true);
+    setCopied(false);
     try {
       const res = await userService.resetPassword(activeUserForReset.id);
       setNewGeneratedPass(res.new_password);
-      showToast('Kata sandi berhasil direset!', 'success');
+      showToast('Kata sandi berhasil direset ke 6 angka baru!', 'success');
     } catch (err: any) {
       showToast(err.message || 'Gagal mereset kata sandi.', 'error');
     } finally {
       setResetting(false);
+    }
+  };
+
+  const handleCopyPassword = async () => {
+    if (!newGeneratedPass) return;
+    try {
+      await navigator.clipboard.writeText(newGeneratedPass);
+      setCopied(true);
+      showToast('Kata sandi berhasil disalin ke clipboard!', 'success');
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      const textArea = document.createElement('textarea');
+      textArea.value = newGeneratedPass;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setCopied(true);
+      showToast('Kata sandi berhasil disalin ke clipboard!', 'success');
+      setTimeout(() => setCopied(false), 2500);
     }
   };
 
@@ -154,6 +176,7 @@ export const AdminUsersPage: React.FC = () => {
                           onClick={() => {
                             setActiveUserForReset(u);
                             setNewGeneratedPass(null);
+                            setCopied(false);
                             setResetModalOpen(true);
                           }}
                           className="p-1.5 text-gray-500 hover:text-[#583682] hover:bg-[#eae2f5] rounded transition"
@@ -185,32 +208,78 @@ export const AdminUsersPage: React.FC = () => {
       {/* Reset Password Modal */}
       <Modal
         isOpen={resetModalOpen}
-        onClose={() => setResetModalOpen(false)}
+        onClose={() => {
+          setResetModalOpen(false);
+          setNewGeneratedPass(null);
+          setCopied(false);
+        }}
         title="Reset Kata Sandi Akun"
         description={`Akun: ${activeUserForReset?.email}`}
       >
         <div className="space-y-4">
           {newGeneratedPass ? (
-            <div className="p-4 bg-[#eaf4ef] border border-[#bce2cf] rounded text-center space-y-2">
-              <CheckCircle2 className="w-8 h-8 text-[#287a58] mx-auto" />
-              <div className="text-xs font-bold text-[#24212b]">Kata Sandi Baru Sementara:</div>
-              <div className="font-mono font-extrabold text-base text-[#287a58] bg-white p-2 rounded border border-[#bce2cf]">
-                {newGeneratedPass}
+            <div className="p-5 bg-[#eaf4ef] border border-[#bce2cf] rounded-lg text-center space-y-3">
+              <CheckCircle2 className="w-9 h-9 text-[#287a58] mx-auto" />
+              <div>
+                <div className="text-xs font-bold text-[#24212b]">Kata Sandi Baru (6 Angka):</div>
+                <p className="text-[11px] text-[#595562] mt-0.5">
+                  Gunakan 6 digit angka berikut untuk diberikan kepada pengguna:
+                </p>
               </div>
+
+              <div className="flex items-center justify-center gap-2 pt-1 pb-1">
+                <div
+                  onClick={handleCopyPassword}
+                  className="font-mono font-black text-2xl tracking-[0.35em] text-[#287a58] bg-white px-5 py-2.5 rounded-lg border-2 border-[#bce2cf] select-all cursor-pointer shadow-sm hover:border-[#287a58] transition"
+                  title="Klik untuk menyalin"
+                >
+                  {newGeneratedPass}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCopyPassword}
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-lg text-xs font-bold transition shadow-sm cursor-pointer ${
+                    copied
+                      ? 'bg-[#287a58] text-white hover:bg-[#1f5e44]'
+                      : 'bg-[#583682] text-white hover:bg-[#352148]'
+                  }`}
+                  title="Salin Kata Sandi"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="w-4 h-4 text-white" />
+                      <span>Tersalin!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4 text-white" />
+                      <span>Salin Sandi</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
               <p className="text-[11px] text-[#595562]">
-                Berikan kata sandi ini kepada pemilik akun. Pengguna wajib mengganti kata sandi ini pada saat pertama kali login.
+                Berikan 6 digit angka ini kepada pemilik akun. Pengguna wajib mengganti kata sandi ini pada saat pertama kali login.
               </p>
             </div>
           ) : (
             <div>
               <p className="text-xs text-[#595562] leading-relaxed">
-                Tindakan ini akan membuat kata sandi acak baru yang aman dan menandai akun agar wajib memperbarui sandinya saat pertama login.
+                Tindakan ini akan mereset kata sandi akun <strong>{activeUserForReset?.email}</strong> menjadi <strong>format 6 angka acak</strong> dan menandai akun agar wajib memperbarui sandinya saat pertama login.
               </p>
             </div>
           )}
 
           <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#e6e1eb]">
-            <Button variant="ghost" onClick={() => setResetModalOpen(false)}>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setResetModalOpen(false);
+                setNewGeneratedPass(null);
+                setCopied(false);
+              }}
+            >
               {newGeneratedPass ? 'Selesai' : 'Batal'}
             </Button>
             {!newGeneratedPass && (

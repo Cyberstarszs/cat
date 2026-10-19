@@ -8,7 +8,7 @@ import { Input } from '../../components/ui/Input';
 import { Modal } from '../../components/ui/Modal';
 import { CardSkeleton } from '../../components/ui/Skeleton';
 import { EmptyState, ErrorAlert } from '../../components/ui/EmptyState';
-import { Plus, Upload, User, Search, Download, CheckCircle2, KeyRound } from 'lucide-react';
+import { Plus, Upload, User, Search, Download, CheckCircle2, KeyRound, Copy, Check } from 'lucide-react';
 
 export const AdminParticipantsPage: React.FC = () => {
   const { showToast } = useToast();
@@ -26,6 +26,14 @@ export const AdminParticipantsPage: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [savingStudent, setSavingStudent] = useState(false);
   const [createdPasswordNotice, setCreatedPasswordNotice] = useState<{ identifier: string; pass: string } | null>(null);
+
+  // Reset password modal
+  const [resetModalOpen, setResetModalOpen] = useState(false);
+  const [activeStudentForReset, setActiveStudentForReset] = useState<StudentProfile | null>(null);
+  const [newGeneratedPass, setNewGeneratedPass] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
+  const [copiedReset, setCopiedReset] = useState(false);
+  const [copiedNotice, setCopiedNotice] = useState(false);
 
   // Import CSV modal
   const [importModalOpen, setImportModalOpen] = useState(false);
@@ -119,6 +127,50 @@ export const AdminParticipantsPage: React.FC = () => {
       (s.institution && s.institution.toLowerCase().includes(search.toLowerCase()))
   );
 
+  const handleResetPassword = async () => {
+    if (!activeStudentForReset) return;
+    setResetting(true);
+    setCopiedReset(false);
+    try {
+      const res = await userService.resetPassword(activeStudentForReset.id);
+      setNewGeneratedPass(res.new_password);
+      showToast('Kata sandi berhasil direset ke 6 angka baru!', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Gagal mereset kata sandi.', 'error');
+    } finally {
+      setResetting(false);
+    }
+  };
+
+  const handleCopyText = async (text: string, isReset: boolean) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      if (isReset) {
+        setCopiedReset(true);
+        setTimeout(() => setCopiedReset(false), 2500);
+      } else {
+        setCopiedNotice(true);
+        setTimeout(() => setCopiedNotice(false), 2500);
+      }
+      showToast('Kata sandi berhasil disalin ke clipboard!', 'success');
+    } catch {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      if (isReset) {
+        setCopiedReset(true);
+        setTimeout(() => setCopiedReset(false), 2500);
+      } else {
+        setCopiedNotice(true);
+        setTimeout(() => setCopiedNotice(false), 2500);
+      }
+      showToast('Kata sandi berhasil disalin ke clipboard!', 'success');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-[#e6e1eb]">
@@ -163,16 +215,29 @@ export const AdminParticipantsPage: React.FC = () => {
 
       {/* Notice popup after adding a student with initial password */}
       {createdPasswordNotice && (
-        <div className="p-4 bg-[#eaf4ef] border border-[#bce2cf] rounded-[8px] flex items-center justify-between gap-4 text-xs">
+        <div className="p-4 bg-[#eaf4ef] border border-[#bce2cf] rounded-[8px] flex flex-wrap items-center justify-between gap-4 text-xs">
           <div className="flex items-center gap-3">
             <KeyRound className="w-5 h-5 text-[#287a58] shrink-0" />
             <div>
               <div className="font-bold text-[#24212b]">Akun Peserta Berhasil Dibuat!</div>
-              <div className="text-[#595562] mt-0.5">
-                NIM / Identitas: <strong className="font-mono text-[#24212b]">{createdPasswordNotice.identifier}</strong> | Kata Sandi Awal:{' '}
-                <strong className="font-mono text-[#287a58] bg-white px-2 py-0.5 rounded border border-[#bce2cf]">
+              <div className="text-[#595562] mt-1 flex flex-wrap items-center gap-2">
+                <span>NIM / Identitas: <strong className="font-mono text-[#24212b]">{createdPasswordNotice.identifier}</strong> | Kata Sandi Awal:</span>
+                <strong className="font-mono text-[#287a58] bg-white px-2.5 py-0.5 rounded border border-[#bce2cf] tracking-wider">
                   {createdPasswordNotice.pass}
                 </strong>
+                <button
+                  type="button"
+                  onClick={() => handleCopyText(createdPasswordNotice.pass, false)}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-bold transition shadow-xs cursor-pointer ${
+                    copiedNotice
+                      ? 'bg-[#287a58] text-white hover:bg-[#1f5e44]'
+                      : 'bg-[#583682] text-white hover:bg-[#352148]'
+                  }`}
+                  title="Salin Kata Sandi"
+                >
+                  {copiedNotice ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedNotice ? 'Tersalin!' : 'Salin'}</span>
+                </button>
               </div>
             </div>
           </div>
@@ -224,6 +289,7 @@ export const AdminParticipantsPage: React.FC = () => {
                   <th className="px-6 py-3.5">Instansi</th>
                   <th className="px-6 py-3.5">Telepon</th>
                   <th className="px-6 py-3.5">Terdaftar Pada</th>
+                  <th className="px-6 py-3.5 text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#e6e1eb]">
@@ -237,6 +303,20 @@ export const AdminParticipantsPage: React.FC = () => {
                     <td className="px-6 py-4 text-[#595562]">{st.phone || '-'}</td>
                     <td className="px-6 py-4 text-gray-400">
                       {new Date(st.created_at).toLocaleDateString('id-ID')}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button
+                        onClick={() => {
+                          setActiveStudentForReset(st);
+                          setNewGeneratedPass(null);
+                          setCopiedReset(false);
+                          setResetModalOpen(true);
+                        }}
+                        className="p-1.5 text-gray-500 hover:text-[#583682] hover:bg-[#eae2f5] rounded transition"
+                        title="Reset Sandi Peserta"
+                      >
+                        <KeyRound className="w-4 h-4" />
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -348,6 +428,92 @@ export const AdminParticipantsPage: React.FC = () => {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Reset Password Modal */}
+      <Modal
+        isOpen={resetModalOpen}
+        onClose={() => {
+          setResetModalOpen(false);
+          setNewGeneratedPass(null);
+          setCopiedReset(false);
+        }}
+        title="Reset Kata Sandi Peserta"
+        description={`Peserta: ${activeStudentForReset?.full_name} (${activeStudentForReset?.identifier})`}
+      >
+        <div className="space-y-4">
+          {newGeneratedPass ? (
+            <div className="p-5 bg-[#eaf4ef] border border-[#bce2cf] rounded-lg text-center space-y-3">
+              <CheckCircle2 className="w-9 h-9 text-[#287a58] mx-auto" />
+              <div>
+                <div className="text-xs font-bold text-[#24212b]">Kata Sandi Baru (6 Angka):</div>
+                <p className="text-[11px] text-[#595562] mt-0.5">
+                  Gunakan 6 digit angka berikut untuk diberikan kepada peserta:
+                </p>
+              </div>
+
+              <div className="flex items-center justify-center gap-2 pt-1 pb-1">
+                <div
+                  onClick={() => handleCopyText(newGeneratedPass, true)}
+                  className="font-mono font-black text-2xl tracking-[0.35em] text-[#287a58] bg-white px-5 py-2.5 rounded-lg border-2 border-[#bce2cf] select-all cursor-pointer shadow-sm hover:border-[#287a58] transition"
+                  title="Klik untuk menyalin"
+                >
+                  {newGeneratedPass}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleCopyText(newGeneratedPass, true)}
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-lg text-xs font-bold transition shadow-sm cursor-pointer ${
+                    copiedReset
+                      ? 'bg-[#287a58] text-white hover:bg-[#1f5e44]'
+                      : 'bg-[#583682] text-white hover:bg-[#352148]'
+                  }`}
+                  title="Salin Kata Sandi"
+                >
+                  {copiedReset ? (
+                    <>
+                      <Check className="w-4 h-4 text-white" />
+                      <span>Tersalin!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4 text-white" />
+                      <span>Salin Sandi</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <p className="text-[11px] text-[#595562]">
+                Berikan 6 digit angka ini kepada peserta. Peserta wajib mengganti kata sandi ini pada saat pertama kali login.
+              </p>
+            </div>
+          ) : (
+            <div>
+              <p className="text-xs text-[#595562] leading-relaxed">
+                Tindakan ini akan mereset kata sandi peserta <strong>{activeStudentForReset?.full_name} ({activeStudentForReset?.identifier})</strong> menjadi <strong>format 6 angka acak</strong> dan mewajibkan peserta untuk mengganti kata sandinya saat login berikutnya.
+              </p>
+            </div>
+          )}
+
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#e6e1eb]">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setResetModalOpen(false);
+                setNewGeneratedPass(null);
+                setCopiedReset(false);
+              }}
+            >
+              {newGeneratedPass ? 'Selesai' : 'Batal'}
+            </Button>
+            {!newGeneratedPass && (
+              <Button variant="primary" onClick={handleResetPassword} isLoading={resetting}>
+                Reset Sandi Sekarang
+              </Button>
+            )}
+          </div>
+        </div>
       </Modal>
     </div>
   );
