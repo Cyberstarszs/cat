@@ -451,6 +451,42 @@ export const userRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =
     }
   });
 
+  // POST /students/import (Direct CSV upload & commit)
+  fastify.post('/students/import', async (request, reply) => {
+    const data = await request.file();
+    if (!data) {
+      throw new AppError('VALIDATION_FAILED', 'Berkas CSV tidak ditemukan dalam permintaan.');
+    }
+
+    const buffer = await data.toBuffer();
+    const preview = parseAndPreviewStudentCSV(buffer);
+
+    if (preview.validRows === 0) {
+      throw new AppError(
+        'VALIDATION_FAILED',
+        'Tidak ada baris data peserta yang valid dalam berkas CSV. Periksa kembali format berkas Anda.',
+        preview.rows.filter((r) => r.errors.length > 0)
+      );
+    }
+
+    const actorId = request.user!.id;
+    const ipAddress = request.ip;
+
+    const result = await commitStudentImport(preview.parsedRecords, actorId, ipAddress);
+
+    return reply.send({
+      success: true,
+      total_rows: preview.totalRows,
+      valid_rows: preview.validRows,
+      invalid_rows: preview.invalidRows,
+      imported_count: result.totalImported,
+      skipped_count: result.skippedCount,
+      import_id: result.importId,
+      credentials_download_url: `/api/v1/students/import/${result.importId}/credentials`,
+      errors: preview.rows.filter((r) => r.errors.length > 0),
+    });
+  });
+
   // POST /students/import/preview (FR-U04)
   fastify.post('/students/import/preview', async (request, reply) => {
     const data = await request.file();
@@ -481,6 +517,7 @@ export const userRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =
         email: string;
         institution: string | null;
         phone: string | null;
+        role?: 'mahasiswa' | 'umum';
       }>;
     };
 

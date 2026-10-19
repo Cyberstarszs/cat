@@ -14,6 +14,8 @@ interface ImportCredentialItem {
   name: string;
   email: string;
   tempPassword: string;
+  role?: string;
+  institution?: string;
 }
 
 const importCredentialsStore = new Map<string, { expiresAt: number; credentials: ImportCredentialItem[] }>();
@@ -199,6 +201,7 @@ export interface CSVPreviewRow {
   email: string;
   institution?: string;
   phone?: string;
+  role?: 'mahasiswa' | 'umum';
   errors: string[];
 }
 
@@ -213,6 +216,7 @@ export function parseAndPreviewStudentCSV(csvBuffer: Buffer): {
     email: string;
     institution: string | null;
     phone: string | null;
+    role: 'mahasiswa' | 'umum';
   }>;
 } {
   let records: any[];
@@ -241,6 +245,7 @@ export function parseAndPreviewStudentCSV(csvBuffer: Buffer): {
     email: string;
     institution: string | null;
     phone: string | null;
+    role: 'mahasiswa' | 'umum';
   }> = [];
 
   const seenIdentifiers = new Set<string>();
@@ -261,33 +266,79 @@ export function parseAndPreviewStudentCSV(csvBuffer: Buffer): {
       return s;
     };
 
-    const identifier = cleanField(raw.nomor_identitas);
-    const fullName = cleanField(raw.nama);
-    const email = cleanField(raw.email).toLowerCase();
-    const institution = cleanField(raw.instansi) || null;
-    const phone = cleanField(raw.telepon) || null;
+    // Helper untuk membaca nilai kolom dengan berbagai variasi alias nama kolom
+    const getField = (obj: any, keys: string[]) => {
+      for (const k of Object.keys(obj)) {
+        const normalized = k.trim().toLowerCase().replace(/[\s_-]+/g, '');
+        for (const target of keys) {
+          if (normalized === target.toLowerCase().replace(/[\s_-]+/g, '')) {
+            return cleanField(obj[k]);
+          }
+        }
+      }
+      return '';
+    };
 
-    if (!identifier) {
-      rowErrors.push('nomor_identitas wajib diisi');
-    } else if (seenIdentifiers.has(identifier)) {
-      rowErrors.push(`nomor_identitas "${identifier}" duplikat dalam berkas CSV`);
+    const rawIdentifier = getField(raw, ['identifier', 'nomoridentitas', 'nomor_identitas', 'nim', 'nopeserta', 'no_peserta', 'id', 'nomor']);
+    const fullName = getField(raw, ['fullname', 'full_name', 'nama', 'namalengkap', 'nama_lengkap', 'name']);
+    const email = getField(raw, ['email', 'alamatemail', 'alamat_email', 'surel']).toLowerCase();
+    const rawInstitution = getField(raw, ['institution', 'instansi', 'prodi', 'programstudi', 'program_studi', 'asal', 'universitas', 'sekolah']);
+    const phone = getField(raw, ['phone', 'telepon', 'nohp', 'no_hp', 'notelepon', 'no_telepon', 'telp', 'handphone', 'hp']) || null;
+
+    // Tentukan kategori peran dan instansi
+    // Jika kolom instansi berisi 'Umum', atau keduanya kosong, kategorikan sebagai 'umum'
+    const isUmum =
+      rawInstitution.toLowerCase() === 'umum' ||
+      rawInstitution.toLowerCase().includes('umum') ||
+      (!rawInstitution && !rawIdentifier);
+
+    const role: 'mahasiswa' | 'umum' = isUmum ? 'umum' : 'mahasiswa';
+    const institution = isUmum
+      ? (rawInstitution || 'Umum')
+      : (rawInstitution || 'ADMINISTRASI PUBLIK');
+
+    let identifier = rawIdentifier;
+
+    if (isUmum) {
+      if (!identifier) {
+        // Auto-generate nomor peserta unik untuk kategori Umum
+        let candidate = `UMUM-${Math.floor(100000 + Math.random() * 900000)}`;
+        while (seenIdentifiers.has(candidate)) {
+          candidate = `UMUM-${Math.floor(100000 + Math.random() * 900000)}`;
+        }
+        identifier = candidate;
+        seenIdentifiers.add(identifier);
+      } else if (seenIdentifiers.has(identifier)) {
+        rowErrors.push(`Nomor peserta "${identifier}" duplikat dalam berkas CSV`);
+      } else {
+        seenIdentifiers.add(identifier);
+      }
     } else {
-      seenIdentifiers.add(identifier);
+      // Mahasiswa: NIM wajib diisi secara manual
+      if (!identifier) {
+        rowErrors.push('NIM (Nomor Induk Mahasiswa) wajib diisi untuk mahasiswa/peserta non-umum');
+      } else if (seenIdentifiers.has(identifier)) {
+        rowErrors.push(`NIM "${identifier}" duplikat dalam berkas CSV`);
+      } else {
+        seenIdentifiers.add(identifier);
+      }
     }
 
     if (!fullName) {
-      rowErrors.push('nama wajib diisi');
+      rowErrors.push('Nama lengkap wajib diisi');
     }
 
     if (!email) {
-      rowErrors.push('email wajib diisi');
+      rowErrors.push('Email wajib diisi');
     } else if (!email.includes('@')) {
-      rowErrors.push(`format email "${email}" tidak valid`);
+      rowErrors.push(`Format email "${email}" tidak valid`);
     } else if (seenEmails.has(email)) {
-      rowErrors.push(`email "${email}" duplikat dalam berkas CSV`);
+      rowErrors.push(`Email "${email}" duplikat dalam berkas CSV`);
     } else {
       seenEmails.add(email);
     }
+
+    // Phone bersifat OPSIONAL, tidak ada validasi error jika kosong
 
     previewRows.push({
       rowNumber: rowNum,
@@ -296,6 +347,7 @@ export function parseAndPreviewStudentCSV(csvBuffer: Buffer): {
       email,
       institution: institution || undefined,
       phone: phone || undefined,
+      role,
       errors: rowErrors,
     });
 
@@ -306,6 +358,7 @@ export function parseAndPreviewStudentCSV(csvBuffer: Buffer): {
         email,
         institution,
         phone,
+        role,
       });
     }
   }
@@ -328,6 +381,7 @@ export async function commitStudentImport(
     email: string;
     institution: string | null;
     phone: string | null;
+    role?: 'mahasiswa' | 'umum' | 'student';
   }>,
   adminActorId: string,
   ipAddress?: string
@@ -359,21 +413,27 @@ export async function commitStudentImport(
         continue;
       }
 
-      const tempPassword = generateSecureTempPassword();
+      const userRole = student.role === 'umum' || (student.institution && student.institution.toLowerCase().includes('umum'))
+        ? 'umum'
+        : 'mahasiswa';
+
+      const tempPassword = generateNumeric6DigitPassword();
       const passwordHash = await hashPassword(tempPassword);
 
       const { rows: uRows } = await client.query(
         `INSERT INTO users (email, password_hash, role, status, must_change_password)
-         VALUES ($1, $2, 'student', 'active', false)
+         VALUES ($1, $2, $3, 'active', false)
          RETURNING id;`,
-        [student.email.toLowerCase(), passwordHash]
+        [student.email.toLowerCase(), passwordHash, userRole]
       );
       const userId = uRows[0].id;
+
+      const inst = student.institution?.trim() || (userRole === 'umum' ? 'Umum' : 'ADMINISTRASI PUBLIK');
 
       await client.query(
         `INSERT INTO student_profiles (user_id, identifier, full_name, institution, phone)
          VALUES ($1, $2, $3, $4, $5);`,
-        [userId, student.identifier, student.fullName, student.institution, student.phone]
+        [userId, student.identifier, student.fullName, inst, student.phone || null]
       );
 
       await client.query(
@@ -386,6 +446,8 @@ export async function commitStudentImport(
         name: student.fullName,
         email: student.email,
         tempPassword,
+        role: userRole,
+        institution: inst,
       });
 
       imported++;
@@ -440,12 +502,14 @@ export function downloadImportCredentials(importId: string): string {
     nomor_identitas: c.identifier,
     nama: c.name,
     email: c.email,
-    sandi_sementara: c.tempPassword,
+    peran: c.role || 'mahasiswa',
+    instansi: c.institution || '-',
+    sandi_6_angka: c.tempPassword,
   }));
 
   return stringify(csvRows, {
     header: true,
-    columns: ['nomor_identitas', 'nama', 'email', 'sandi_sementara'],
+    columns: ['nomor_identitas', 'nama', 'email', 'peran', 'instansi', 'sandi_6_angka'],
   });
 }
 

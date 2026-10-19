@@ -9,7 +9,7 @@ import { Modal } from '../../components/ui/Modal';
 import { CardSkeleton } from '../../components/ui/Skeleton';
 import { EmptyState, ErrorAlert } from '../../components/ui/EmptyState';
 import { Badge } from '../../components/ui/Badge';
-import { Plus, Upload, User, Search, Download, CheckCircle2, KeyRound, Copy, Check, RefreshCw } from 'lucide-react';
+import { Plus, Upload, User, Search, Download, CheckCircle2, KeyRound, Copy, Check, RefreshCw, Info } from 'lucide-react';
 
 export const AdminParticipantsPage: React.FC = () => {
   const { showToast } = useToast();
@@ -39,10 +39,37 @@ export const AdminParticipantsPage: React.FC = () => {
   const [copiedReset, setCopiedReset] = useState(false);
   const [copiedNotice, setCopiedNotice] = useState(false);
 
-  // Import CSV modal
+  // Import CSV modal & state
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
+  const [downloadingCredentials, setDownloadingCredentials] = useState(false);
+  const [importNotice, setImportNotice] = useState<{
+    total_rows: number;
+    imported_count: number;
+    skipped_count: number;
+    import_id?: string;
+  } | null>(null);
+
+  const handleDownloadCredentials = async (importId: string) => {
+    setDownloadingCredentials(true);
+    try {
+      const blob = await userService.downloadImportCredentials(importId);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Kredensial_Peserta_${importId.slice(0, 8)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      showToast('Berkas kredensial berhasil diunduh.', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Gagal mengunduh berkas kredensial.', 'error');
+    } finally {
+      setDownloadingCredentials(false);
+    }
+  };
 
   const fetchStudents = async () => {
     setLoading(true);
@@ -102,9 +129,15 @@ export const AdminParticipantsPage: React.FC = () => {
     setImporting(true);
     try {
       const res = await userService.importStudentsCSV(csvFile);
-      showToast(`Berhasil mengimpor ${res.imported_count || 'sejumlah'} peserta baru!`, 'success');
+      showToast(`Berhasil mengimpor ${res.imported_count} peserta baru!`, 'success');
       setImportModalOpen(false);
       setCsvFile(null);
+      setImportNotice({
+        total_rows: res.total_rows,
+        imported_count: res.imported_count,
+        skipped_count: res.skipped_count,
+        import_id: res.import_id,
+      });
       fetchStudents();
     } catch (err: any) {
       showToast(err.message || 'Gagal mengimpor berkas CSV peserta.', 'error');
@@ -116,13 +149,14 @@ export const AdminParticipantsPage: React.FC = () => {
   const downloadSampleTemplate = () => {
     const csvContent =
       'identifier,full_name,email,institution,phone\n' +
-      '20261001,"Budi Santoso",budi@fia.kampus.ac.id,"FIA UNIRA",08123456789\n' +
-      '20261002,"Siti Aminah",siti@fia.kampus.ac.id,"FIA UNIRA",08123456780\n';
+      '20261001,"Budi Santoso",budi@student.unira.ac.id,"ADMINISTRASI PUBLIK",08123456789\n' +
+      ',"Siti Aminah",siti@gmail.com,"Umum",\n' +
+      '20261003,"Ahmad Fauzi",ahmad@student.unira.ac.id,"ADMINISTRASI PUBLIK",\n';
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'Template_Peserta_FIA.csv';
+    a.download = 'Template_Peserta_Ujian.csv';
     document.body.appendChild(a);
     a.click();
     URL.revokeObjectURL(url);
@@ -255,6 +289,44 @@ export const AdminParticipantsPage: React.FC = () => {
           <Button
             variant="ghost"
             onClick={() => setCreatedPasswordNotice(null)}
+            className="text-xs text-gray-400 hover:text-gray-600 min-h-[30px]"
+          >
+            Tutup
+          </Button>
+        </div>
+      )}
+
+      {/* Notice popup after importing students via CSV */}
+      {importNotice && (
+        <div className="p-4 bg-[#eaf4ef] border border-[#bce2cf] rounded-[8px] flex flex-wrap items-center justify-between gap-4 text-xs">
+          <div className="flex items-center gap-3">
+            <CheckCircle2 className="w-5 h-5 text-[#287a58] shrink-0" />
+            <div>
+              <div className="font-bold text-[#24212b]">
+                Impor CSV Berhasil: {importNotice.imported_count} Peserta Baru Ditambahkan!
+              </div>
+              <div className="text-[#595562] mt-1 flex flex-wrap items-center gap-2">
+                <span>
+                  Total diproses: <strong>{importNotice.total_rows}</strong> baris
+                  {importNotice.skipped_count > 0 && ` • Dilewati: ${importNotice.skipped_count} (sudah terdaftar)`}
+                </span>
+                {importNotice.import_id && (
+                  <Button
+                    variant="secondary"
+                    onClick={() => handleDownloadCredentials(importNotice.import_id!)}
+                    isLoading={downloadingCredentials}
+                    leftIcon={<Download className="w-3.5 h-3.5 text-[#583682]" />}
+                    className="text-xs h-[30px] ml-2"
+                  >
+                    Unduh Kredensial & Sandi (.CSV)
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            onClick={() => setImportNotice(null)}
             className="text-xs text-gray-400 hover:text-gray-600 min-h-[30px]"
           >
             Tutup
@@ -515,25 +587,51 @@ export const AdminParticipantsPage: React.FC = () => {
       {/* Import CSV Modal */}
       <Modal
         isOpen={importModalOpen}
-        onClose={() => setImportModalOpen(false)}
+        onClose={() => {
+          setImportModalOpen(false);
+          setCsvFile(null);
+        }}
         title="Impor Massal Peserta CSV"
-        description="Unggah file .CSV berisi daftar peserta."
+        description="Unggah berkas .CSV untuk mendaftarkan peserta secara massal (Mahasiswa & Umum)."
       >
         <form onSubmit={handleImportCSV} className="space-y-4">
-          <div className="flex justify-between items-center pb-2">
+          {/* Rules / guidance box */}
+          <div className="p-3.5 bg-[#f6f2fa] border border-[#cfc2df] rounded-lg text-xs space-y-2">
+            <div className="font-bold text-[#583682] flex items-center gap-1.5">
+              <Info className="w-4 h-4 shrink-0" />
+              <span>Petunjuk Format Kolom CSV:</span>
+            </div>
+            <ul className="text-[11px] text-[#595562] space-y-1 list-disc pl-4 leading-relaxed">
+              <li>
+                Header kolom: <strong className="font-mono text-[#24212b]">identifier, full_name, email, institution, phone</strong>
+              </li>
+              <li>
+                <strong>Mahasiswa</strong>: Kolom <span className="font-mono text-[#583682]">identifier</span> (NIM) <strong>wajib diisi manual</strong>. Contoh instansi: <em>ADMINISTRASI PUBLIK</em>.
+              </li>
+              <li>
+                <strong>Umum</strong>: Jika kolom <span className="font-mono text-[#583682]">institution</span> diisi <em>Umum</em>, kolom <span className="font-mono text-[#583682]">identifier</span> <strong>bisa dikosongkan</strong> dan akan dibuatkan otomatis oleh sistem (<span className="font-mono">UMUM-XXXXXX</span>).
+              </li>
+              <li>
+                <strong>Telepon</strong>: Kolom <span className="font-mono text-[#583682]">phone</span> bersifat <strong>opsional</strong> (boleh dikosongkan).
+              </li>
+            </ul>
+          </div>
+
+          <div className="flex justify-between items-center pt-1 pb-1">
             <span className="text-xs text-[#595562]">Gunakan template resmi:</span>
             <button
               type="button"
               onClick={downloadSampleTemplate}
-              className="text-xs text-[#583682] hover:underline font-bold flex items-center gap-1"
+              className="text-xs text-[#583682] hover:underline font-bold flex items-center gap-1 cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" /> Unduh Template CSV
             </button>
           </div>
 
-          <div className="border-2 border-dashed border-[#cfc2df] rounded p-6 text-center">
+          <div className="border-2 border-dashed border-[#cfc2df] hover:border-[#583682] rounded-lg p-6 text-center bg-[#faf9fc] transition">
             <input
               type="file"
+              id="csv-file-input"
               accept=".csv"
               required
               onChange={(e) => {
@@ -541,12 +639,33 @@ export const AdminParticipantsPage: React.FC = () => {
                   setCsvFile(e.target.files[0]);
                 }
               }}
-              className="text-xs"
+              className="hidden"
             />
+            <label htmlFor="csv-file-input" className="cursor-pointer block">
+              <Upload className="w-8 h-8 text-[#583682] mx-auto mb-2 opacity-80" />
+              {csvFile ? (
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-[#24212b]">{csvFile.name}</p>
+                  <p className="text-[11px] text-[#595562]">{(csvFile.size / 1024).toFixed(1)} KB — Klik untuk ganti berkas</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-[#24212b]">Pilih atau tarik berkas CSV ke sini</p>
+                  <p className="text-[11px] text-[#595562]">Format .csv dengan pemisah koma</p>
+                </div>
+              )}
+            </label>
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#e6e1eb]">
-            <Button type="button" variant="ghost" onClick={() => setImportModalOpen(false)}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setImportModalOpen(false);
+                setCsvFile(null);
+              }}
+            >
               Batal
             </Button>
             <Button type="submit" variant="primary" isLoading={importing} disabled={!csvFile}>

@@ -484,11 +484,28 @@ export const userService = {
     return res.data;
   },
 
-  async importStudentsCSV(file: File): Promise<any> {
+  async importStudentsCSV(file: File): Promise<{
+    success: boolean;
+    total_rows: number;
+    valid_rows: number;
+    invalid_rows: number;
+    imported_count: number;
+    skipped_count: number;
+    import_id: string;
+    credentials_download_url: string;
+    errors?: Array<{ rowNumber: number; identifier: string; name: string; email: string; errors: string[] }>;
+  }> {
     const formData = new FormData();
     formData.append('file', file);
     const res = await apiClient.post('/students/import', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return res.data;
+  },
+
+  async downloadImportCredentials(importId: string): Promise<Blob> {
+    const res = await apiClient.get(`/students/import/${importId}/credentials`, {
+      responseType: 'blob',
     });
     return res.data;
   },
