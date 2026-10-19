@@ -54,6 +54,15 @@ export const meRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => 
     }
 
     const row = rows[0];
+    const profileData = row.identifier
+      ? {
+          identifier: row.identifier,
+          full_name: row.full_name,
+          institution: row.institution,
+          phone: row.phone,
+        }
+      : null;
+
     return reply.send({
       user: {
         id: row.id,
@@ -62,16 +71,11 @@ export const meRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => 
         status: row.status,
         must_change_password: row.must_change_password,
         last_login_at: row.last_login_at,
-        profile: row.identifier
-          ? {
-              identifier: row.identifier,
-              full_name: row.full_name,
-              institution: row.institution,
-              phone: row.phone,
-            }
-          : null,
+        profile: profileData,
+        student_profile: profileData, // alias untuk konsistensi dengan login
         preferences: row.preferences || {},
       },
+      profile: profileData, // sertakan di root agar data.profile terbaca
     });
   });
 

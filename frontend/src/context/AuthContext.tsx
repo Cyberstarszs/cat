@@ -40,11 +40,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     try {
       const data = await authService.getMe();
+      const userProfile =
+        data.user?.profile || (data.user as any)?.student_profile || data.profile || null;
+
       setUser(data.user);
-      setProfile(data.profile || null);
+      setProfile(userProfile);
       localStorage.setItem('cat_user', JSON.stringify(data.user));
-      if (data.profile) {
-        localStorage.setItem('cat_profile', JSON.stringify(data.profile));
+      if (userProfile) {
+        localStorage.setItem('cat_profile', JSON.stringify(userProfile));
+      } else {
+        localStorage.removeItem('cat_profile');
       }
     } catch {
       // Jika token kedaluwarsa, bersihkan sesi

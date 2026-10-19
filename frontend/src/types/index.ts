@@ -10,6 +10,8 @@ export interface User {
   status: UserStatus;
   must_change_password: boolean;
   created_at: string;
+  profile?: StudentProfile | null;
+  student_profile?: StudentProfile | null;
 }
 
 export interface StudentProfile {
