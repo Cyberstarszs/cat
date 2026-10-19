@@ -205,6 +205,20 @@ export interface CSVPreviewRow {
   errors: string[];
 }
 
+export function detectCsvDelimiter(bufferOrStr: Buffer | string): string {
+  const text = typeof bufferOrStr === 'string' ? bufferOrStr : bufferOrStr.toString('utf-8');
+  const clean = text.replace(/^\uFEFF/, '');
+  const firstLine = clean.split(/\r?\n/).find((l) => l.trim().length > 0) || '';
+
+  const semiCount = (firstLine.match(/;/g) || []).length;
+  const commaCount = (firstLine.match(/,/g) || []).length;
+  const tabCount = (firstLine.match(/\t/g) || []).length;
+
+  if (semiCount > commaCount && semiCount > tabCount) return ';';
+  if (tabCount > commaCount && tabCount > semiCount) return '\t';
+  return ',';
+}
+
 export function parseAndPreviewStudentCSV(csvBuffer: Buffer): {
   totalRows: number;
   validRows: number;
@@ -219,10 +233,12 @@ export function parseAndPreviewStudentCSV(csvBuffer: Buffer): {
     role: 'mahasiswa' | 'umum';
   }>;
 } {
+  const delimiter = detectCsvDelimiter(csvBuffer);
   let records: any[];
   try {
     records = parse(csvBuffer, {
       columns: true,
+      delimiter,
       skip_empty_lines: true,
       trim: true,
       bom: true,
@@ -283,7 +299,16 @@ export function parseAndPreviewStudentCSV(csvBuffer: Buffer): {
     const fullName = getField(raw, ['fullname', 'full_name', 'nama', 'namalengkap', 'nama_lengkap', 'name']);
     const email = getField(raw, ['email', 'alamatemail', 'alamat_email', 'surel']).toLowerCase();
     const rawInstitution = getField(raw, ['institution', 'instansi', 'prodi', 'programstudi', 'program_studi', 'asal', 'universitas', 'sekolah']);
-    const phone = getField(raw, ['phone', 'telepon', 'nohp', 'no_hp', 'notelepon', 'no_telepon', 'telp', 'handphone', 'hp']) || null;
+    const rawPhone = getField(raw, ['phone', 'telepon', 'nohp', 'no_hp', 'notelepon', 'no_telepon', 'telp', 'handphone', 'hp']) || null;
+    let phone: string | null = null;
+    if (rawPhone) {
+      const digitsOnly = rawPhone.replace(/[^0-9+]/g, '');
+      if (/^8\d{8,12}$/.test(digitsOnly)) {
+        phone = `0${digitsOnly}`;
+      } else {
+        phone = digitsOnly || null;
+      }
+    }
 
     // Tentukan kategori peran dan instansi
     // Jika kolom instansi berisi 'Umum', atau keduanya kosong, kategorikan sebagai 'umum'

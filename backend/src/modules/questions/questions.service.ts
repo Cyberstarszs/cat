@@ -4,6 +4,7 @@ import { AppError } from '../../lib/errors.js';
 import { logAudit } from '../audit/audit.service.js';
 import { parseDocxQuestions } from './docx-parser.js';
 import { parseDocQuestions } from './doc-parser.js';
+import { detectCsvDelimiter } from '../users/users.service.js';
 
 export interface QuestionOptionInput {
   position: number;
@@ -288,6 +289,7 @@ export function parseAndPreviewQuestionsCSV(csvBuffer: Buffer): {
   try {
     records = parse(csvBuffer, {
       columns: true,
+      delimiter: detectCsvDelimiter(csvBuffer),
       skip_empty_lines: true,
       trim: true,
       bom: true,

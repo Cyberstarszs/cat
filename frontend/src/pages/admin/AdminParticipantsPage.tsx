@@ -148,10 +148,10 @@ export const AdminParticipantsPage: React.FC = () => {
 
   const downloadSampleTemplate = () => {
     const csvContent =
-      'identifier,full_name,email,institution,phone\n' +
-      '20261001,"Budi Santoso",budi@student.unira.ac.id,"ADMINISTRASI PUBLIK",08123456789\n' +
-      ',"Siti Aminah",siti@gmail.com,"Umum",\n' +
-      '20261003,"Ahmad Fauzi",ahmad@student.unira.ac.id,"ADMINISTRASI PUBLIK",\n';
+      'identifier;full_name;email;institution;phone\n' +
+      '20261001;Budi Santoso;budi@student.unira.ac.id;ADMINISTRASI PUBLIK;8123456789\n' +
+      ';Siti Aminah;siti@gmail.com;Umum;\n' +
+      '20261003;Ahmad Fauzi;ahmad@student.unira.ac.id;ADMINISTRASI PUBLIK;\n';
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -606,6 +606,9 @@ export const AdminParticipantsPage: React.FC = () => {
                 Header kolom: <strong className="font-mono text-[#24212b]">identifier, full_name, email, institution, phone</strong>
               </li>
               <li>
+                <strong>Pemisah Kolom</strong>: Mendukung pemisah titik koma (<span className="font-mono text-[#583682] font-bold">;</span>) standar Excel Indonesia maupun koma (<span className="font-mono text-[#583682] font-bold">,</span>).
+              </li>
+              <li>
                 <strong>Mahasiswa</strong>: Kolom <span className="font-mono text-[#583682]">identifier</span> (NIM) <strong>wajib diisi manual</strong>. Contoh instansi: <em>ADMINISTRASI PUBLIK</em>.
               </li>
               <li>
@@ -651,7 +654,7 @@ export const AdminParticipantsPage: React.FC = () => {
               ) : (
                 <div className="space-y-1">
                   <p className="text-xs font-semibold text-[#24212b]">Pilih atau tarik berkas CSV ke sini</p>
-                  <p className="text-[11px] text-[#595562]">Format .csv dengan pemisah koma</p>
+                  <p className="text-[11px] text-[#595562]">Format .csv pemisah titik koma (;) atau koma (,)</p>
                 </div>
               )}
             </label>
