@@ -68,7 +68,7 @@ export const certificateRoutes: FastifyPluginAsync = async (fastify: FastifyInst
         SELECT 
           c.id, c.certificate_no, c.verification_code, c.status, c.issued_at,
           c.revoked_at, c.revoked_reason,
-          sp.identifier, sp.full_name, sp.institution,
+          sp.identifier, sp.full_name, sp.full_name AS student_name, sp.institution,
           e.title AS exam_title, r.score
         FROM certificates c
         JOIN results r ON r.id = c.result_id

@@ -123,14 +123,20 @@ export const AdminResultsPage: React.FC = () => {
   };
 
   const filteredResults = results.filter((r) => {
+    const studentName = (r.student_name || r.full_name || '').toLowerCase();
+    const identifier = (r.identifier || '').toLowerCase();
+    const examTitle = (r.exam_title || '').toLowerCase();
+    const term = (search || '').toLowerCase();
     return (
-      r.student_name.toLowerCase().includes(search.toLowerCase()) ||
-      r.identifier.toLowerCase().includes(search.toLowerCase()) ||
-      (r.exam_title && r.exam_title.toLowerCase().includes(search.toLowerCase()))
+      studentName.includes(term) ||
+      identifier.includes(term) ||
+      examTitle.includes(term)
     );
   });
 
-  const pendingAppealsCount = appeals.filter((a) => a.status === 'pending').length;
+  const pendingAppealsCount = appeals.filter(
+    (a) => a.status === 'pending' || (a.status as any) === 'open'
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -251,10 +257,10 @@ export const AdminResultsPage: React.FC = () => {
                     {filteredResults.map((r) => (
                       <tr key={r.id} className="hover:bg-[#faf9fc]/80 transition">
                         <td className="px-6 py-4 font-mono font-bold text-[#583682]">
-                          {r.identifier}
+                          {r.identifier || '-'}
                         </td>
                         <td className="px-6 py-4 font-bold text-[#24212b]">
-                          {r.student_name}
+                          {r.student_name || r.full_name || '-'}
                         </td>
                         <td className="px-6 py-4 text-[#595562]">
                           <div>{r.exam_title}</div>
@@ -324,31 +330,35 @@ export const AdminResultsPage: React.FC = () => {
                   {appeals.map((app) => (
                     <tr key={app.id} className="hover:bg-[#faf9fc]/80 transition">
                       <td className="px-6 py-4">
-                        <div className="font-bold text-[#24212b]">{app.student_name}</div>
-                        <div className="font-mono text-[11px] text-[#583682]">{app.identifier}</div>
+                        <div className="font-bold text-[#24212b]">
+                          {app.student_name || app.full_name || '-'}
+                        </div>
+                        <div className="font-mono text-[11px] text-[#583682]">
+                          {app.identifier || '-'}
+                        </div>
                       </td>
                       <td className="px-6 py-4 text-[#595562]">{app.exam_title || 'Uji Kompetensi'}</td>
                       <td className="px-6 py-4 max-w-sm">
                         <div className="text-xs text-[#24212b] leading-relaxed line-clamp-3">
-                          {app.reason}
+                          {app.reason || app.message || '-'}
                         </div>
-                        {app.admin_notes && (
+                        {(app.admin_notes || app.response) && (
                           <div className="mt-1 text-[11px] text-[#583682] italic bg-[#faf9fc] p-1.5 rounded border border-[#e6e1eb]">
-                            Catatan Panitia: {app.admin_notes}
+                            Catatan Panitia: {app.admin_notes || app.response}
                           </div>
                         )}
                       </td>
                       <td className="px-6 py-4">
                         <Badge
                           variant={
-                            app.status === 'approved'
+                            app.status === 'approved' || (app.status as any) === 'accepted'
                               ? 'success'
                               : app.status === 'rejected'
                               ? 'danger'
                               : 'warning'
                           }
                         >
-                          {app.status === 'approved'
+                          {app.status === 'approved' || (app.status as any) === 'accepted'
                             ? 'DISETUJUI'
                             : app.status === 'rejected'
                             ? 'DITOLAK'
@@ -359,7 +369,7 @@ export const AdminResultsPage: React.FC = () => {
                         {new Date(app.created_at).toLocaleDateString('id-ID')}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        {app.status === 'pending' && (
+                        {(app.status === 'pending' || (app.status as any) === 'open') && (
                           <Button
                             variant="secondary"
                             className="text-[11px] min-h-[30px] px-2.5"
@@ -383,12 +393,12 @@ export const AdminResultsPage: React.FC = () => {
         isOpen={resolveModalOpen}
         onClose={() => setResolveModalOpen(false)}
         title="Keputusan Sanggahan Nilai"
-        description={`Pemohon: ${activeAppeal?.student_name} (${activeAppeal?.identifier})`}
+        description={`Pemohon: ${activeAppeal?.student_name || activeAppeal?.full_name || '-'} (${activeAppeal?.identifier || '-'})`}
       >
         <form onSubmit={handleResolveAppeal} className="space-y-4">
           <div className="p-3 bg-[#faf9fc] rounded border border-[#e6e1eb] text-xs">
             <strong className="text-[#24212b] block mb-1">Argumen Mahasiswa:</strong>
-            <p className="text-[#595562] italic leading-relaxed">{activeAppeal?.reason}</p>
+            <p className="text-[#595562] italic leading-relaxed">{activeAppeal?.reason || activeAppeal?.message || '-'}</p>
           </div>
 
           <div>

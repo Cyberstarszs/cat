@@ -170,7 +170,7 @@ export const CertificatePage: React.FC = () => {
           {/* Student Name */}
           <div className="py-2">
             <h3 className="font-display font-bold text-2xl sm:text-3xl text-[#583682] border-b-2 border-[#583682] inline-block pb-1 px-4">
-              {cert.student_name}
+              {cert.student_name || cert.full_name || '-'}
             </h3>
             <p className="text-xs text-[#595562] mt-2">
               NIM: <strong className="text-[#24212b]">{cert.identifier}</strong> · Instansi: {cert.institution || 'Fakultas Ilmu Administrasi'}

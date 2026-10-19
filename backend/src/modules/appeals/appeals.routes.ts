@@ -6,10 +6,19 @@ import { AppError } from '../../lib/errors.js';
 import { logAudit } from '../audit/audit.service.js';
 import { sendNotification } from '../notifications/notifications.service.js';
 
-const respondAppealSchema = z.object({
-  status: z.enum(['accepted', 'rejected']),
-  response: z.string().min(3, 'Tanggapan sanggah wajib diisi.'),
-});
+const respondAppealSchema = z
+  .object({
+    status: z.enum(['accepted', 'approved', 'rejected']).transform((s) => (s === 'approved' ? 'accepted' : s)),
+    response: z.string().optional(),
+    admin_notes: z.string().optional(),
+  })
+  .refine((data) => (data.response && data.response.trim().length >= 3) || (data.admin_notes && data.admin_notes.trim().length >= 3), {
+    message: 'Tanggapan sanggah wajib diisi (minimal 3 karakter).',
+  })
+  .transform((data) => ({
+    status: data.status as 'accepted' | 'rejected',
+    response: (data.response || data.admin_notes || '').trim(),
+  }));
 
 export const appealRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
   fastify.addHook('preHandler', authenticate);
@@ -56,13 +65,14 @@ export const appealRoutes: FastifyPluginAsync = async (fastify: FastifyInstance)
 
     const dataQuery = `
       SELECT 
-        ap.id, ap.message, ap.status, ap.response, ap.created_at, ap.responded_at,
-        ap.student_id, sp.identifier, sp.full_name, sp.institution,
+        ap.id, ap.message, ap.message AS reason, ap.status, ap.response, ap.response AS admin_notes, ap.created_at, ap.responded_at,
+        ap.student_id, sp.identifier, sp.full_name, sp.full_name AS student_name, sp.institution,
         r.id AS result_id, r.score, r.passed,
         s.id AS session_id, s.name AS session_name,
         e.id AS exam_id, e.title AS exam_title,
         qv.id AS question_version_id, qv.stem AS question_stem,
         u_admin.email AS responded_by_email
+
       FROM appeals ap
       JOIN results r ON r.id = ap.result_id
       JOIN attempts a ON a.id = r.attempt_id

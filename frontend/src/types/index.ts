@@ -219,7 +219,10 @@ export interface ExamResult {
   session_name: string;
   exam_title: string;
   identifier: string;
-  student_name: string;
+  student_name?: string;
+  full_name?: string;
+  email?: string;
+  institution?: string;
   raw_score: number;
   max_score: number;
   score: number;
@@ -261,7 +264,8 @@ export interface Certificate {
   issued_at: string;
   revoked_at?: string;
   revoked_reason?: string;
-  student_name: string;
+  student_name?: string;
+  full_name?: string;
   identifier: string;
   institution?: string;
   exam_title: string;
@@ -293,12 +297,16 @@ export interface Appeal {
   result_id: string;
   student_id: string;
   student_name?: string;
+  full_name?: string;
   identifier?: string;
   exam_title?: string;
-  reason: string;
-  status: 'pending' | 'approved' | 'rejected';
+  reason?: string;
+  message?: string;
+  status: 'pending' | 'open' | 'approved' | 'accepted' | 'rejected';
   admin_notes?: string;
+  response?: string;
   resolved_at?: string;
+  responded_at?: string;
   created_at: string;
 }
 

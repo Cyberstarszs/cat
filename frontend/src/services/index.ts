@@ -435,7 +435,13 @@ export const resultService = {
   },
 
   async resolveAppeal(appealId: string, status: 'approved' | 'rejected', notes: string): Promise<void> {
-    await apiClient.patch(`/appeals/${appealId}`, { status, admin_notes: notes });
+    const backendStatus = status === 'approved' ? 'accepted' : 'rejected';
+    const noteText = notes.trim() || (status === 'approved' ? 'Sanggahan disetujui.' : 'Sanggahan ditolak.');
+    await apiClient.patch(`/appeals/${appealId}`, {
+      status: backendStatus,
+      response: noteText,
+      admin_notes: noteText,
+    });
   },
 
   async getCertificate(id: string): Promise<Certificate> {

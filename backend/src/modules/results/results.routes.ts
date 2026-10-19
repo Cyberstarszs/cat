@@ -70,7 +70,7 @@ export const resultRoutes: FastifyPluginAsync = async (fastify: FastifyInstance)
         r.id, r.raw_score, r.max_score, r.score, r.passing_score, r.passed,
         r.status, r.revision_no, r.graded_at, r.published_at,
         a.id AS attempt_id, a.attempt_no, a.started_at, a.submitted_at, a.submit_reason,
-        sp.identifier, sp.full_name, sp.institution, u.email,
+        sp.identifier, sp.full_name, sp.full_name AS student_name, sp.institution, u.email,
         s.id AS session_id, s.name AS session_name, s.code AS session_code,
         e.id AS exam_id, e.title AS exam_title,
         c.id AS certificate_id, c.certificate_no, c.status AS cert_status
@@ -100,7 +100,7 @@ export const resultRoutes: FastifyPluginAsync = async (fastify: FastifyInstance)
       `SELECT 
         r.*,
         a.id AS attempt_id, a.attempt_no, a.started_at, a.submitted_at, a.submit_reason, a.extra_seconds,
-        sp.identifier, sp.full_name, sp.institution, sp.phone, u.email,
+        sp.identifier, sp.full_name, sp.full_name AS student_name, sp.institution, sp.phone, u.email,
         s.id AS session_id, s.name AS session_name, s.code AS session_code,
         e.id AS exam_id, e.title AS exam_title,
         c.id AS certificate_id, c.certificate_no, c.verification_code, c.status AS cert_status
