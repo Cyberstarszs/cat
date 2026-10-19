@@ -76,7 +76,22 @@ export async function validateQuestionPoolSufficiency(
         ${yearCondition};
     `;
     const { rows: poolRows } = await pool.query(poolCheck, [rule.category_id]);
-    const available = parseInt(poolRows[0].available, 10);
+    let available = parseInt(poolRows[0].available, 10);
+
+    // Jika tahun spesifik kurang, cek ketersediaan lintas tahun
+    if (available < rule.question_count && questionYear) {
+      const fallbackCheck = `
+        SELECT COUNT(DISTINCT q.id) AS available
+        FROM questions q
+        JOIN question_versions qv ON qv.id = q.current_version_id
+        WHERE q.category_id = $1 
+          AND q.status = 'active'
+          AND q.deleted_at IS NULL
+          ${diffCondition};
+      `;
+      const { rows: fbRows } = await pool.query(fallbackCheck, [rule.category_id]);
+      available = parseInt(fbRows[0].available, 10);
+    }
 
     if (available < rule.question_count) {
       const yearText = questionYear ? ` tahun ${questionYear}` : '';

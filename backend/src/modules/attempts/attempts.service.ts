@@ -153,13 +153,38 @@ export async function startExamAttempt(
         if (alreadySelected.length > 0) {
           queryParams.push(alreadySelected);
         }
-        const { rows: sampled } = await client.query(sampleQuery, queryParams);
+        let { rows: sampled } = await client.query(sampleQuery, queryParams);
+
+        // Jika bank soal pada tahun spesifik kurang, lengkapi dari tahun lain yang tersedia di kategori & tingkat yang sama
+        if (sampled.length < rule.question_count && s.question_year) {
+          const needed = rule.question_count - sampled.length;
+          const currentSelected = [...alreadySelected, ...sampled.map((q) => q.question_version_id)];
+          const fallbackParams: any[] = [rule.category_id, needed];
+          let fallbackExclude = '';
+          if (currentSelected.length > 0) {
+            fallbackExclude = `AND qv.id <> ALL($3::uuid[])`;
+            fallbackParams.push(currentSelected);
+          }
+          const { rows: fallbackSampled } = await client.query(
+            `SELECT qv.id AS question_version_id
+             FROM questions q
+             JOIN question_versions qv ON qv.id = q.current_version_id
+             WHERE q.category_id = $1 
+               AND q.status = 'active'
+               AND q.deleted_at IS NULL
+               ${diffCond}
+               ${fallbackExclude}
+             ORDER BY RANDOM()
+             LIMIT $2;`,
+            fallbackParams
+          );
+          sampled = [...sampled, ...fallbackSampled];
+        }
 
         if (sampled.length < rule.question_count) {
-          const yearMsg = s.question_year ? ` untuk tahun ${s.question_year}` : '';
           throw new AppError(
             'QUESTION_POOL_INSUFFICIENT',
-            `Stok bank soal aktif${yearMsg} tidak mencukupi untuk komposisi ujian saat ini.`
+            `Stok bank soal aktif untuk kategori "${rule.category_id}" tidak mencukupi untuk komposisi ujian saat ini.`
           );
         }
 
@@ -171,7 +196,7 @@ export async function startExamAttempt(
       // Fallback jika belum ada aturan komposisi subtes: ambil soal aktif sesuai tahun sesi
       const yearCond = s.question_year ? `AND q.year = ${parseInt(s.question_year, 10)}` : '';
       const limitCount = s.question_count || 100;
-      const { rows: allQuestions } = await client.query(
+      let { rows: allQuestions } = await client.query(
         `SELECT qv.id AS question_version_id
          FROM questions q
          JOIN question_versions qv ON qv.id = q.current_version_id
@@ -182,6 +207,24 @@ export async function startExamAttempt(
          LIMIT $1;`,
         [limitCount]
       );
+
+      if (allQuestions.length < limitCount && s.question_year) {
+        const needed = limitCount - allQuestions.length;
+        const currentSelected = allQuestions.map((q) => q.question_version_id);
+        const { rows: fallbackQuestions } = await client.query(
+          `SELECT qv.id AS question_version_id
+           FROM questions q
+           JOIN question_versions qv ON qv.id = q.current_version_id
+           WHERE q.status = 'active'
+             AND q.deleted_at IS NULL
+             ${currentSelected.length > 0 ? 'AND qv.id <> ALL($2::uuid[])' : ''}
+           ORDER BY RANDOM()
+           LIMIT $1;`,
+          currentSelected.length > 0 ? [needed, currentSelected] : [needed]
+        );
+        allQuestions = [...allQuestions, ...fallbackQuestions];
+      }
+
       for (const q of allQuestions) {
         selectedQuestionVersions.push({ questionVersionId: q.question_version_id });
       }

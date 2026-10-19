@@ -116,7 +116,7 @@ export const AdminSchedulesPage: React.FC = () => {
     setSessionCode(`SES-${Date.now().toString().slice(-4)}`);
     setSessionName('');
     setSessionCapacity('27');
-    setSelectedQuestionYear(new Date().getFullYear().toString());
+    setSelectedQuestionYear('');
     const now = new Date();
     const startStr = new Date(now.getTime() + 60 * 60 * 1000).toISOString().slice(0, 16);
     const endStr = new Date(now.getTime() + 3 * 60 * 60 * 1000).toISOString().slice(0, 16);
