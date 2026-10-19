@@ -59,19 +59,6 @@ export const AdminParticipantsPage: React.FC = () => {
   const [savingStudent, setSavingStudent] = useState(false);
   const [createdPasswordNotice, setCreatedPasswordNotice] = useState<{ identifier: string; pass: string } | null>(null);
 
-  // Success credential modal
-  const [successModalOpen, setSuccessModalOpen] = useState(false);
-  const [newCreatedStudent, setNewCreatedStudent] = useState<{
-    identifier: string;
-    full_name: string;
-    email: string;
-    role: string;
-    institution: string;
-    phone?: string | null;
-    password: string;
-  } | null>(null);
-  const [copiedAllCredentials, setCopiedAllCredentials] = useState(false);
-
   const generateUmumIdentifier = () => `UMUM-${Math.floor(100000 + Math.random() * 900000)}`;
 
   const resetAddForm = (targetRole: 'mahasiswa' | 'umum' = 'mahasiswa') => {
@@ -245,25 +232,6 @@ export const AdminParticipantsPage: React.FC = () => {
     return pages;
   };
 
-  const handleCopyFullText = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedAllCredentials(true);
-      setTimeout(() => setCopiedAllCredentials(false), 2500);
-      showToast('Kredensial berhasil disalin!', 'success');
-    } catch {
-      const textArea = document.createElement('textarea');
-      textArea.value = text;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-      setCopiedAllCredentials(true);
-      setTimeout(() => setCopiedAllCredentials(false), 2500);
-      showToast('Kredensial berhasil disalin!', 'success');
-    }
-  };
-
   const handleAddStudent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (role === 'mahasiswa' && !identifier.trim()) {
@@ -290,29 +258,17 @@ export const AdminParticipantsPage: React.FC = () => {
         phone: phone.trim() || undefined,
       });
 
-      const finalIdentifier = res.student?.identifier || identifier.trim() || 'Peserta';
-      const finalPass = res.initial_password || '';
-
-      setNewCreatedStudent({
-        identifier: finalIdentifier,
-        full_name: res.student?.full_name || fullName.trim(),
-        email: res.student?.email || email.trim().toLowerCase(),
-        role: res.student?.role || role,
-        institution: res.student?.institution || institution.trim() || (role === 'umum' ? 'Umum' : 'ADMINISTRASI PUBLIK'),
-        phone: res.student?.phone || phone.trim() || undefined,
-        password: finalPass,
-      });
-
-      setCreatedPasswordNotice({
-        identifier: finalIdentifier,
-        pass: finalPass,
-      });
-
-      setAddModalOpen(false);
-      setSuccessModalOpen(true);
-      resetAddForm('mahasiswa');
-
       showToast('Peserta berhasil didaftarkan!', 'success');
+      setAddModalOpen(false);
+
+      if (res.initial_password) {
+        setCreatedPasswordNotice({
+          identifier: res.student?.identifier || identifier.trim() || 'Peserta',
+          pass: res.initial_password,
+        });
+      }
+
+      resetAddForm('mahasiswa');
       fetchStudents();
       loadInstitutions();
     } catch (err: any) {
@@ -448,7 +404,7 @@ export const AdminParticipantsPage: React.FC = () => {
           <div className="flex items-center gap-3">
             <KeyRound className="w-5 h-5 text-[#287a58] shrink-0" />
             <div>
-              <div className="font-bold text-[#24212b]">Akun Peserta Berhasil Dibuat!</div>
+              <div className="font-bold text-[#24212b]">Akun Peserta Berhasil Didaftarkan!</div>
               <div className="text-[#595562] mt-1 flex flex-wrap items-center gap-2">
                 <span>NIM / Identitas: <strong className="font-mono text-[#24212b]">{createdPasswordNotice.identifier}</strong> | Kata Sandi Awal:</span>
                 <strong className="font-mono text-[#287a58] bg-white px-2.5 py-0.5 rounded border border-[#bce2cf] tracking-wider">
@@ -949,122 +905,6 @@ export const AdminParticipantsPage: React.FC = () => {
             </Button>
           </div>
         </form>
-      </Modal>
-
-      {/* Success Credential Modal */}
-      <Modal
-        isOpen={successModalOpen}
-        onClose={() => setSuccessModalOpen(false)}
-        title="Akun Peserta Berhasil Didaftarkan!"
-        description="Akun telah aktif di sistem. Harap simpan atau salin kredensial berikut untuk diberikan kepada peserta ujian."
-      >
-        {newCreatedStudent && (
-          <div className="space-y-4">
-            <div className="p-4 bg-[#f8f6fb] border border-[#cfc2df] rounded-xl space-y-3">
-              <div className="flex items-center justify-between pb-2 border-b border-[#e6e1eb]">
-                <span className="text-xs text-[#595562]">Kategori Peserta</span>
-                <Badge variant={newCreatedStudent.role === 'umum' ? 'info' : 'royal'}>
-                  {newCreatedStudent.role === 'umum' ? 'UMUM' : 'MAHASISWA'}
-                </Badge>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                <div>
-                  <span className="text-gray-400 block text-[11px]">NIM / No. Peserta</span>
-                  <span className="font-mono font-bold text-[#583682] text-sm">
-                    {newCreatedStudent.identifier}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-gray-400 block text-[11px]">Nama Lengkap</span>
-                  <span className="font-bold text-[#24212b] text-sm truncate block">
-                    {newCreatedStudent.full_name}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-gray-400 block text-[11px]">Alamat Email</span>
-                  <span className="font-mono text-[#24212b] truncate block">
-                    {newCreatedStudent.email}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-gray-400 block text-[11px]">Instansi / Prodi</span>
-                  <span className="text-[#24212b] truncate block font-medium">
-                    {newCreatedStudent.institution}
-                  </span>
-                </div>
-              </div>
-
-              {/* Password Highlight Box */}
-              <div className="mt-3 p-3.5 bg-white border-2 border-[#bce2cf] rounded-lg flex items-center justify-between">
-                <div>
-                  <div className="text-[11px] font-bold text-[#287a58] uppercase tracking-wider">
-                    Kata Sandi Awal (6 Angka)
-                  </div>
-                  <div className="font-mono font-extrabold text-2xl text-[#24212b] tracking-widest mt-0.5">
-                    {newCreatedStudent.password}
-                  </div>
-                </div>
-                <Button
-                  type="button"
-                  variant="primary"
-                  onClick={() => handleCopyText(newCreatedStudent.password, false)}
-                  leftIcon={copiedNotice ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                  className="text-xs"
-                >
-                  {copiedNotice ? 'Tersalin!' : 'Salin Sandi'}
-                </Button>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-2 border-t border-[#e6e1eb]">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => {
-                  const credsText =
-                    `Kredensial Peserta Ujian CAT FIA UNIRA:\n` +
-                    `Peran: ${newCreatedStudent.role === 'umum' ? 'Umum' : 'Mahasiswa'}\n` +
-                    `NIM / No. Peserta: ${newCreatedStudent.identifier}\n` +
-                    `Nama: ${newCreatedStudent.full_name}\n` +
-                    `Email: ${newCreatedStudent.email}\n` +
-                    `Instansi: ${newCreatedStudent.institution}\n` +
-                    `Kata Sandi: ${newCreatedStudent.password}\n` +
-                    `Tautan Ujian: http://localhost:5173/login`;
-                  handleCopyFullText(credsText);
-                }}
-                leftIcon={copiedAllCredentials ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                className="w-full sm:w-auto text-xs"
-              >
-                {copiedAllCredentials ? 'Kredensial Tersalin!' : 'Salin Semua Kredensial'}
-              </Button>
-
-              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => {
-                    setSuccessModalOpen(false);
-                    handleOpenAddModal();
-                  }}
-                  leftIcon={<Plus className="w-3.5 h-3.5" />}
-                  className="text-xs"
-                >
-                  Daftarkan Peserta Lain
-                </Button>
-                <Button
-                  type="button"
-                  variant="primary"
-                  onClick={() => setSuccessModalOpen(false)}
-                  className="text-xs"
-                >
-                  Selesai
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
       </Modal>
 
       {/* Import CSV Modal */}
