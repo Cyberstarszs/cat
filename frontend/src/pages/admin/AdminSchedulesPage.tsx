@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { sessionService, examService, reportService, questionService } from '../../services';
 import { ExamSession, Exam, SessionEnrollment, CandidateResponse, CandidateStudent } from '../../types';
 import { useToast } from '../../context/ToastContext';
+import { formatToWIBInput, wibInputToISOString, formatWIBDateTime } from '../../utils/date';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -118,8 +119,8 @@ export const AdminSchedulesPage: React.FC = () => {
     setSessionCapacity('27');
     setSelectedQuestionYear('');
     const now = new Date();
-    const startStr = new Date(now.getTime() + 60 * 60 * 1000).toISOString().slice(0, 16);
-    const endStr = new Date(now.getTime() + 3 * 60 * 60 * 1000).toISOString().slice(0, 16);
+    const startStr = formatToWIBInput(new Date(now.getTime() + 60 * 60 * 1000));
+    const endStr = formatToWIBInput(new Date(now.getTime() + 3 * 60 * 60 * 1000));
     setStartsAt(startStr);
     setEndsAt(endStr);
     setCreateModalOpen(true);
@@ -137,8 +138,8 @@ export const AdminSchedulesPage: React.FC = () => {
         exam_id: selectedExamId,
         code: sessionCode.trim().toUpperCase(),
         name: sessionName.trim(),
-        starts_at: new Date(startsAt).toISOString(),
-        ends_at: new Date(endsAt).toISOString(),
+        starts_at: wibInputToISOString(startsAt),
+        ends_at: wibInputToISOString(endsAt),
         capacity: sessionCapacity ? parseInt(sessionCapacity, 10) : 27,
         question_year: selectedQuestionYear ? parseInt(selectedQuestionYear, 10) : null,
       });
@@ -157,8 +158,8 @@ export const AdminSchedulesPage: React.FC = () => {
     setEditSessionName(sess.name);
     setEditSessionCapacity(sess.capacity ? sess.capacity.toString() : '27');
     setEditQuestionYear(sess.question_year ? sess.question_year.toString() : '');
-    const startStr = new Date(sess.starts_at).toISOString().slice(0, 16);
-    const endStr = new Date(sess.ends_at).toISOString().slice(0, 16);
+    const startStr = formatToWIBInput(sess.starts_at);
+    const endStr = formatToWIBInput(sess.ends_at);
     setEditStartsAt(startStr);
     setEditEndsAt(endStr);
     setEditModalOpen(true);
@@ -171,8 +172,8 @@ export const AdminSchedulesPage: React.FC = () => {
     try {
       await sessionService.updateSession(editingSession.id, {
         name: editSessionName.trim(),
-        starts_at: new Date(editStartsAt).toISOString(),
-        ends_at: new Date(editEndsAt).toISOString(),
+        starts_at: wibInputToISOString(editStartsAt),
+        ends_at: wibInputToISOString(editEndsAt),
         capacity: editSessionCapacity ? parseInt(editSessionCapacity, 10) : 27,
         question_year: editQuestionYear ? parseInt(editQuestionYear, 10) : null,
       });
@@ -437,8 +438,8 @@ export const AdminSchedulesPage: React.FC = () => {
                   <th className="px-6 py-3.5">Kode Sesi</th>
                   <th className="px-6 py-3.5">Nama Sesi & Ujian</th>
                   <th className="px-6 py-3.5">Tahun Soal</th>
-                  <th className="px-6 py-3.5">Waktu Mulai</th>
-                  <th className="px-6 py-3.5">Waktu Selesai</th>
+                  <th className="px-6 py-3.5">Waktu Mulai (WIB)</th>
+                  <th className="px-6 py-3.5">Waktu Selesai (WIB)</th>
                   <th className="px-6 py-3.5">Peserta</th>
                   <th className="px-6 py-3.5">Status</th>
                   <th className="px-6 py-3.5 text-right">Aksi</th>
@@ -463,17 +464,11 @@ export const AdminSchedulesPage: React.FC = () => {
                         <Badge variant="neutral">Semua Tahun</Badge>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-[#595562]">
-                      {new Date(sess.starts_at).toLocaleString('id-ID', {
-                        dateStyle: 'short',
-                        timeStyle: 'short',
-                      })}
+                    <td className="px-6 py-4 text-[#595562] whitespace-nowrap font-medium">
+                      {formatWIBDateTime(sess.starts_at)}
                     </td>
-                    <td className="px-6 py-4 text-[#595562]">
-                      {new Date(sess.ends_at).toLocaleString('id-ID', {
-                        dateStyle: 'short',
-                        timeStyle: 'short',
-                      })}
+                    <td className="px-6 py-4 text-[#595562] whitespace-nowrap font-medium">
+                      {formatWIBDateTime(sess.ends_at)}
                     </td>
                     <td className="px-6 py-4">
                       <button
@@ -627,17 +622,19 @@ export const AdminSchedulesPage: React.FC = () => {
           <div className="grid grid-cols-2 gap-4">
             <Input
               type="datetime-local"
-              label="Waktu Mulai"
+              label="Waktu Mulai (WIB)"
               required
               value={startsAt}
               onChange={(e) => setStartsAt(e.target.value)}
+              helperText="Zona Waktu: WIB (Asia/Jakarta, UTC+7)"
             />
             <Input
               type="datetime-local"
-              label="Waktu Selesai"
+              label="Waktu Selesai (WIB)"
               required
               value={endsAt}
               onChange={(e) => setEndsAt(e.target.value)}
+              helperText="Zona Waktu: WIB (Asia/Jakarta, UTC+7)"
             />
           </div>
 
@@ -1185,17 +1182,19 @@ export const AdminSchedulesPage: React.FC = () => {
           <div className="grid grid-cols-2 gap-4">
             <Input
               type="datetime-local"
-              label="Waktu Mulai"
+              label="Waktu Mulai (WIB)"
               required
               value={editStartsAt}
               onChange={(e) => setEditStartsAt(e.target.value)}
+              helperText="Zona Waktu: WIB (Asia/Jakarta, UTC+7)"
             />
             <Input
               type="datetime-local"
-              label="Waktu Selesai"
+              label="Waktu Selesai (WIB)"
               required
               value={editEndsAt}
               onChange={(e) => setEditEndsAt(e.target.value)}
+              helperText="Zona Waktu: WIB (Asia/Jakarta, UTC+7)"
             />
           </div>
 

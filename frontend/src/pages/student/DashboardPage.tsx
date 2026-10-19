@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { sessionService, resultService, notificationService, examService } from '../../services';
 import { ExamResult, NotificationItem, Exam } from '../../types';
+import { formatWIBDate, formatWIBTimeRange, formatWIBDateShort } from '../../utils/date';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { CardSkeleton } from '../../components/ui/Skeleton';
@@ -186,23 +187,15 @@ export const DashboardPage: React.FC = () => {
                   <div className="course-exam-card__schedule">
                     <Calendar className="w-4 h-4 text-[#583682]" />
                     <span>
-                      <small>JADWAL</small>
+                      <small>JADWAL (WIB)</small>
                       <b>
                         {sess.starts_at
-                          ? new Date(sess.starts_at).toLocaleDateString('id-ID', {
-                              weekday: 'long',
-                              day: 'numeric',
-                              month: 'long',
-                              year: 'numeric',
-                            })
+                          ? formatWIBDate(sess.starts_at)
                           : 'Senin, 12 Oktober 2026'}
                       </b>
                       <em>
                         {sess.starts_at
-                          ? `${new Date(sess.starts_at).toLocaleTimeString('id-ID', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })} WIB`
+                          ? formatWIBTimeRange(sess.starts_at, sess.ends_at)
                           : '08.00–09.30 WIB'}
                       </em>
                     </span>
@@ -267,11 +260,7 @@ export const DashboardPage: React.FC = () => {
                       {res.exam_title || 'Uji Kompetensi Administrasi'}
                     </h4>
                     <p className="text-[11px] text-[#595562]">
-                      Selesai: {new Date(res.submitted_at || res.created_at).toLocaleDateString('id-ID', {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric',
-                      })} · Skor: <strong className="text-[#24212b]">{res.score}/100</strong>
+                      Selesai: {formatWIBDate(res.submitted_at || res.created_at, { weekday: undefined })} · Skor: <strong className="text-[#24212b]">{res.score}/100</strong>
                     </p>
                   </div>
                 </div>

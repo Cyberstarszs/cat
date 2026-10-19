@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { auditService } from '../../services';
 import { AuditLog } from '../../types';
+import { formatWIBDateTime } from '../../utils/date';
 import { Card } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
@@ -104,10 +105,7 @@ export const AdminAuditLogsPage: React.FC = () => {
                 {filteredLogs.map((log) => (
                   <tr key={log.id} className="hover:bg-[#faf9fc]/80 transition">
                     <td className="px-6 py-4 font-mono text-gray-500 whitespace-nowrap">
-                      {new Date(log.created_at).toLocaleString('id-ID', {
-                        dateStyle: 'short',
-                        timeStyle: 'medium',
-                      })}
+                      {formatWIBDateTime(log.created_at)}
                     </td>
                     <td className="px-6 py-4 font-mono font-bold text-[#583682]">
                       <span className="bg-[#eae2f5] px-2 py-0.5 rounded">{log.action}</span>

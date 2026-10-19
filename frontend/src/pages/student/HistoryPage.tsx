@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { resultService } from '../../services';
 import { ExamResult } from '../../types';
+import { formatWIBDate } from '../../utils/date';
 import { Button } from '../../components/ui/Button';
 import { CardSkeleton } from '../../components/ui/Skeleton';
 import { ErrorAlert } from '../../components/ui/EmptyState';
@@ -154,11 +155,7 @@ export const HistoryPage: React.FC = () => {
                 {row.exam_title || row.session_name}
               </strong>
               <span className="text-xs text-[#595562]">
-                {new Date(row.created_at).toLocaleDateString('id-ID', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                })}
+                {formatWIBDate(row.created_at, { weekday: undefined })}
               </span>
               <b className="text-sm text-[#24212b]">{row.score}</b>
               <i

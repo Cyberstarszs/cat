@@ -9,6 +9,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { ErrorAlert } from '../../components/ui/EmptyState';
 import { ShieldCheck, ShieldAlert, Search, Award, Calendar, User, Building, QrCode } from 'lucide-react';
+import { formatWIBDate, formatWIBDateTime } from '../../utils/date';
 
 export const VerifyPage: React.FC = () => {
   const { code: pathCode } = useParams<{ code?: string }>();
@@ -174,11 +175,7 @@ export const VerifyPage: React.FC = () => {
                   <div>
                     <div className="text-[10px] text-[#595562] uppercase font-bold">Tanggal Penerbitan</div>
                     <div className="font-bold text-[#24212b]">
-                      {new Date(certificate.issued_at).toLocaleDateString('id-ID', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })}
+                      {formatWIBDate(certificate.issued_at, { weekday: undefined })}
                     </div>
                   </div>
                 </div>
@@ -191,7 +188,7 @@ export const VerifyPage: React.FC = () => {
                   <div>{certificate.revoked_reason || 'Dicabut oleh administrator atas evaluasi penilaian ulang.'}</div>
                   {certificate.revoked_at && (
                     <div className="text-[11px] mt-1 text-[#922b37]">
-                      Waktu Pencabutan: {new Date(certificate.revoked_at).toLocaleString('id-ID')}
+                      Waktu Pencabutan: {formatWIBDateTime(certificate.revoked_at)}
                     </div>
                   )}
                 </div>

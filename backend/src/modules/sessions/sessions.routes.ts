@@ -23,8 +23,8 @@ const createSessionSchema = z.object({
   exam_id: z.string().uuid(),
   code: z.string().min(2).max(30),
   name: z.string().min(3).max(200),
-  starts_at: z.string().datetime(),
-  ends_at: z.string().datetime(),
+  starts_at: z.string().datetime({ offset: true }),
+  ends_at: z.string().datetime({ offset: true }),
   capacity: z.number().int().positive().optional().nullable(),
   access_code: z.string().min(4).max(30).optional().nullable(),
   question_year: z.coerce.number().int().min(1900).max(2100).optional().nullable(),
@@ -32,8 +32,8 @@ const createSessionSchema = z.object({
 
 const updateSessionSchema = z.object({
   name: z.string().min(3).max(200).optional(),
-  starts_at: z.string().datetime().optional(),
-  ends_at: z.string().datetime().optional(),
+  starts_at: z.string().datetime({ offset: true }).optional(),
+  ends_at: z.string().datetime({ offset: true }).optional(),
   capacity: z.number().int().positive().optional().nullable(),
   question_year: z.coerce.number().int().min(1900).max(2100).optional().nullable(),
 });

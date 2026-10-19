@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { examService, questionService, sessionService, userService, auditService } from '../../services';
 import { AuditLog } from '../../types';
+import { formatWIBTime } from '../../utils/date';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { CardSkeleton } from '../../components/ui/Skeleton';
@@ -213,7 +214,7 @@ export const AdminDashboardPage: React.FC = () => {
                       </div>
                     </div>
                     <span className="text-[10px] text-gray-400 shrink-0">
-                      {new Date(log.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                      {formatWIBTime(log.created_at)}
                     </span>
                   </div>
                 ))}

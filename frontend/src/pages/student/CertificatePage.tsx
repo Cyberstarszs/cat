@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { resultService } from '../../services';
 import { Certificate } from '../../types';
+import { formatWIBDate } from '../../utils/date';
 import { Button } from '../../components/ui/Button';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { ErrorAlert } from '../../components/ui/EmptyState';
@@ -201,11 +202,7 @@ export const CertificatePage: React.FC = () => {
             <div>
               <div className="text-[10px] text-[#595562] font-semibold uppercase">TANGGAL TERBIT</div>
               <div className="font-bold text-[#24212b] mt-0.5 uppercase">
-                {issuedDate.toLocaleDateString('id-ID', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                })}
+                {formatWIBDate(issuedDate, { weekday: undefined })}
               </div>
             </div>
           </div>

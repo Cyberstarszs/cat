@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { sessionService, attemptService } from '../../services';
 import { ExamSession } from '../../types';
+import { formatWIBScheduleRange } from '../../utils/date';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Skeleton } from '../../components/ui/Skeleton';
@@ -119,6 +120,11 @@ export const InstructionsPage: React.FC = () => {
         <p className="text-xs text-[#595562]">
           Kode Sesi: <span className="font-mono font-bold text-[#583682]">{session?.code}</span> | Durasi:{' '}
           <span className="font-bold">{session?.duration_minutes || 90} Menit</span>
+          {session?.starts_at && (
+            <>
+              {' '}| Jadwal: <span className="font-bold text-[#24212b]">{formatWIBScheduleRange(session.starts_at, session.ends_at)}</span>
+            </>
+          )}
         </p>
       </div>
 
