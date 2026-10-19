@@ -370,8 +370,11 @@ export const userRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =
       student: {
         id: result.id,
         identifier: result.identifier,
+        full_name: result.fullName,
         email: result.email,
         role: result.role,
+        institution: result.institution,
+        phone: result.phone,
       },
       initial_password: result.tempPassword,
     });

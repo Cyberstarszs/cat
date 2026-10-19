@@ -59,7 +59,53 @@ export const AdminParticipantsPage: React.FC = () => {
   const [savingStudent, setSavingStudent] = useState(false);
   const [createdPasswordNotice, setCreatedPasswordNotice] = useState<{ identifier: string; pass: string } | null>(null);
 
+  // Success credential modal
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const [newCreatedStudent, setNewCreatedStudent] = useState<{
+    identifier: string;
+    full_name: string;
+    email: string;
+    role: string;
+    institution: string;
+    phone?: string | null;
+    password: string;
+  } | null>(null);
+  const [copiedAllCredentials, setCopiedAllCredentials] = useState(false);
+
   const generateUmumIdentifier = () => `UMUM-${Math.floor(100000 + Math.random() * 900000)}`;
+
+  const resetAddForm = (targetRole: 'mahasiswa' | 'umum' = 'mahasiswa') => {
+    setRole(targetRole);
+    setIdentifier(targetRole === 'umum' ? generateUmumIdentifier() : '');
+    setFullName('');
+    setEmail('');
+    setInstitution(targetRole === 'umum' ? 'Umum' : 'ADMINISTRASI PUBLIK');
+    setPhone('');
+  };
+
+  const handleOpenAddModal = () => {
+    resetAddForm('mahasiswa');
+    setAddModalOpen(true);
+  };
+
+  const handleSwitchRole = (newRole: 'mahasiswa' | 'umum') => {
+    setRole(newRole);
+    if (newRole === 'umum') {
+      if (!identifier.trim()) {
+        setIdentifier(generateUmumIdentifier());
+      }
+      if (institution === 'ADMINISTRASI PUBLIK' || !institution.trim()) {
+        setInstitution('Umum');
+      }
+    } else {
+      if (identifier.startsWith('UMUM-')) {
+        setIdentifier('');
+      }
+      if (institution === 'Umum' || !institution.trim()) {
+        setInstitution('ADMINISTRASI PUBLIK');
+      }
+    }
+  };
 
   // Reset password modal
   const [resetModalOpen, setResetModalOpen] = useState(false);
@@ -199,12 +245,40 @@ export const AdminParticipantsPage: React.FC = () => {
     return pages;
   };
 
+  const handleCopyFullText = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedAllCredentials(true);
+      setTimeout(() => setCopiedAllCredentials(false), 2500);
+      showToast('Kredensial berhasil disalin!', 'success');
+    } catch {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setCopiedAllCredentials(true);
+      setTimeout(() => setCopiedAllCredentials(false), 2500);
+      showToast('Kredensial berhasil disalin!', 'success');
+    }
+  };
+
   const handleAddStudent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (role === 'mahasiswa' && !identifier.trim()) {
       showToast('NIM wajib diisi secara manual untuk peserta mahasiswa.', 'error');
       return;
     }
+    if (!fullName.trim()) {
+      showToast('Nama lengkap wajib diisi.', 'error');
+      return;
+    }
+    if (!email.trim()) {
+      showToast('Alamat email wajib diisi.', 'error');
+      return;
+    }
+
     setSavingStudent(true);
     try {
       const res = await userService.createStudent({
@@ -216,16 +290,29 @@ export const AdminParticipantsPage: React.FC = () => {
         phone: phone.trim() || undefined,
       });
 
-      showToast('Peserta berhasil didaftarkan!', 'success');
+      const finalIdentifier = res.student?.identifier || identifier.trim() || 'Peserta';
+      const finalPass = res.initial_password || '';
+
+      setNewCreatedStudent({
+        identifier: finalIdentifier,
+        full_name: res.student?.full_name || fullName.trim(),
+        email: res.student?.email || email.trim().toLowerCase(),
+        role: res.student?.role || role,
+        institution: res.student?.institution || institution.trim() || (role === 'umum' ? 'Umum' : 'ADMINISTRASI PUBLIK'),
+        phone: res.student?.phone || phone.trim() || undefined,
+        password: finalPass,
+      });
+
+      setCreatedPasswordNotice({
+        identifier: finalIdentifier,
+        pass: finalPass,
+      });
+
       setAddModalOpen(false);
+      setSuccessModalOpen(true);
+      resetAddForm('mahasiswa');
 
-      if (res.initial_password) {
-        setCreatedPasswordNotice({
-          identifier: res.student?.identifier || identifier.trim(),
-          pass: res.initial_password,
-        });
-      }
-
+      showToast('Peserta berhasil didaftarkan!', 'success');
       fetchStudents();
       loadInstitutions();
     } catch (err: any) {
@@ -326,10 +413,10 @@ export const AdminParticipantsPage: React.FC = () => {
         <div>
           <div className="eyebrow mb-1">DATA PESERTA UJIAN</div>
           <h1 className="font-display font-bold text-2xl text-[#24212b]">
-            Pendaftaran & Manajemen Mahasiswa
+            Pendaftaran & Manajemen Peserta Ujian
           </h1>
           <p className="text-xs text-[#595562] mt-0.5">
-            Daftarkan peserta secara tunggal atau impor massal melalui file CSV untuk dialokasikan ke sesi ujian.
+            Daftarkan peserta secara tunggal (Mahasiswa & Umum) atau impor massal melalui file CSV untuk dialokasikan ke sesi ujian.
           </p>
         </div>
 
@@ -344,15 +431,7 @@ export const AdminParticipantsPage: React.FC = () => {
           </Button>
           <Button
             variant="primary"
-            onClick={() => {
-              setRole('mahasiswa');
-              setIdentifier('');
-              setFullName('');
-              setEmail('');
-              setInstitution('ADMINISTRASI PUBLIK');
-              setPhone('');
-              setAddModalOpen(true);
-            }}
+            onClick={handleOpenAddModal}
             leftIcon={<Plus className="w-4 h-4" />}
             className="text-xs"
           >
@@ -568,15 +647,7 @@ export const AdminParticipantsPage: React.FC = () => {
                 icon={<User className="w-8 h-8 text-[#583682]" />}
                 action={{
                   label: 'Tambah Peserta Pertama',
-                  onClick: () => {
-                    setRole('mahasiswa');
-                    setIdentifier('');
-                    setFullName('');
-                    setEmail('');
-                    setInstitution('ADMINISTRASI PUBLIK');
-                    setPhone('');
-                    setAddModalOpen(true);
-                  },
+                  onClick: handleOpenAddModal,
                 }}
               />
             )}
@@ -737,11 +808,7 @@ export const AdminParticipantsPage: React.FC = () => {
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
-                onClick={() => {
-                  setRole('mahasiswa');
-                  setIdentifier('');
-                  setInstitution('ADMINISTRASI PUBLIK');
-                }}
+                onClick={() => handleSwitchRole('mahasiswa')}
                 className={`p-3 rounded-lg border text-left flex items-start justify-between transition cursor-pointer ${
                   role === 'mahasiswa'
                     ? 'border-[#583682] bg-[#f6f2fa] ring-1 ring-[#583682]'
@@ -761,11 +828,7 @@ export const AdminParticipantsPage: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => {
-                  setRole('umum');
-                  setIdentifier(generateUmumIdentifier());
-                  setInstitution('Umum');
-                }}
+                onClick={() => handleSwitchRole('umum')}
                 className={`p-3 rounded-lg border text-left flex items-start justify-between transition cursor-pointer ${
                   role === 'umum'
                     ? 'border-[#583682] bg-[#f6f2fa] ring-1 ring-[#583682]'
@@ -805,11 +868,10 @@ export const AdminParticipantsPage: React.FC = () => {
               <div className="flex items-end gap-2">
                 <div className="flex-1">
                   <Input
-                    label="Nomor Peserta (Dibuat Otomatis)"
-                    required
+                    label="Nomor Peserta (Opsional)"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder="UMUM-XXXXXX"
+                    placeholder="Kosongkan untuk otomatis dibuat sistem (cth: UMUM-123456)"
                     className="font-mono bg-[#faf9fc]"
                   />
                 </div>
@@ -818,14 +880,14 @@ export const AdminParticipantsPage: React.FC = () => {
                   variant="secondary"
                   onClick={() => setIdentifier(generateUmumIdentifier())}
                   leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
-                  className="text-xs h-[42px]"
+                  className="text-xs h-[42px] shrink-0"
                   title="Generate nomor peserta acak baru"
                 >
-                  Acak
+                  Buat Acak
                 </Button>
               </div>
               <p className="text-[11px] text-[#595562] mt-1">
-                Nomor peserta untuk kategori Umum dibuat secara otomatis oleh sistem.
+                Nomor peserta untuk kategori Umum bersifat opsional (dibuat otomatis oleh sistem jika dikosongkan).
               </p>
             </div>
           )}
@@ -872,7 +934,14 @@ export const AdminParticipantsPage: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#e6e1eb]">
-            <Button type="button" variant="ghost" onClick={() => setAddModalOpen(false)}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setAddModalOpen(false);
+                resetAddForm('mahasiswa');
+              }}
+            >
               Batal
             </Button>
             <Button type="submit" variant="primary" isLoading={savingStudent}>
@@ -880,6 +949,122 @@ export const AdminParticipantsPage: React.FC = () => {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Success Credential Modal */}
+      <Modal
+        isOpen={successModalOpen}
+        onClose={() => setSuccessModalOpen(false)}
+        title="Akun Peserta Berhasil Didaftarkan!"
+        description="Akun telah aktif di sistem. Harap simpan atau salin kredensial berikut untuk diberikan kepada peserta ujian."
+      >
+        {newCreatedStudent && (
+          <div className="space-y-4">
+            <div className="p-4 bg-[#f8f6fb] border border-[#cfc2df] rounded-xl space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b border-[#e6e1eb]">
+                <span className="text-xs text-[#595562]">Kategori Peserta</span>
+                <Badge variant={newCreatedStudent.role === 'umum' ? 'info' : 'royal'}>
+                  {newCreatedStudent.role === 'umum' ? 'UMUM' : 'MAHASISWA'}
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <span className="text-gray-400 block text-[11px]">NIM / No. Peserta</span>
+                  <span className="font-mono font-bold text-[#583682] text-sm">
+                    {newCreatedStudent.identifier}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-400 block text-[11px]">Nama Lengkap</span>
+                  <span className="font-bold text-[#24212b] text-sm truncate block">
+                    {newCreatedStudent.full_name}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-400 block text-[11px]">Alamat Email</span>
+                  <span className="font-mono text-[#24212b] truncate block">
+                    {newCreatedStudent.email}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-400 block text-[11px]">Instansi / Prodi</span>
+                  <span className="text-[#24212b] truncate block font-medium">
+                    {newCreatedStudent.institution}
+                  </span>
+                </div>
+              </div>
+
+              {/* Password Highlight Box */}
+              <div className="mt-3 p-3.5 bg-white border-2 border-[#bce2cf] rounded-lg flex items-center justify-between">
+                <div>
+                  <div className="text-[11px] font-bold text-[#287a58] uppercase tracking-wider">
+                    Kata Sandi Awal (6 Angka)
+                  </div>
+                  <div className="font-mono font-extrabold text-2xl text-[#24212b] tracking-widest mt-0.5">
+                    {newCreatedStudent.password}
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={() => handleCopyText(newCreatedStudent.password, false)}
+                  leftIcon={copiedNotice ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  className="text-xs"
+                >
+                  {copiedNotice ? 'Tersalin!' : 'Salin Sandi'}
+                </Button>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-2 border-t border-[#e6e1eb]">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  const credsText =
+                    `Kredensial Peserta Ujian CAT FIA UNIRA:\n` +
+                    `Peran: ${newCreatedStudent.role === 'umum' ? 'Umum' : 'Mahasiswa'}\n` +
+                    `NIM / No. Peserta: ${newCreatedStudent.identifier}\n` +
+                    `Nama: ${newCreatedStudent.full_name}\n` +
+                    `Email: ${newCreatedStudent.email}\n` +
+                    `Instansi: ${newCreatedStudent.institution}\n` +
+                    `Kata Sandi: ${newCreatedStudent.password}\n` +
+                    `Tautan Ujian: http://localhost:5173/login`;
+                  handleCopyFullText(credsText);
+                }}
+                leftIcon={copiedAllCredentials ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                className="w-full sm:w-auto text-xs"
+              >
+                {copiedAllCredentials ? 'Kredensial Tersalin!' : 'Salin Semua Kredensial'}
+              </Button>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    setSuccessModalOpen(false);
+                    handleOpenAddModal();
+                  }}
+                  leftIcon={<Plus className="w-3.5 h-3.5" />}
+                  className="text-xs"
+                >
+                  Daftarkan Peserta Lain
+                </Button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={() => setSuccessModalOpen(false)}
+                  className="text-xs"
+                >
+                  Selesai
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </Modal>
 
       {/* Import CSV Modal */}

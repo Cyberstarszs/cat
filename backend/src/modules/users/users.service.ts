@@ -111,7 +111,16 @@ export async function createStudentUser(
   },
   adminActorId: string,
   ipAddress?: string
-): Promise<{ id: string; identifier: string; email: string; tempPassword: string; role: string }> {
+): Promise<{
+  id: string;
+  identifier: string;
+  email: string;
+  tempPassword: string;
+  role: string;
+  fullName: string;
+  institution: string;
+  phone: string | null;
+}> {
   const cleanEmail = data.email.toLowerCase().trim();
   const userRole = data.role === 'umum' ? 'umum' : 'mahasiswa';
 
@@ -122,7 +131,17 @@ export async function createStudentUser(
     }
   } else {
     if (!cleanIdentifier) {
-      cleanIdentifier = `UMUM-${Date.now().toString().slice(-6)}`;
+      let isUnique = false;
+      while (!isUnique) {
+        const candidate = `UMUM-${Math.floor(100000 + Math.random() * 900000)}`;
+        const found = await prisma.student_profiles.findUnique({
+          where: { identifier: candidate },
+        });
+        if (!found) {
+          cleanIdentifier = candidate;
+          isUnique = true;
+        }
+      }
     }
   }
 
@@ -133,17 +152,14 @@ export async function createStudentUser(
     where: { email: { equals: cleanEmail, mode: 'insensitive' }, deleted_at: null },
   });
   if (existingEmail) {
-    throw new AppError('VALIDATION_FAILED', 'Email sudah terdaftar.');
+    throw new AppError('VALIDATION_FAILED', `Email "${cleanEmail}" sudah terdaftar.`);
   }
 
-  const existingIdentifier = await prisma.student_profiles.findFirst({
-    where: {
-      identifier: cleanIdentifier,
-      users: { deleted_at: null },
-    },
+  const existingIdentifier = await prisma.student_profiles.findUnique({
+    where: { identifier: cleanIdentifier },
   });
   if (existingIdentifier) {
-    throw new AppError('VALIDATION_FAILED', `${userRole === 'mahasiswa' ? 'NIM' : 'Nomor Peserta'} sudah terdaftar.`);
+    throw new AppError('VALIDATION_FAILED', `${userRole === 'mahasiswa' ? 'NIM' : 'Nomor Peserta'} "${cleanIdentifier}" sudah terdaftar.`);
   }
 
   const tempPassword = generateNumeric6DigitPassword();
@@ -190,6 +206,9 @@ export async function createStudentUser(
     identifier: cleanIdentifier,
     email: cleanEmail,
     role: userRole,
+    fullName: data.fullName.trim(),
+    institution: cleanInstitution,
+    phone: data.phone?.trim() || null,
     tempPassword,
   };
 }
