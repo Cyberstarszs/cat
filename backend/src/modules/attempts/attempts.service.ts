@@ -541,8 +541,19 @@ export async function submitExamAttempt(
 
     if (att.status !== 'in_progress') {
       // Jika sudah tersubmit, kembalikan idempoten
+      const { rows: existingRes } = await client.query(
+        `SELECT id, score, passed FROM results WHERE attempt_id = $1;`,
+        [attemptId]
+      );
       await client.query('COMMIT;');
-      return { success: true, attempt_id: attemptId, status: att.status };
+      return {
+        success: true,
+        attempt_id: attemptId,
+        result_id: existingRes[0]?.id || null,
+        score: existingRes[0]?.score ? parseFloat(existingRes[0].score) : null,
+        passed: existingRes[0]?.passed ?? null,
+        status: att.status,
+      };
     }
 
     // Cek deadline jika submit manual
@@ -622,12 +633,13 @@ export async function submitExamAttempt(
     );
 
     // Masukkan ke tabel results (status pending_publication)
-    await client.query(
+    const { rows: resRows } = await client.query(
       `INSERT INTO results (
         attempt_id, raw_score, max_score, score, passing_score, passed, status, graded_at
       ) VALUES ($1, $2, $3, $4, $5, $6, 'pending_publication', now())
       ON CONFLICT (attempt_id) DO UPDATE
-      SET raw_score = $2, max_score = $3, score = $4, passing_score = $5, passed = $6, graded_at = now();`,
+      SET raw_score = $2, max_score = $3, score = $4, passing_score = $5, passed = $6, graded_at = now()
+      RETURNING id, score, passed;`,
       [
         attemptId,
         evaluated.rawScore,
@@ -663,6 +675,9 @@ export async function submitExamAttempt(
     return {
       success: true,
       attempt_id: attemptId,
+      result_id: resRows[0]?.id || null,
+      score: evaluated.score,
+      passed: evaluated.passed,
       status: newAttemptStatus,
       submitted_at: serverNow,
     };

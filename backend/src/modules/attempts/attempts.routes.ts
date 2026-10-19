@@ -150,6 +150,59 @@ export const attemptRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
     },
   });
 
+  // POST /attempts/:id/finish (Frontend alias for submit)
+  fastify.post('/attempts/:id/finish', {
+    preHandler: [requireRoles(['student'])],
+    handler: async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const user = request.user!;
+      const parse = submitSchema.safeParse(request.body || {});
+      const reason = parse.success ? parse.data.reason : 'manual';
+
+      const result = await submitExamAttempt(id, reason, user.id, request.ip);
+      return reply.send(result);
+    },
+  });
+
+  // GET /attempts/:id/result (M, FR-T12)
+  fastify.get('/attempts/:id/result', {
+    preHandler: [requireRoles(['student', 'admin'])],
+    handler: async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const user = request.user!;
+
+      const { rows } = await pool.query(
+        `SELECT 
+          r.*,
+          a.id AS attempt_id, a.attempt_no, a.started_at, a.submitted_at, a.submit_reason,
+          sp.identifier, sp.full_name, sp.institution, u.email,
+          s.id AS session_id, s.name AS session_name, s.code AS session_code,
+          e.id AS exam_id, e.title AS exam_title, e.allow_review,
+          c.id AS certificate_id, c.certificate_no, c.verification_code,
+          se.student_id
+         FROM results r
+         JOIN attempts a ON a.id = r.attempt_id
+         JOIN session_enrollments se ON se.id = a.enrollment_id
+         JOIN users u ON u.id = se.student_id
+         JOIN student_profiles sp ON sp.user_id = u.id
+         JOIN exam_sessions s ON s.id = se.session_id
+         JOIN exams e ON e.id = s.exam_id
+         LEFT JOIN certificates c ON c.result_id = r.id AND c.status = 'valid'
+         WHERE a.id = $1;`,
+        [id]
+      );
+
+      if (rows.length === 0) throw new AppError('NOT_FOUND', 'Hasil ujian belum tersedia.');
+      const resData = rows[0];
+
+      if (user.role === 'student' && resData.student_id !== user.id) {
+        throw new AppError('NOT_FOUND');
+      }
+
+      return reply.send({ result: resData });
+    },
+  });
+
   // POST /attempts/:id/events (M, FR-T11)
   fastify.post('/attempts/:id/events', {
     preHandler: [requireRoles(['student'])],
