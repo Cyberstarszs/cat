@@ -193,7 +193,7 @@ CAT Governance • FIA Universitas Madura
       subject, body_html, body_text, status, attempts, next_retry_at
     )
     VALUES ($1, $2, $3, $4, $5, $6, 'pending', 0, now())
-    ON CONFLICT (certificate_id) DO NOTHING
+    ON CONFLICT DO NOTHING
     RETURNING id;
   `;
 

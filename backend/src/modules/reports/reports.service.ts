@@ -443,22 +443,21 @@ export async function getExamItemAnalysis(examId: string) {
     `SELECT DISTINCT
        qv.id AS question_version_id,
        q.id AS question_id,
-       q.code AS question_code,
+       SUBSTRING(q.id::text, 1, 8) AS question_code,
        qv.stem,
        qv.difficulty AS intended_difficulty,
        qv.weight,
-       st.name AS subtest_name,
-       c.name AS category_name
+       qc.name AS subtest_name,
+       qc.name AS category_name
      FROM attempt_questions aq
      JOIN attempts a ON a.id = aq.attempt_id
      JOIN session_enrollments se ON se.id = a.enrollment_id
      JOIN exam_sessions s ON s.id = se.session_id
      JOIN question_versions qv ON qv.id = aq.question_version_id
      JOIN questions q ON q.id = qv.question_id
-     LEFT JOIN subtests st ON st.id = q.subtest_id
-     LEFT JOIN categories c ON c.id = st.category_id
+     LEFT JOIN question_categories qc ON qc.id = q.category_id
      WHERE s.exam_id = $1
-     ORDER BY q.code ASC;`,
+     ORDER BY q.id ASC;`,
     [examId]
   );
 
@@ -469,19 +468,18 @@ export async function getExamItemAnalysis(examId: string) {
       `SELECT 
          qv.id AS question_version_id,
          q.id AS question_id,
-         q.code AS question_code,
+         SUBSTRING(q.id::text, 1, 8) AS question_code,
          qv.stem,
          qv.difficulty AS intended_difficulty,
          qv.weight,
-         st.name AS subtest_name,
-         c.name AS category_name
+         qc.name AS subtest_name,
+         qc.name AS category_name
        FROM exam_question_rules eqr
-       JOIN questions q ON q.subtest_id = eqr.subtest_id
+       JOIN questions q ON q.category_id = eqr.category_id
        JOIN question_versions qv ON qv.question_id = q.id AND qv.version_number = (
          SELECT MAX(version_number) FROM question_versions WHERE question_id = q.id
        )
-       LEFT JOIN subtests st ON st.id = q.subtest_id
-       LEFT JOIN categories c ON c.id = st.category_id
+       LEFT JOIN question_categories qc ON qc.id = q.category_id
        WHERE eqr.exam_id = $1 AND q.status = 'active'
        LIMIT 50;`,
       [examId]
