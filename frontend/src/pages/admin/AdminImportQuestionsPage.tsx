@@ -53,7 +53,15 @@ interface PreviewResponse {
   valid_payload: any[];
 }
 
-export const AdminImportQuestionsPage: React.FC = () => {
+export interface QuestionImportViewProps {
+  onImportSuccess?: () => void;
+  hideHeaderTitle?: boolean;
+}
+
+export const QuestionImportView: React.FC<QuestionImportViewProps> = ({
+  onImportSuccess,
+  hideHeaderTitle = false,
+}) => {
   const navigate = useNavigate();
   const { showToast } = useToast();
 
@@ -144,40 +152,66 @@ export const AdminImportQuestionsPage: React.FC = () => {
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 border-b border-[#e6e1eb]">
-        <div>
-          <div className="text-[11px] font-bold text-[#583682] tracking-wider uppercase mb-1 flex items-center gap-2">
-            <Layers className="w-3.5 h-3.5" />
-            BANK SOAL & ASESMEN AKADEMIK
+      {!hideHeaderTitle ? (
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 border-b border-[#e6e1eb]">
+          <div>
+            <div className="text-[11px] font-bold text-[#583682] tracking-wider uppercase mb-1 flex items-center gap-2">
+              <Layers className="w-3.5 h-3.5" />
+              BANK SOAL & ASESMEN AKADEMIK
+            </div>
+            <h1 className="font-display font-bold text-2xl text-[#24212b]">
+              Impor Massal Butir Soal (DOC / DOCX / CSV)
+            </h1>
+            <p className="text-xs text-[#595562] mt-1 max-w-2xl leading-relaxed">
+              Unggah berkas naskah soal berformat Microsoft Word (<code>.docx</code> / <code>.doc</code>) seperti template 
+              <em> Tabulasi Soal Assessment LG</em> dengan kunci jawaban bertanda merah atau penanda kunci (<code>*</code> / <code>Kunci:</code>), atau berkas tabel CSV terstruktur.
+            </p>
           </div>
-          <h1 className="font-display font-bold text-2xl text-[#24212b]">
-            Impor Massal Butir Soal (DOC / DOCX / CSV)
-          </h1>
-          <p className="text-xs text-[#595562] mt-1 max-w-2xl leading-relaxed">
-            Unggah berkas naskah soal berformat Microsoft Word (<code>.docx</code> / <code>.doc</code>) seperti template 
-            <em> Tabulasi Soal Assessment LG</em> dengan kunci jawaban bertanda merah atau penanda kunci (<code>*</code> / <code>Kunci:</code>), atau berkas tabel CSV terstruktur.
-          </p>
-        </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <a
-            href="/templates/Template_Soal_Assessment_FIA.docx"
-            download="Template_Soal_Assessment_FIA.docx"
-            className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-[#cfc2df] hover:border-[#583682] rounded-[6px] text-xs font-semibold text-[#583682] hover:bg-[#faf9fc] transition shadow-xs"
-          >
-            <Download className="w-3.5 h-3.5" />
-            Template Word (.docx)
-          </a>
-          <a
-            href="/templates/Template_Soal_Assessment_FIA.csv"
-            download="Template_Soal_Assessment_FIA.csv"
-            className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-[#cfc2df] hover:border-[#583682] rounded-[6px] text-xs font-semibold text-[#583682] hover:bg-[#faf9fc] transition shadow-xs"
-          >
-            <FileSpreadsheet className="w-3.5 h-3.5" />
-            Template CSV (.csv)
-          </a>
+          <div className="flex flex-wrap items-center gap-2">
+            <a
+              href="/templates/Template_Soal_Assessment_FIA.docx"
+              download="Template_Soal_Assessment_FIA.docx"
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-[#cfc2df] hover:border-[#583682] rounded-[6px] text-xs font-semibold text-[#583682] hover:bg-[#faf9fc] transition shadow-xs"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Template Word (.docx)
+            </a>
+            <a
+              href="/templates/Template_Soal_Assessment_FIA.csv"
+              download="Template_Soal_Assessment_FIA.csv"
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-[#cfc2df] hover:border-[#583682] rounded-[6px] text-xs font-semibold text-[#583682] hover:bg-[#faf9fc] transition shadow-xs"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              Template CSV (.csv)
+            </a>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-[#f8f6fc] border border-[#e6e1eb] rounded-[8px]">
+          <div className="text-xs text-[#595562]">
+            Unduh template format baku sebelum mengunggah naskah soal:
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <a
+              href="/templates/Template_Soal_Assessment_FIA.docx"
+              download="Template_Soal_Assessment_FIA.docx"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#cfc2df] hover:border-[#583682] rounded-[6px] text-xs font-semibold text-[#583682] hover:bg-[#faf9fc] transition shadow-xs"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Unduh Template Word (.docx)
+            </a>
+            <a
+              href="/templates/Template_Soal_Assessment_FIA.csv"
+              download="Template_Soal_Assessment_FIA.csv"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#cfc2df] hover:border-[#583682] rounded-[6px] text-xs font-semibold text-[#583682] hover:bg-[#faf9fc] transition shadow-xs"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              Unduh Template CSV (.csv)
+            </a>
+          </div>
+        </div>
+      )}
 
       {/* Success Notification */}
       {committedCount !== null && (
@@ -201,7 +235,13 @@ export const AdminImportQuestionsPage: React.FC = () => {
             </Button>
             <Button
               variant="primary"
-              onClick={() => navigate('/admin/questions')}
+              onClick={() => {
+                if (onImportSuccess) {
+                  onImportSuccess();
+                } else {
+                  navigate('/admin/questions');
+                }
+              }}
               className="text-xs bg-[#287a58] border-[#287a58] hover:bg-[#206346] text-white flex items-center gap-1.5"
             >
               Lihat Bank Soal
@@ -466,7 +506,7 @@ export const AdminImportQuestionsPage: React.FC = () => {
                 placeholder="Cari kata kunci pertanyaan..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-1.5 text-xs bg-white border border-[#cfc2df] rounded-[6px] focus:outline-none focus:border-[#583682] text-[#24212b]"
+                className="w-full !pl-10 pr-3 py-1.5 text-xs bg-white border border-[#cfc2df] rounded-[6px] focus:outline-none focus:border-[#583682] text-[#24212b]"
               />
             </div>
           </div>
@@ -626,4 +666,9 @@ export const AdminImportQuestionsPage: React.FC = () => {
       )}
     </div>
   );
+};
+
+
+export const AdminImportQuestionsPage: React.FC = () => {
+  return <QuestionImportView />;
 };

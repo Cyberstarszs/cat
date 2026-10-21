@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { userService } from '../../services';
 import { StudentProfile } from '../../types';
 import { useToast } from '../../context/ToastContext';
+import { alert } from '../../utils/alert';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -28,6 +29,11 @@ import {
   RotateCcw,
   Filter,
   X,
+  Edit2,
+  Trash2,
+  AlertTriangle,
+  UserCheck,
+  UserX,
 } from 'lucide-react';
 
 export const AdminParticipantsPage: React.FC = () => {
@@ -58,6 +64,17 @@ export const AdminParticipantsPage: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [savingStudent, setSavingStudent] = useState(false);
   const [createdPasswordNotice, setCreatedPasswordNotice] = useState<{ identifier: string; pass: string } | null>(null);
+
+  // Edit single student modal
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [activeStudentForEdit, setActiveStudentForEdit] = useState<StudentProfile | null>(null);
+  const [editFullName, setEditFullName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editInstitution, setEditInstitution] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editStatus, setEditStatus] = useState<'active' | 'suspended'>('active');
+  const [editRole, setEditRole] = useState<'mahasiswa' | 'umum'>('mahasiswa');
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const generateUmumIdentifier = () => `UMUM-${Math.floor(100000 + Math.random() * 900000)}`;
 
@@ -94,12 +111,6 @@ export const AdminParticipantsPage: React.FC = () => {
     }
   };
 
-  // Reset password modal
-  const [resetModalOpen, setResetModalOpen] = useState(false);
-  const [activeStudentForReset, setActiveStudentForReset] = useState<StudentProfile | null>(null);
-  const [newGeneratedPass, setNewGeneratedPass] = useState<string | null>(null);
-  const [resetting, setResetting] = useState(false);
-  const [copiedReset, setCopiedReset] = useState(false);
   const [copiedNotice, setCopiedNotice] = useState(false);
 
   // Import CSV modal & state
@@ -266,6 +277,13 @@ export const AdminParticipantsPage: React.FC = () => {
           identifier: res.student?.identifier || identifier.trim() || 'Peserta',
           pass: res.initial_password,
         });
+        await alert.showCredential({
+          title: 'Peserta Berhasil Didaftarkan!',
+          description: `Akun atas nama <strong>${fullName.trim()}</strong> berhasil dibuat. Berikut kata sandi awal untuk peserta:`,
+          credentialLabel: 'KATA SANDI AWAL (6 ANGKA)',
+          credentialValue: res.initial_password,
+          extraNote: `NIM / No Identitas: <strong>${res.student?.identifier || identifier.trim()}</strong>. Simpan dan serahkan ke peserta.`,
+        });
       }
 
       resetAddForm('mahasiswa');
@@ -319,32 +337,35 @@ export const AdminParticipantsPage: React.FC = () => {
     document.body.removeChild(a);
   };
 
-  const handleResetPassword = async () => {
-    if (!activeStudentForReset) return;
-    setResetting(true);
-    setCopiedReset(false);
+  const handleTriggerResetPassword = async (st: StudentProfile) => {
+    const confirmed = await alert.confirm({
+      title: 'Reset Kata Sandi Peserta?',
+      text: `Apakah Anda yakin ingin mereset kata sandi peserta "${st.full_name}" (${st.identifier}) menjadi format 6 angka acak baru?`,
+      confirmButtonText: 'Ya, Reset Sandi',
+      icon: 'warning',
+    });
+    if (!confirmed) return;
+
     try {
-      const res = await userService.resetPassword(activeStudentForReset.id);
-      setNewGeneratedPass(res.new_password);
-      showToast('Kata sandi berhasil direset ke 6 angka baru!', 'success');
+      const res = await userService.resetPassword(st.id);
+      await alert.showCredential({
+        title: 'Kata Sandi Berhasil Direset!',
+        description: `Kata sandi baru untuk peserta <strong>${st.full_name}</strong> (${st.identifier}) telah digenerate:`,
+        credentialLabel: 'KATA SANDI BARU (6 ANGKA)',
+        credentialValue: res.new_password,
+        extraNote: 'Harap berikan kata sandi ini kepada peserta untuk login ke portal ujian.',
+      });
     } catch (err: any) {
-      showToast(err.message || 'Gagal mereset kata sandi.', 'error');
-    } finally {
-      setResetting(false);
+      alert.error('Gagal Mereset Kata Sandi', err?.response?.data?.message || err.message || 'Terjadi kesalahan sistem.');
     }
   };
 
-  const handleCopyText = async (text: string, isReset: boolean) => {
+  const handleCopyNoticePassword = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      if (isReset) {
-        setCopiedReset(true);
-        setTimeout(() => setCopiedReset(false), 2500);
-      } else {
-        setCopiedNotice(true);
-        setTimeout(() => setCopiedNotice(false), 2500);
-      }
-      showToast('Kata sandi berhasil disalin ke clipboard!', 'success');
+      setCopiedNotice(true);
+      setTimeout(() => setCopiedNotice(false), 2500);
+      alert.toast('Kata sandi berhasil disalin!', 'success');
     } catch {
       const textArea = document.createElement('textarea');
       textArea.value = text;
@@ -352,14 +373,82 @@ export const AdminParticipantsPage: React.FC = () => {
       textArea.select();
       document.execCommand('copy');
       document.body.removeChild(textArea);
-      if (isReset) {
-        setCopiedReset(true);
-        setTimeout(() => setCopiedReset(false), 2500);
-      } else {
-        setCopiedNotice(true);
-        setTimeout(() => setCopiedNotice(false), 2500);
-      }
-      showToast('Kata sandi berhasil disalin ke clipboard!', 'success');
+      setCopiedNotice(true);
+      setTimeout(() => setCopiedNotice(false), 2500);
+      alert.toast('Kata sandi berhasil disalin!', 'success');
+    }
+  };
+
+  const handleOpenEditModal = (st: StudentProfile) => {
+    setActiveStudentForEdit(st);
+    setEditFullName(st.full_name || '');
+    setEditEmail(st.email || '');
+    setEditInstitution(st.institution || (st.role === 'umum' ? 'Umum' : 'ADMINISTRASI PUBLIK'));
+    setEditPhone(st.phone || '');
+    setEditStatus(((st as any).status as any) || 'active');
+    setEditRole((st.role as any) === 'umum' ? 'umum' : 'mahasiswa');
+    setEditModalOpen(true);
+  };
+
+  const handleSaveEditStudent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeStudentForEdit) return;
+    if (!editFullName.trim()) {
+      showToast('Nama lengkap wajib diisi.', 'error');
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      await userService.updateStudent(activeStudentForEdit.id, {
+        full_name: editFullName.trim(),
+        email: editEmail.trim() || undefined,
+        institution: editInstitution.trim() || undefined,
+        phone: editPhone.trim() || undefined,
+        status: editStatus,
+        role: editRole,
+      });
+
+      setStudents((prev) =>
+        prev.map((s) =>
+          s.id === activeStudentForEdit.id
+            ? {
+                ...s,
+                full_name: editFullName.trim(),
+                email: editEmail.trim(),
+                institution: editInstitution.trim(),
+                phone: editPhone.trim(),
+                status: editStatus,
+                role: editRole as any,
+              }
+            : s
+        )
+      );
+
+      showToast('Data peserta berhasil diperbarui!', 'success');
+      setEditModalOpen(false);
+    } catch (err: any) {
+      showToast(err.message || 'Gagal memperbarui data peserta.', 'error');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleDeleteStudent = async (st: StudentProfile) => {
+    const confirmed = await alert.confirm({
+      title: 'Hapus Peserta Ujian?',
+      text: `Apakah Anda yakin ingin menghapus peserta "${st.full_name}" (${st.identifier})? Akun peserta akan dinonaktifkan dan sesi login aktif akan langsung dicabut.`,
+      confirmButtonText: 'Ya, Hapus Peserta',
+      isDangerous: true,
+    });
+    if (!confirmed) return;
+
+    try {
+      await userService.deleteStudent(st.id);
+      setStudents((prev) => prev.filter((s) => s.id !== st.id));
+      setTotalStudents((prev) => Math.max(0, prev - 1));
+      alert.toast(`Peserta ${st.full_name} berhasil dihapus.`, 'success');
+    } catch (err: any) {
+      alert.error('Gagal Menghapus Peserta', err?.response?.data?.message || err.message || 'Terjadi kesalahan sistem.');
     }
   };
 
@@ -367,12 +456,12 @@ export const AdminParticipantsPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-[#e6e1eb]">
         <div>
-          <div className="eyebrow mb-1">DATA PESERTA UJIAN</div>
+          <div className="eyebrow mb-1">DATA PESERTA</div>
           <h1 className="font-display font-bold text-2xl text-[#24212b]">
-            Pendaftaran & Manajemen Peserta Ujian
+            Data Peserta Ujian
           </h1>
           <p className="text-xs text-[#595562] mt-0.5">
-            Daftarkan peserta secara tunggal (Mahasiswa & Umum) atau impor massal melalui file CSV untuk dialokasikan ke sesi ujian.
+            Kelola data peserta ujian dan impor massal CSV.
           </p>
         </div>
 
@@ -404,15 +493,15 @@ export const AdminParticipantsPage: React.FC = () => {
           <div className="flex items-center gap-3">
             <KeyRound className="w-5 h-5 text-[#287a58] shrink-0" />
             <div>
-              <div className="font-bold text-[#24212b]">Akun Peserta Berhasil Didaftarkan!</div>
+              <div className="font-bold text-[#24212b]">Akun Peserta Berhasil Dibuat</div>
               <div className="text-[#595562] mt-1 flex flex-wrap items-center gap-2">
-                <span>NIM / Identitas: <strong className="font-mono text-[#24212b]">{createdPasswordNotice.identifier}</strong> | Kata Sandi Awal:</span>
+                <span>NIM / Identitas: <strong className="font-mono text-[#24212b]">{createdPasswordNotice.identifier}</strong> | Kata Sandi:</span>
                 <strong className="font-mono text-[#287a58] bg-white px-2.5 py-0.5 rounded border border-[#bce2cf] tracking-wider">
                   {createdPasswordNotice.pass}
                 </strong>
                 <button
                   type="button"
-                  onClick={() => handleCopyText(createdPasswordNotice.pass, false)}
+                  onClick={() => handleCopyNoticePassword(createdPasswordNotice.pass)}
                   className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-bold transition shadow-xs cursor-pointer ${
                     copiedNotice
                       ? 'bg-[#287a58] text-white hover:bg-[#1f5e44]'
@@ -443,7 +532,7 @@ export const AdminParticipantsPage: React.FC = () => {
             <CheckCircle2 className="w-5 h-5 text-[#287a58] shrink-0" />
             <div>
               <div className="font-bold text-[#24212b]">
-                Impor CSV Berhasil: {importNotice.imported_count} Peserta Baru Ditambahkan!
+                Impor CSV Berhasil: {importNotice.imported_count} Peserta Ditambahkan
               </div>
               <div className="text-[#595562] mt-1 flex flex-wrap items-center gap-2">
                 <span>
@@ -458,7 +547,7 @@ export const AdminParticipantsPage: React.FC = () => {
                     leftIcon={<Download className="w-3.5 h-3.5 text-[#583682]" />}
                     className="text-xs h-[30px] ml-2"
                   >
-                    Unduh Kredensial & Sandi (.CSV)
+                    Unduh Kredensial (.csv)
                   </Button>
                 )}
               </div>
@@ -505,9 +594,9 @@ export const AdminParticipantsPage: React.FC = () => {
               onChange={(e) => handleRoleFilterChange(e.target.value as any)}
               className="w-full min-h-[46px] px-3.5 bg-white border border-[#e6e1eb] focus:border-[#583682] rounded-[6px] text-xs font-medium text-[#24212b] outline-none transition cursor-pointer"
             >
-              <option value="all">Semua Kategori (Mahasiswa & Umum)</option>
-              <option value="mahasiswa">Hanya Mahasiswa</option>
-              <option value="umum">Hanya Umum</option>
+              <option value="all">Semua Kategori</option>
+              <option value="mahasiswa">Mahasiswa</option>
+              <option value="umum">Umum</option>
             </select>
           </div>
 
@@ -558,7 +647,7 @@ export const AdminParticipantsPage: React.FC = () => {
         <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#f2eff6] text-xs text-[#595562]">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-medium">
-              Total Ditemukan: <strong className="text-[#24212b]">{totalStudents}</strong> peserta
+              Total: <strong className="text-[#24212b]">{totalStudents}</strong> peserta
             </span>
             {isFiltered && (
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#eae2f5] text-[#583682] text-[11px] font-semibold">
@@ -572,7 +661,7 @@ export const AdminParticipantsPage: React.FC = () => {
               onClick={handleResetFilters}
               className="text-[#583682] hover:underline font-medium text-[11px] inline-flex items-center gap-1 cursor-pointer"
             >
-              <RotateCcw className="w-3 h-3" /> Bersihkan Filter
+              <RotateCcw className="w-3 h-3" /> Reset Filter
             </button>
           )}
         </div>
@@ -589,17 +678,17 @@ export const AdminParticipantsPage: React.FC = () => {
             {isFiltered ? (
               <EmptyState
                 title="Tidak Ada Peserta yang Sesuai"
-                description={`Tidak ditemukan data peserta dengan kriteria filter saat ini (Pencarian: "${search || '-'}", Peran: ${roleFilter === 'all' ? 'Semua' : roleFilter}, Instansi: ${institutionFilter === 'all' ? 'Semua' : institutionFilter}).`}
+                description={`Tidak ditemukan peserta dengan filter saat ini.`}
                 icon={<Search className="w-8 h-8 text-[#583682]" />}
                 action={{
-                  label: 'Reset Semua Filter',
+                  label: 'Reset Filter',
                   onClick: handleResetFilters,
                 }}
               />
             ) : (
               <EmptyState
-                title="Belum Ada Peserta Terdaftar"
-                description="Daftarkan mahasiswa atau peserta eksternal untuk mulai mengikutsertakan mereka ke dalam sesi CAT."
+                title="Belum Ada Peserta"
+                description="Daftarkan mahasiswa atau peserta umum untuk mulai mengikutsertakan mereka ke ujian."
                 icon={<User className="w-8 h-8 text-[#583682]" />}
                 action={{
                   label: 'Tambah Peserta Pertama',
@@ -613,12 +702,12 @@ export const AdminParticipantsPage: React.FC = () => {
             <table className="w-full text-left text-xs">
               <thead className="bg-[#faf9fc] border-b border-[#e6e1eb] text-[#595562] uppercase tracking-wider font-bold">
                 <tr>
-                  <th className="px-6 py-3.5">Peran / Kategori</th>
+                  <th className="px-6 py-3.5">Kategori</th>
                   <th className="px-6 py-3.5">NIM / No. Identitas</th>
                   <th className="px-6 py-3.5">Nama & Email</th>
                   <th className="px-6 py-3.5">Instansi</th>
                   <th className="px-6 py-3.5">Telepon</th>
-                  <th className="px-6 py-3.5">Terdaftar Pada</th>
+                  <th className="px-6 py-3.5">Terdaftar</th>
                   <th className="px-6 py-3.5 text-right">Aksi</th>
                 </tr>
               </thead>
@@ -626,9 +715,16 @@ export const AdminParticipantsPage: React.FC = () => {
                 {students.map((st) => (
                   <tr key={st.id} className="hover:bg-[#faf9fc]/80 transition">
                     <td className="px-6 py-4">
-                      <Badge variant={st.role === 'umum' ? 'info' : 'royal'}>
-                        {st.role === 'umum' ? 'UMUM' : 'MAHASISWA'}
-                      </Badge>
+                      <div className="flex flex-col gap-1 items-start">
+                        <Badge variant={st.role === 'umum' ? 'info' : 'royal'}>
+                          {st.role === 'umum' ? 'UMUM' : 'MAHASISWA'}
+                        </Badge>
+                        {((st as any).status === 'suspended') && (
+                          <span className="text-[10px] font-bold text-[#b63b48] bg-[#fbeeed] px-1.5 py-0.2 rounded border border-[#b63b48]/30">
+                            NONAKTIF
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 font-mono font-bold text-[#583682]">
                       <span className="bg-[#eae2f5] px-2 py-0.5 rounded">{st.identifier}</span>
@@ -643,18 +739,29 @@ export const AdminParticipantsPage: React.FC = () => {
                       {new Date(st.created_at).toLocaleDateString('id-ID')}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button
-                        onClick={() => {
-                          setActiveStudentForReset(st);
-                          setNewGeneratedPass(null);
-                          setCopiedReset(false);
-                          setResetModalOpen(true);
-                        }}
-                        className="p-1.5 text-gray-500 hover:text-[#583682] hover:bg-[#eae2f5] rounded transition cursor-pointer"
-                        title="Reset Sandi Peserta (6 Angka)"
-                      >
-                        <KeyRound className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => handleOpenEditModal(st)}
+                          className="p-1.5 text-gray-500 hover:text-[#583682] hover:bg-[#eae2f5] rounded transition cursor-pointer"
+                          title="Ubah data peserta"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleTriggerResetPassword(st)}
+                          className="p-1.5 text-gray-500 hover:text-[#287a58] hover:bg-[#eaf4ef] rounded transition cursor-pointer"
+                          title="Reset kata sandi (6 angka)"
+                        >
+                          <KeyRound className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteStudent(st)}
+                          className="p-1.5 text-gray-500 hover:text-[#b63b48] hover:bg-[#fbeeed] rounded transition cursor-pointer"
+                          title="Hapus peserta"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -752,14 +859,14 @@ export const AdminParticipantsPage: React.FC = () => {
       <Modal
         isOpen={addModalOpen}
         onClose={() => setAddModalOpen(false)}
-        title="Daftarkan Peserta Ujian Baru"
-        description="Pilih kategori peserta (Mahasiswa atau Umum). Sandi awal 6 angka akan diterbitkan otomatis."
+        title="Tambah Peserta Baru"
+        description="Pilih kategori peserta dan isi data pendaftaran."
       >
         <form onSubmit={handleAddStudent} className="space-y-4">
           {/* Role selector */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-[#24212b]">
-              Kategori / Peran Peserta <span className="text-[#b63b48]">*</span>
+              Kategori Peserta <span className="text-[#b63b48]">*</span>
             </label>
             <div className="grid grid-cols-2 gap-3">
               <button
@@ -773,7 +880,7 @@ export const AdminParticipantsPage: React.FC = () => {
               >
                 <div>
                   <div className="text-xs font-bold text-[#24212b]">Mahasiswa</div>
-                  <div className="text-[11px] text-[#595562] mt-0.5">Wajib isi NIM manual. Instansi: Administrasi Publik</div>
+                  <div className="text-[11px] text-[#595562] mt-0.5">Wajib isi NIM manual</div>
                 </div>
                 {role === 'mahasiswa' && (
                   <span className="p-0.5 bg-[#583682] text-white rounded-full">
@@ -793,7 +900,7 @@ export const AdminParticipantsPage: React.FC = () => {
               >
                 <div>
                   <div className="text-xs font-bold text-[#24212b]">Umum</div>
-                  <div className="text-[11px] text-[#595562] mt-0.5">No. peserta otomatis. Instansi: Umum</div>
+                  <div className="text-[11px] text-[#595562] mt-0.5">Nomor otomatis</div>
                 </div>
                 {role === 'umum' && (
                   <span className="p-0.5 bg-[#583682] text-white rounded-full">
@@ -812,12 +919,9 @@ export const AdminParticipantsPage: React.FC = () => {
                 required
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
-                placeholder="Wajib diisi manual, contoh: 20261001"
+                placeholder="Contoh: 20261001"
                 className="font-mono"
               />
-              <p className="text-[11px] text-[#595562] mt-1">
-                Mahasiswa wajib menggunakan NIM resmi dan diisi secara manual.
-              </p>
             </div>
           ) : (
             <div>
@@ -827,7 +931,7 @@ export const AdminParticipantsPage: React.FC = () => {
                     label="Nomor Peserta (Opsional)"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder="Kosongkan untuk otomatis dibuat sistem (cth: UMUM-123456)"
+                    placeholder="Otomatis jika dikosongkan (cth: UMUM-123456)"
                     className="font-mono bg-[#faf9fc]"
                   />
                 </div>
@@ -837,14 +941,11 @@ export const AdminParticipantsPage: React.FC = () => {
                   onClick={() => setIdentifier(generateUmumIdentifier())}
                   leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
                   className="text-xs h-[42px] shrink-0"
-                  title="Generate nomor peserta acak baru"
+                  title="Buat nomor acak baru"
                 >
-                  Buat Acak
+                  Acak
                 </Button>
               </div>
-              <p className="text-[11px] text-[#595562] mt-1">
-                Nomor peserta untuk kategori Umum bersifat opsional (dibuat otomatis oleh sistem jika dikosongkan).
-              </p>
             </div>
           )}
 
@@ -862,30 +963,26 @@ export const AdminParticipantsPage: React.FC = () => {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder={role === 'mahasiswa' ? 'budi@student.unira.ac.id' : 'budi@gmail.com'}
+            placeholder="budi@example.com"
           />
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Input
-                label="Instansi / Program Studi"
+                label="Instansi / Prodi"
                 required
                 value={institution}
                 onChange={(e) => setInstitution(e.target.value)}
                 placeholder={role === 'mahasiswa' ? 'ADMINISTRASI PUBLIK' : 'Umum'}
               />
-              <p className="text-[10px] text-[#595562] mt-0.5">
-                {role === 'mahasiswa' ? 'Default: ADMINISTRASI PUBLIK' : 'Default: Umum'}
-              </p>
             </div>
             <div>
               <Input
-                label="Nomor Telepon"
+                label="Nomor Telepon (Opsional)"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="08123456789"
               />
-              <p className="text-[10px] text-gray-400 mt-0.5">Opsional</p>
             </div>
           </div>
 
@@ -901,7 +998,7 @@ export const AdminParticipantsPage: React.FC = () => {
               Batal
             </Button>
             <Button type="submit" variant="primary" isLoading={savingStudent}>
-              Simpan & Terbitkan Akun
+              Simpan Akun
             </Button>
           </div>
         </form>
@@ -914,37 +1011,25 @@ export const AdminParticipantsPage: React.FC = () => {
           setImportModalOpen(false);
           setCsvFile(null);
         }}
-        title="Impor Massal Peserta CSV"
-        description="Unggah berkas .CSV untuk mendaftarkan peserta secara massal (Mahasiswa & Umum)."
+        title="Impor Peserta CSV"
+        description="Unggah berkas CSV untuk mendaftarkan peserta secara massal."
       >
         <form onSubmit={handleImportCSV} className="space-y-4">
           {/* Rules / guidance box */}
-          <div className="p-3.5 bg-[#f6f2fa] border border-[#cfc2df] rounded-lg text-xs space-y-2">
+          <div className="p-3 bg-[#f6f2fa] border border-[#cfc2df] rounded text-xs space-y-1.5">
             <div className="font-bold text-[#583682] flex items-center gap-1.5">
               <Info className="w-4 h-4 shrink-0" />
-              <span>Petunjuk Format Kolom CSV:</span>
+              <span>Petunjuk Format CSV:</span>
             </div>
-            <ul className="text-[11px] text-[#595562] space-y-1 list-disc pl-4 leading-relaxed">
-              <li>
-                Header kolom: <strong className="font-mono text-[#24212b]">identifier, full_name, email, institution, phone</strong>
-              </li>
-              <li>
-                <strong>Pemisah Kolom</strong>: Mendukung pemisah titik koma (<span className="font-mono text-[#583682] font-bold">;</span>) standar Excel Indonesia maupun koma (<span className="font-mono text-[#583682] font-bold">,</span>).
-              </li>
-              <li>
-                <strong>Mahasiswa</strong>: Kolom <span className="font-mono text-[#583682]">identifier</span> (NIM) <strong>wajib diisi manual</strong>. Contoh instansi: <em>ADMINISTRASI PUBLIK</em>.
-              </li>
-              <li>
-                <strong>Umum</strong>: Jika kolom <span className="font-mono text-[#583682]">institution</span> diisi <em>Umum</em>, kolom <span className="font-mono text-[#583682]">identifier</span> <strong>bisa dikosongkan</strong> dan akan dibuatkan otomatis oleh sistem (<span className="font-mono">UMUM-XXXXXX</span>).
-              </li>
-              <li>
-                <strong>Telepon</strong>: Kolom <span className="font-mono text-[#583682]">phone</span> bersifat <strong>opsional</strong> (boleh dikosongkan).
-              </li>
+            <ul className="text-[11px] text-[#595562] space-y-0.5 list-disc pl-4">
+              <li>Header kolom: <strong className="font-mono text-[#24212b]">identifier, full_name, email, institution, phone</strong></li>
+              <li>Pemisah kolom: Mendukung koma (,) atau titik koma (;).</li>
+              <li>Mahasiswa wajib isi NIM. Peserta Umum nomor dibuat otomatis bila kosong.</li>
             </ul>
           </div>
 
           <div className="flex justify-between items-center pt-1 pb-1">
-            <span className="text-xs text-[#595562]">Gunakan template resmi:</span>
+            <span className="text-xs text-[#595562]">Template berkas:</span>
             <button
               type="button"
               onClick={downloadSampleTemplate}
@@ -954,7 +1039,7 @@ export const AdminParticipantsPage: React.FC = () => {
             </button>
           </div>
 
-          <div className="border-2 border-dashed border-[#cfc2df] hover:border-[#583682] rounded-lg p-6 text-center bg-[#faf9fc] transition">
+          <div className="border-2 border-dashed border-[#cfc2df] hover:border-[#583682] rounded p-6 text-center bg-[#faf9fc] transition">
             <input
               type="file"
               id="csv-file-input"
@@ -972,12 +1057,12 @@ export const AdminParticipantsPage: React.FC = () => {
               {csvFile ? (
                 <div className="space-y-1">
                   <p className="text-xs font-bold text-[#24212b]">{csvFile.name}</p>
-                  <p className="text-[11px] text-[#595562]">{(csvFile.size / 1024).toFixed(1)} KB — Klik untuk ganti berkas</p>
+                  <p className="text-[11px] text-[#595562]">{(csvFile.size / 1024).toFixed(1)} KB — Klik untuk ganti</p>
                 </div>
               ) : (
                 <div className="space-y-1">
                   <p className="text-xs font-semibold text-[#24212b]">Pilih atau tarik berkas CSV ke sini</p>
-                  <p className="text-[11px] text-[#595562]">Format .csv pemisah titik koma (;) atau koma (,)</p>
+                  <p className="text-[11px] text-[#595562]">Format .csv pemisah koma (,) atau titik koma (;)</p>
                 </div>
               )}
             </label>
@@ -1001,91 +1086,146 @@ export const AdminParticipantsPage: React.FC = () => {
         </form>
       </Modal>
 
-      {/* Reset Password Modal */}
+      {/* Edit Student Modal */}
       <Modal
-        isOpen={resetModalOpen}
-        onClose={() => {
-          setResetModalOpen(false);
-          setNewGeneratedPass(null);
-          setCopiedReset(false);
-        }}
-        title="Reset Kata Sandi Peserta"
-        description={`Peserta: ${activeStudentForReset?.full_name} (${activeStudentForReset?.identifier})`}
+        isOpen={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        title="Ubah Data Peserta"
+        description={`Mengubah data peserta: ${activeStudentForEdit?.full_name} (${activeStudentForEdit?.identifier})`}
       >
-        <div className="space-y-4">
-          {newGeneratedPass ? (
-            <div className="p-5 bg-[#eaf4ef] border border-[#bce2cf] rounded-lg text-center space-y-3">
-              <CheckCircle2 className="w-9 h-9 text-[#287a58] mx-auto" />
-              <div>
-                <div className="text-xs font-bold text-[#24212b]">Kata Sandi Baru (6 Angka):</div>
-                <p className="text-[11px] text-[#595562] mt-0.5">
-                  Gunakan 6 digit angka berikut untuk diberikan kepada peserta:
-                </p>
-              </div>
+        <form onSubmit={handleSaveEditStudent} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-[#24212b] mb-1">
+              Nomor Identitas / NIM
+            </label>
+            <Input
+              value={activeStudentForEdit?.identifier || ''}
+              disabled
+              className="bg-gray-100 font-mono text-gray-500 cursor-not-allowed"
+            />
+          </div>
 
-              <div className="flex items-center justify-center gap-2 pt-1 pb-1">
-                <div
-                  onClick={() => handleCopyText(newGeneratedPass, true)}
-                  className="font-mono font-black text-2xl tracking-[0.35em] text-[#287a58] bg-white px-5 py-2.5 rounded-lg border-2 border-[#bce2cf] select-all cursor-pointer shadow-sm hover:border-[#287a58] transition"
-                  title="Klik untuk menyalin"
-                >
-                  {newGeneratedPass}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleCopyText(newGeneratedPass, true)}
-                  className={`inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-lg text-xs font-bold transition shadow-sm cursor-pointer ${
-                    copiedReset
-                      ? 'bg-[#287a58] text-white hover:bg-[#1f5e44]'
-                      : 'bg-[#583682] text-white hover:bg-[#352148]'
-                  }`}
-                  title="Salin Kata Sandi"
-                >
-                  {copiedReset ? (
-                    <>
-                      <Check className="w-4 h-4 text-white" />
-                      <span>Tersalin!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-4 h-4 text-white" />
-                      <span>Salin Sandi</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
-              <p className="text-[11px] text-[#595562]">
-                Berikan 6 digit angka ini kepada peserta. Peserta dapat langsung login menggunakan kata sandi ini.
-              </p>
+          <div>
+            <label className="block text-xs font-bold text-[#24212b] mb-1">
+              Kategori Peserta <span className="text-[#b63b48]">*</span>
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setEditRole('mahasiswa')}
+                className={`p-2.5 rounded border text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
+                  editRole === 'mahasiswa'
+                    ? 'bg-[#eae2f5] border-[#583682] text-[#583682]'
+                    : 'bg-white border-[#e6e1eb] text-[#595562] hover:bg-gray-50'
+                }`}
+              >
+                Mahasiswa
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditRole('umum')}
+                className={`p-2.5 rounded border text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
+                  editRole === 'umum'
+                    ? 'bg-[#eae2f5] border-[#583682] text-[#583682]'
+                    : 'bg-white border-[#e6e1eb] text-[#595562] hover:bg-gray-50'
+                }`}
+              >
+                Umum
+              </button>
             </div>
-          ) : (
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-[#24212b] mb-1">
+              Nama Lengkap <span className="text-[#b63b48]">*</span>
+            </label>
+            <Input
+              required
+              value={editFullName}
+              onChange={(e) => setEditFullName(e.target.value)}
+              placeholder="Contoh: Budi Santoso"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-[#24212b] mb-1">
+              Alamat Email
+            </label>
+            <Input
+              type="email"
+              value={editEmail}
+              onChange={(e) => setEditEmail(e.target.value)}
+              placeholder="peserta@example.com"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <p className="text-xs text-[#595562] leading-relaxed">
-                Tindakan ini akan mereset kata sandi peserta <strong>{activeStudentForReset?.full_name} ({activeStudentForReset?.identifier})</strong> menjadi <strong>format 6 angka acak baru</strong>.
-              </p>
+              <label className="block text-xs font-bold text-[#24212b] mb-1">
+                Instansi / Prodi
+              </label>
+              <Input
+                value={editInstitution}
+                onChange={(e) => setEditInstitution(e.target.value)}
+                placeholder="ADMINISTRASI PUBLIK"
+              />
             </div>
-          )}
+
+            <div>
+              <label className="block text-xs font-bold text-[#24212b] mb-1">
+                Nomor Telepon
+              </label>
+              <Input
+                value={editPhone}
+                onChange={(e) => setEditPhone(e.target.value)}
+                placeholder="08123456789"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-[#24212b] mb-1">
+              Status Akun
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setEditStatus('active')}
+                className={`p-2.5 rounded border text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
+                  editStatus === 'active'
+                    ? 'bg-[#eaf4ef] border-[#287a58] text-[#287a58]'
+                    : 'bg-white border-[#e6e1eb] text-[#595562] hover:bg-gray-50'
+                }`}
+              >
+                <UserCheck className="w-4 h-4" />
+                <span>Aktif</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditStatus('suspended')}
+                className={`p-2.5 rounded border text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
+                  editStatus === 'suspended'
+                    ? 'bg-[#fbeeed] border-[#b63b48] text-[#b63b48]'
+                    : 'bg-white border-[#e6e1eb] text-[#595562] hover:bg-gray-50'
+                }`}
+              >
+                <UserX className="w-4 h-4" />
+                <span>Nonaktif</span>
+              </button>
+            </div>
+          </div>
 
           <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#e6e1eb]">
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setResetModalOpen(false);
-                setNewGeneratedPass(null);
-                setCopiedReset(false);
-              }}
-            >
-              {newGeneratedPass ? 'Selesai' : 'Batal'}
+            <Button type="button" variant="ghost" onClick={() => setEditModalOpen(false)}>
+              Batal
             </Button>
-            {!newGeneratedPass && (
-              <Button variant="primary" onClick={handleResetPassword} isLoading={resetting}>
-                Reset Sandi Sekarang
-              </Button>
-            )}
+            <Button type="submit" variant="primary" isLoading={savingEdit}>
+              Simpan Perubahan
+            </Button>
           </div>
-        </div>
+        </form>
       </Modal>
+
     </div>
   );
 };

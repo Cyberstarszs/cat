@@ -9,7 +9,13 @@ import { CardSkeleton } from '../../components/ui/Skeleton';
 import { EmptyState, ErrorAlert } from '../../components/ui/EmptyState';
 import { Bell, CheckCircle2, Clock } from 'lucide-react';
 
-export const AdminNotificationsPage: React.FC = () => {
+export interface NotificationsManagerViewProps {
+  hideHeaderTitle?: boolean;
+}
+
+export const NotificationsManagerView: React.FC<NotificationsManagerViewProps> = ({
+  hideHeaderTitle = false,
+}) => {
   const { showToast } = useToast();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,17 +52,19 @@ export const AdminNotificationsPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-[#e6e1eb]">
-        <div>
-          <div className="eyebrow mb-1">PUSAT PEMBERITAHUAN</div>
-          <h1 className="font-display font-bold text-2xl text-[#24212b]">
-            Notifikasi & Peringatan Sistem
-          </h1>
-          <p className="text-xs text-[#595562] mt-0.5">
-            Informasi penting terkait permohonan sanggah, sesi ujian kedaluwarsa, dan aktivitas akun.
-          </p>
+      {!hideHeaderTitle && (
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-[#e6e1eb]">
+          <div>
+            <div className="eyebrow mb-1">NOTIFIKASI</div>
+            <h1 className="font-display font-bold text-2xl text-[#24212b]">
+              Notifikasi Sistem
+            </h1>
+            <p className="text-xs text-[#595562] mt-0.5">
+              Pemberitahuan sanggahan nilai dan aktivitas penting sistem.
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       {error && <ErrorAlert message={error} onRetry={fetchNotifs} />}
 
@@ -69,7 +77,7 @@ export const AdminNotificationsPage: React.FC = () => {
           <div className="p-8">
             <EmptyState
               title="Tidak Ada Notifikasi"
-              description="Seluruh pemberitahuan sistem telah dibaca atau belum ada notifikasi baru."
+              description="Belum ada notifikasi baru atau semua notifikasi telah dibaca."
               icon={<Bell className="w-8 h-8 text-[#583682]" />}
             />
           </div>
@@ -115,4 +123,9 @@ export const AdminNotificationsPage: React.FC = () => {
       </Card>
     </div>
   );
+};
+
+
+export const AdminNotificationsPage: React.FC = () => {
+  return <NotificationsManagerView />;
 };

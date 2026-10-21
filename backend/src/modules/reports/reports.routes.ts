@@ -9,6 +9,7 @@ import {
   getInstitutionsReport,
   exportSessionResultsCSV,
   exportExamResultsCSV,
+  getExamItemAnalysis,
 } from './reports.service.js';
 import { generateSessionCredentialsPDF } from '../sessions/sessions.pdf.js';
 
@@ -55,10 +56,23 @@ export const reportRoutes: FastifyPluginAsync = async (fastify: FastifyInstance)
   // GET /reports/sessions/:id/credentials-pdf
   fastify.get('/reports/sessions/:id/credentials-pdf', async (request, reply) => {
     const { id } = request.params as { id: string };
+    const origin = (request.headers.origin as string) || (request.headers.referer as string) || '';
+    let loginUrl = 'http://localhost:5173/login';
+    if (origin) {
+      try {
+        const u = new URL(origin);
+        loginUrl = `${u.protocol}//${u.host}/login`;
+      } catch {}
+    } else if (request.headers.host) {
+      const hostWithoutPort = (request.headers.host as string).split(':')[0];
+      loginUrl = `http://${hostWithoutPort}:5173/login`;
+    }
+
     const { pdfBuffer, sessionCode } = await generateSessionCredentialsPDF(
       id,
       request.user!.id,
-      request.ip
+      request.ip,
+      loginUrl
     );
 
     reply.header('Content-Type', 'application/pdf');
@@ -134,4 +148,11 @@ export const reportRoutes: FastifyPluginAsync = async (fastify: FastifyInstance)
       },
     });
   });
+  // GET /reports/exams/:id/item-analysis (Fitur B - Psychometrics & Item Analysis)
+  fastify.get('/reports/exams/:id/item-analysis', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const analysis = await getExamItemAnalysis(id);
+    return reply.send(analysis);
+  });
+
 };

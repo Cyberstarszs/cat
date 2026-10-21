@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { examService } from '../../services';
 import { ExamCategory } from '../../types';
 import { useToast } from '../../context/ToastContext';
+import { alert } from '../../utils/alert';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -10,7 +11,15 @@ import { CardSkeleton } from '../../components/ui/Skeleton';
 import { EmptyState, ErrorAlert } from '../../components/ui/EmptyState';
 import { Plus, Edit2, Trash2, FolderTree, Search } from 'lucide-react';
 
-export const AdminSubtestsPage: React.FC = () => {
+export interface SubtestsManagerViewProps {
+  onCategoryChanged?: () => void;
+  hideHeaderTitle?: boolean;
+}
+
+export const SubtestsManagerView: React.FC<SubtestsManagerViewProps> = ({
+  onCategoryChanged,
+  hideHeaderTitle = false,
+}) => {
   const { showToast } = useToast();
   const [categories, setCategories] = useState<ExamCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,11 +33,6 @@ export const AdminSubtestsPage: React.FC = () => {
   const [code, setCode] = useState('');
   const [description, setDescription] = useState('');
   const [saving, setSaving] = useState(false);
-
-  // Delete modal
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [categoryToDelete, setCategoryToDelete] = useState<ExamCategory | null>(null);
-  const [deleting, setDeleting] = useState(false);
 
   const fetchCategories = async () => {
     setLoading(true);
@@ -73,36 +77,41 @@ export const AdminSubtestsPage: React.FC = () => {
           code: code.trim().toUpperCase(),
           description: description.trim(),
         });
-        showToast('Kategori subtes berhasil diperbarui!', 'success');
+        alert.toast('Kategori subtes berhasil diperbarui!', 'success');
       } else {
         await examService.createCategory({
           name: name.trim(),
           code: code.trim().toUpperCase(),
           description: description.trim(),
         });
-        showToast('Kategori subtes baru berhasil ditambahkan!', 'success');
+        alert.toast('Kategori subtes baru berhasil ditambahkan!', 'success');
       }
       setModalOpen(false);
       fetchCategories();
+      if (onCategoryChanged) onCategoryChanged();
     } catch (err: any) {
-      showToast(err.message || 'Gagal menyimpan kategori.', 'error');
+      alert.error('Gagal Menyimpan Subtes', err?.response?.data?.message || err.message);
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async () => {
-    if (!categoryToDelete) return;
-    setDeleting(true);
+  const handleDeleteCategory = async (cat: ExamCategory) => {
+    const confirmed = await alert.confirm({
+      title: 'Hapus Kategori Subtes?',
+      text: `Apakah Anda yakin ingin menghapus subtes "${cat.name}" (${cat.code})? Kategori tidak dapat dihapus jika masih ada butir soal yang tertaut.`,
+      confirmButtonText: 'Ya, Hapus Subtes',
+      isDangerous: true,
+    });
+    if (!confirmed) return;
+
     try {
-      await examService.deleteCategory(categoryToDelete.id);
-      showToast('Kategori subtes berhasil dihapus!', 'success');
-      setDeleteModalOpen(false);
+      await examService.deleteCategory(cat.id);
+      alert.toast(`Subtes ${cat.name} berhasil dihapus!`, 'success');
       fetchCategories();
+      if (onCategoryChanged) onCategoryChanged();
     } catch (err: any) {
-      showToast(err.message || 'Gagal menghapus kategori. Pastikan tidak ada soal terkait.', 'error');
-    } finally {
-      setDeleting(false);
+      alert.error('Gagal Menghapus Subtes', err?.response?.data?.message || err.message || 'Pastikan tidak ada butir soal yang menggunakan subtes ini.');
     }
   };
 
@@ -115,21 +124,38 @@ export const AdminSubtestsPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-[#e6e1eb]">
-        <div>
-          <div className="eyebrow mb-1">KOMPONEN UJIAN</div>
-          <h1 className="font-display font-bold text-2xl text-[#24212b]">
-            Manajemen Subtes & Kategori Soal
-          </h1>
-          <p className="text-xs text-[#595562] mt-0.5">
-            Kelola subtes kompetensi (misal: Tes Wawasan Kebangsaan, Tata Kelola Publik, Kemampuan Analitis).
-          </p>
-        </div>
+      {!hideHeaderTitle ? (
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-[#e6e1eb]">
+          <div>
+            <div className="eyebrow mb-1">SUBTES SOAL</div>
+            <h1 className="font-display font-bold text-2xl text-[#24212b]">
+              Subtes Soal
+            </h1>
+            <p className="text-xs text-[#595562] mt-0.5">
+              Kelola kategori subtes untuk komposisi paket ujian.
+            </p>
+          </div>
 
-        <Button variant="primary" onClick={openCreateModal} leftIcon={<Plus className="w-4 h-4" />}>
-          Tambah Subtes Baru
-        </Button>
-      </div>
+          <Button variant="primary" onClick={openCreateModal} leftIcon={<Plus className="w-4 h-4" />}>
+            Tambah Subtes
+          </Button>
+        </div>
+      ) : (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#e6e1eb]">
+          <div>
+            <h2 className="font-display font-bold text-lg text-[#24212b]">
+              Daftar Subtes Soal
+            </h2>
+            <p className="text-xs text-[#595562] mt-0.5">
+              Kategori subtes yang digunakan dalam komposisi paket ujian.
+            </p>
+          </div>
+
+          <Button variant="primary" onClick={openCreateModal} leftIcon={<Plus className="w-4 h-4" />}>
+            Tambah Subtes
+          </Button>
+        </div>
+      )}
 
       {error && <ErrorAlert message={error} onRetry={fetchCategories} />}
 
@@ -189,10 +215,7 @@ export const AdminSubtestsPage: React.FC = () => {
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => {
-                            setCategoryToDelete(cat);
-                            setDeleteModalOpen(true);
-                          }}
+                          onClick={() => handleDeleteCategory(cat)}
                           className="p-1.5 text-gray-500 hover:text-[#b63b48] hover:bg-[#fbeeed] rounded transition"
                           title="Hapus Subtes"
                         >
@@ -212,7 +235,7 @@ export const AdminSubtestsPage: React.FC = () => {
       <Modal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={editingCategory ? 'Ubah Kategori Subtes' : 'Tambah Kategori Subtes Baru'}
+        title={editingCategory ? 'Ubah Subtes' : 'Tambah Subtes Baru'}
       >
         <form onSubmit={handleSave} className="space-y-4">
           <Input
@@ -220,7 +243,7 @@ export const AdminSubtestsPage: React.FC = () => {
             required
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
-            placeholder="Contoh: TWK, TKP, TIU"
+            placeholder="Contoh: TWK"
             className="uppercase font-mono"
           />
 
@@ -233,15 +256,15 @@ export const AdminSubtestsPage: React.FC = () => {
           />
 
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-[#24212b] mb-1.5">
-              Deskripsi Subtes
+            <label className="block text-xs font-bold text-[#24212b] mb-1.5">
+              Deskripsi Subtes (Opsional)
             </label>
             <textarea
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Deskripsi singkat materi kompetensi yang diuji..."
-              className="w-full p-3 bg-white border border-[#e6e1eb] rounded-[6px] text-xs text-[#24212b] outline-none focus:border-[#583682]"
+              placeholder="Deskripsi materi subtes..."
+              className="w-full p-3 bg-white border border-[#e6e1eb] rounded text-xs text-[#24212b] outline-none focus:border-[#583682]"
             />
           </div>
 
@@ -250,38 +273,18 @@ export const AdminSubtestsPage: React.FC = () => {
               Batal
             </Button>
             <Button type="submit" variant="primary" isLoading={saving}>
-              {editingCategory ? 'Simpan Perubahan' : 'Tambahkan Subtes'}
+              {editingCategory ? 'Simpan Perubahan' : 'Simpan Subtes'}
             </Button>
           </div>
         </form>
       </Modal>
 
-      {/* Delete Confirmation Modal */}
-      <Modal
-        isOpen={deleteModalOpen}
-        onClose={() => setDeleteModalOpen(false)}
-        title="Hapus Kategori Subtes"
-        description={`Apakah Anda yakin ingin menghapus subtes "${categoryToDelete?.name}"?`}
-      >
-        <div className="space-y-4">
-          <p className="text-xs text-[#b63b48] bg-[#fbeeed] p-3 rounded border border-[#f4c6cb]">
-            Tindakan ini tidak dapat dibatalkan. Kategori tidak dapat dihapus jika masih ada butir soal yang menggunakannya.
-          </p>
-          <div className="flex items-center justify-end gap-3 pt-2">
-            <Button type="button" variant="ghost" onClick={() => setDeleteModalOpen(false)}>
-              Batal
-            </Button>
-            <Button
-              type="button"
-              variant="danger"
-              onClick={handleDelete}
-              isLoading={deleting}
-            >
-              Hapus Permanen
-            </Button>
-          </div>
-        </div>
-      </Modal>
+
     </div>
   );
+};
+
+
+export const AdminSubtestsPage: React.FC = () => {
+  return <SubtestsManagerView />;
 };

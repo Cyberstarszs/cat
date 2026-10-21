@@ -18,8 +18,9 @@ const examSchema = z.object({
   code: z.string().min(2).max(30),
   title: z.string().min(3).max(200),
   description: z.string().optional().nullable(),
-  duration_minutes: z.number().int().positive(),
-  question_count: z.number().int().positive(),
+  year: z.coerce.number().int().min(1900).max(2100).optional().default(new Date().getFullYear()),
+  duration_minutes: z.number().int().positive().optional().default(90),
+  question_count: z.number().int().positive().optional().default(100),
   passing_score: z.number().min(0).max(100),
   shuffle_questions: z.boolean().optional(),
   shuffle_options: z.boolean().optional(),
@@ -43,7 +44,7 @@ export const examRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =
 
     if (isStudentRole(user.role)) {
       const { rows } = await pool.query(
-        `SELECT id, code, title, description, duration_minutes, question_count, passing_score
+        `SELECT id, code, title, description, year, duration_minutes, question_count, passing_score
          FROM exams
          WHERE status = 'active'
          ORDER BY title ASC;`
@@ -96,6 +97,7 @@ export const examRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =
           code: exam.code,
           title: exam.title,
           description: exam.description,
+          year: exam.year,
           duration_minutes: exam.duration_minutes,
           question_count: exam.question_count,
           passing_score: exam.passing_score,

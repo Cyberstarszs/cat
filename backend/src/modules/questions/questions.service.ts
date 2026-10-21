@@ -92,7 +92,7 @@ export async function createQuestion(data: CreateQuestionInput, actorId: string,
       `INSERT INTO questions (category_id, status, created_by, year)
        VALUES ($1, $2, $3, $4)
        RETURNING id, year;`,
-      [data.category_id, data.status || 'draft', actorId, questionYear]
+      [data.category_id, data.status || 'active', actorId, questionYear]
     );
     const questionId = qRows[0].id;
 
@@ -500,6 +500,10 @@ export async function commitQuestionsImport(
   ipAddress?: string,
   importYear?: number
 ): Promise<{ totalImported: number }> {
+  if (!parsedQuestions || parsedQuestions.length === 0) {
+    throw new AppError('VALIDATION_FAILED', 'Tidak ada data soal yang dapat diimpor.');
+  }
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN;');
@@ -509,22 +513,26 @@ export async function commitQuestionsImport(
     const catCache = new Map<string, string>();
 
     for (const q of parsedQuestions) {
-      let catId = catCache.get(q.categoryName.toLowerCase());
+      const cleanCatName = (q.categoryName || 'Umum').trim();
+      let catId = catCache.get(cleanCatName.toLowerCase());
       if (!catId) {
         const catRes = await client.query(
           `SELECT id FROM question_categories WHERE lower(name) = lower($1);`,
-          [q.categoryName]
+          [cleanCatName]
         );
         if (catRes.rows.length > 0) {
           catId = catRes.rows[0].id;
         } else {
           const newCat = await client.query(
-            `INSERT INTO question_categories (name) VALUES ($1) RETURNING id;`,
-            [q.categoryName]
+            `INSERT INTO question_categories (name)
+             VALUES ($1)
+             ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
+             RETURNING id;`,
+            [cleanCatName]
           );
           catId = newCat.rows[0].id;
         }
-        catCache.set(q.categoryName.toLowerCase(), catId!);
+        catCache.set(cleanCatName.toLowerCase(), catId!);
       }
 
       const qYear = q.year || importYear || new Date().getFullYear();
@@ -541,15 +549,19 @@ export async function commitQuestionsImport(
         `INSERT INTO question_versions (question_id, version_no, stem, difficulty, weight, explanation, created_by)
          VALUES ($1, 1, $2, $3, $4, $5, $6)
          RETURNING id;`,
-        [questionId, q.stem, q.difficulty, q.weight, q.explanation, actorId]
+        [questionId, q.stem.trim(), q.difficulty, q.weight, q.explanation?.trim() || null, actorId]
       );
       const versionId = vRows[0].id;
 
-      for (const opt of q.options) {
+      if (q.options && q.options.length > 0) {
+        const positions = q.options.map((o: any) => o.position);
+        const texts = q.options.map((o: any) => String(o.option_text || '').trim());
+        const corrects = q.options.map((o: any) => !!o.is_correct);
+
         await client.query(
           `INSERT INTO question_options (question_version_id, position, option_text, is_correct)
-           VALUES ($1, $2, $3, $4);`,
-          [versionId, opt.position, opt.option_text, opt.is_correct]
+           SELECT $1, unnest($2::smallint[]), unnest($3::text[]), unnest($4::boolean[]);`,
+          [versionId, positions, texts, corrects]
         );
       }
 
@@ -612,15 +624,52 @@ export async function previewCorrectionImpact(
   `;
   const { rows: attempts } = await pool.query(query, [questionVersionId]);
 
-  const { rows: existingCorrections } = await pool.query(
-    `SELECT question_version_id, type, old_option_id, new_option_id, created_at
-     FROM question_corrections
-     WHERE question_version_id = $1;`,
-    [questionVersionId]
+  if (attempts.length === 0) {
+    return {
+      total_evaluated_attempts: 0,
+      students_improved: 0,
+      students_dropped: 0,
+      newly_passing: 0,
+      newly_failing: 0,
+      sample_diffs: [],
+    };
+  }
+
+  const attemptIds = attempts.map((a: any) => a.attempt_id);
+
+  // Mengambil seluruh butir soal dan jawaban untuk seluruh attempt dalam 1 kueri agregat (menghapus N+1 bottleneck)
+  const { rows: allAnsRows } = await pool.query(
+    `SELECT 
+      aq.attempt_id, aq.id, aq.question_version_id, qv.weight,
+      qo_correct.id AS correct_option_id,
+      ans.selected_option_id
+     FROM attempt_questions aq
+     JOIN question_versions qv ON qv.id = aq.question_version_id
+     JOIN question_options qo_correct ON qo_correct.question_version_id = qv.id AND qo_correct.is_correct = true
+     LEFT JOIN attempt_answers ans ON ans.attempt_question_id = aq.id
+     WHERE aq.attempt_id = ANY($1::uuid[]);`,
+    [attemptIds]
   );
 
-  const candidateCorrections = [
-    ...existingCorrections,
+  // Prefetch seluruh koreksi yang sudah ada untuk soal-soal dalam attempt tersebut
+  const questionVersionIds = Array.from(new Set(allAnsRows.map((r: any) => r.question_version_id)));
+  const { rows: allExistingCorrections } = await pool.query(
+    `SELECT question_version_id, type, old_option_id, new_option_id, created_at
+     FROM question_corrections
+     WHERE question_version_id = ANY($1::uuid[]);`,
+    [questionVersionIds]
+  );
+
+  const correctionsByVersion = new Map<string, any[]>();
+  for (const c of allExistingCorrections) {
+    const list = correctionsByVersion.get(c.question_version_id) || [];
+    list.push(c);
+    correctionsByVersion.set(c.question_version_id, list);
+  }
+
+  // Tambahkan kandidat koreksi pada versi soal target
+  const targetCorrections = [
+    ...(correctionsByVersion.get(questionVersionId) || []),
     {
       type,
       old_option_id: oldOptionId || originalCorrectId,
@@ -628,6 +677,15 @@ export async function previewCorrectionImpact(
       created_at: new Date(),
     },
   ];
+  correctionsByVersion.set(questionVersionId, targetCorrections);
+
+  // Kelompokkan butir soal per attempt di memori
+  const ansByAttempt = new Map<string, any[]>();
+  for (const row of allAnsRows) {
+    const list = ansByAttempt.get(row.attempt_id) || [];
+    list.push(row);
+    ansByAttempt.set(row.attempt_id, list);
+  }
 
   let improvedCount = 0;
   let droppedCount = 0;
@@ -636,23 +694,11 @@ export async function previewCorrectionImpact(
   const sampleDiffs = [];
 
   for (const att of attempts) {
-    const { rows: ansRows } = await pool.query(
-      `SELECT 
-        aq.id, aq.question_version_id, qv.weight,
-        qo_correct.id AS correct_option_id,
-        ans.selected_option_id
-       FROM attempt_questions aq
-       JOIN question_versions qv ON qv.id = aq.question_version_id
-       JOIN question_options qo_correct ON qo_correct.question_version_id = qv.id AND qo_correct.is_correct = true
-       LEFT JOIN attempt_answers ans ON ans.attempt_question_id = aq.id
-       WHERE aq.attempt_id = $1;`,
-      [att.attempt_id]
-    );
+    const ansRows = ansByAttempt.get(att.attempt_id) || [];
 
     const gradingItems = [];
     for (const q of ansRows) {
-      const isTargetQ = q.question_version_id === questionVersionId;
-      const rules = isTargetQ ? candidateCorrections : [];
+      const rules = correctionsByVersion.get(q.question_version_id) || [];
       const res = calculateQuestionPoints(q.selected_option_id, q.correct_option_id, parseFloat(q.weight), rules);
       gradingItems.push(res);
     }

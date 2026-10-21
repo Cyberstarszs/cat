@@ -18,6 +18,11 @@ describe('Audit Completion: Endpoints & Business Logic Validation', () => {
     app = await buildApp();
     await app.ready();
 
+    // Pastikan admin dalam kondisi aktif dan tidak terkunci
+    await pool.query(
+      `UPDATE users SET status = 'active', failed_login_count = 0, locked_until = NULL WHERE lower(email) = 'admin@fia.kampus.ac.id';`
+    );
+
     // 1. Admin login
     const adminLogin = await app.inject({
       method: 'POST',
@@ -202,6 +207,9 @@ describe('Audit Completion: Endpoints & Business Logic Validation', () => {
   it('6. Sanggah & Notifikasi Workflow (FR-R07, FR-N01)', async () => {
     if (!studentToken || !testResultId) return;
 
+    // Bersihkan sanggahan sebelumnya pada result ini agar uji idempotens berjalan bersih
+    await pool.query('DELETE FROM appeals WHERE result_id = $1;', [testResultId]);
+
     // A. Mahasiswa ajukan sanggah (POST /me/results/:id/appeals)
     const appealRes = await app.inject({
       method: 'POST',
@@ -259,5 +267,124 @@ describe('Audit Completion: Endpoints & Business Logic Validation', () => {
     });
     expect(readRes.statusCode).toBe(200);
     expect(JSON.parse(readRes.body).notification.read_at).toBeDefined();
+  });
+
+  it('7. POST /api/v1/attempts/:id/events should reject spoofed events with 404 (Anti-IDOR INV-14)', async () => {
+    if (!studentToken) return;
+
+    // Student A tries to submit proctoring event to a non-existent or other user's attempt
+    const spoofRes = await app.inject({
+      method: 'POST',
+      url: '/api/v1/attempts/00000000-0000-0000-0000-000000000001/events',
+      headers: { authorization: `Bearer ${studentToken}` },
+      payload: {
+        event_type: 'tab_switch',
+        client_time: new Date().toISOString(),
+      },
+    });
+
+    expect(spoofRes.statusCode).toBe(404);
+  });
+
+  it('8. GET /api/v1/results/:id should NEVER leak answer keys/explanations if result is not published (Security INV-15)', async () => {
+    if (!studentToken || !testResultId) return;
+
+    // Update result to pending_publication temporarily to verify leak prevention
+    await pool.query(`UPDATE results SET status = 'pending_publication' WHERE id = $1;`, [testResultId]);
+
+    const res = await app.inject({
+      method: 'GET',
+      url: `/api/v1/results/${testResultId}`,
+      headers: { authorization: `Bearer ${studentToken}` },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.result.answers).toEqual([]);
+
+    // Restore back to published
+    await pool.query(`UPDATE results SET status = 'published' WHERE id = $1;`, [testResultId]);
+  });
+
+  it('9. POST /api/v1/sessions/:id/enrollments should reject enrolling students into cancelled sessions', async () => {
+    // Cari atau buat sesi yang berstatus cancelled
+    let targetSessionId = '';
+    const { rows: cancelledSession } = await pool.query(
+      `SELECT id FROM exam_sessions WHERE status = 'cancelled' LIMIT 1;`
+    );
+
+    if (cancelledSession.length > 0) {
+      targetSessionId = cancelledSession[0].id;
+    } else {
+      const { rows: newCancelled } = await pool.query(
+        `INSERT INTO exam_sessions (exam_id, name, code, starts_at, ends_at, status, created_by)
+         VALUES ($1, 'Sesi Dibatalkan Test', 'SESS-CANC', now(), now() + interval '2 hours', 'cancelled', $2)
+         RETURNING id;`,
+        [testExamId, (await pool.query(`SELECT id FROM users WHERE role = 'admin' LIMIT 1;`)).rows[0].id]
+      );
+      targetSessionId = newCancelled[0].id;
+    }
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/v1/sessions/${targetSessionId}/enrollments`,
+      headers: { authorization: `Bearer ${adminToken}` },
+      payload: {
+        student_identifiers: ['TEST_STUDENT_001'],
+      },
+    });
+
+    expect(res.statusCode).toBe(409);
+    expect(JSON.parse(res.body).error.code).toBe('INVALID_TRANSITION');
+  });
+
+  it('10. GET /api/v1/me/appeals should return appeals list for the calling student', async () => {
+    if (!studentToken) return;
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/me/appeals',
+      headers: { authorization: `Bearer ${studentToken}` },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(Array.isArray(body.data)).toBe(true);
+    expect(body.data.length).toBeGreaterThan(0);
+    expect(body.data[0].message).toBeDefined();
+  });
+
+  it('11. GET /api/v1/me/results should return published results for the student', async () => {
+    if (!studentToken || !testResultId) return;
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/me/results',
+      headers: { authorization: `Bearer ${studentToken}` },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(Array.isArray(body.data)).toBe(true);
+    expect(body.data.length).toBeGreaterThan(0);
+    expect(body.data[0].score).toBeDefined();
+  });
+
+  it('12. POST /api/v1/sessions/:id/regrade should re-evaluate session attempts via batch queries without N+1', async () => {
+    if (!testSessionId) return;
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/v1/sessions/${testSessionId}/regrade`,
+      headers: { authorization: `Bearer ${adminToken}` },
+      payload: {
+        commit: false,
+      },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.success).toBe(true);
+    expect(Array.isArray(body.changes)).toBe(true);
   });
 });

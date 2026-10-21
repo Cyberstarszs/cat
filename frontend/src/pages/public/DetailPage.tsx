@@ -72,7 +72,7 @@ export const DetailPage: React.FC = () => {
         <div className="mt-4">
           <Link to="/explore">
             <Button variant="secondary" leftIcon={<ArrowLeft className="w-4 h-4" />}>
-              Kembali ke Katalog
+              Kembali ke Jadwal
             </Button>
           </Link>
         </div>
@@ -85,7 +85,7 @@ export const DetailPage: React.FC = () => {
       {/* Back button */}
       <div>
         <Link to="/explore" className="text-xs font-semibold text-[#583682] hover:underline inline-flex items-center gap-1.5">
-          <ArrowLeft className="w-3.5 h-3.5" /> Kembali ke Katalog Ujian
+          <ArrowLeft className="w-3.5 h-3.5" /> Kembali ke Jadwal Ujian
         </Link>
       </div>
 
@@ -109,7 +109,7 @@ export const DetailPage: React.FC = () => {
 
         <p className="text-xs md:text-sm text-[#595562] leading-relaxed max-w-3xl mb-8">
           {exam.description ||
-            'Uji kompetensi terstandar untuk mengukur pemahaman, kapabilitas analitis, dan wawasan kebijakan serta tata kelola administrasi publik.'}
+            'Uji kompetensi terstandar untuk mengukur pemahaman, kapabilitas analitis, dan tata kelola administrasi.'}
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t border-[#e6e1eb]">
@@ -128,7 +128,7 @@ export const DetailPage: React.FC = () => {
               <Award className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-[10px] text-[#595562] uppercase font-bold">Nilai Minimal Lulus</div>
+              <div className="text-[10px] text-[#595562] uppercase font-bold">Ambang Batas</div>
               <div className="font-bold text-sm text-[#24212b]">{exam.passing_score} / 100</div>
             </div>
           </div>
@@ -139,7 +139,7 @@ export const DetailPage: React.FC = () => {
             </div>
             <div>
               <div className="text-[10px] text-[#595562] uppercase font-bold">Tipe Ujian</div>
-              <div className="font-bold text-sm text-[#24212b]">CAT Terverifikasi</div>
+              <div className="font-bold text-sm text-[#24212b]">Asesmen Mandiri CAT</div>
             </div>
           </div>
         </div>
@@ -213,15 +213,17 @@ export const DetailPage: React.FC = () => {
               <Button
                 variant="light"
                 fullWidth
-                onClick={() => navigate('/dashboard')}
+                onClick={() => navigate(user?.role === 'admin' ? '/admin/dashboard' : '/dashboard')}
               >
-                Buka Ujian
+                {user?.role === 'admin' ? 'Buka Portal Admin' : 'Buka Dashboard Ujian'}
               </Button>
             ) : (
               <Button
                 variant="light"
                 fullWidth
-                onClick={() => navigate('/login')}
+                onClick={() =>
+                  navigate(`/login?redirect=${encodeURIComponent(`/detail?id=${exam.id}`)}`)
+                }
               >
                 Masuk Akun
               </Button>

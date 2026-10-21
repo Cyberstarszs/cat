@@ -5,7 +5,7 @@ import { logAudit } from '../audit/audit.service.js';
 
 export async function getDashboardMetrics() {
   const { rows: studentCount } = await pool.query(
-    "SELECT COUNT(*) AS total FROM users WHERE role = 'student' AND deleted_at IS NULL;"
+    "SELECT COUNT(*) AS total FROM users WHERE role IN ('student', 'mahasiswa', 'umum') AND deleted_at IS NULL;"
   );
 
   const { rows: examCount } = await pool.query(
@@ -390,3 +390,243 @@ export async function exportExamResultsCSV(
   return csvOutput;
 }
 
+
+export async function getExamItemAnalysis(examId: string) {
+  // 1. Ambil info ujian
+  const { rows: examRows } = await pool.query(
+    `SELECT id, title, duration_minutes, passing_score, question_count
+     FROM exams WHERE id = $1;`,
+    [examId]
+  );
+  if (examRows.length === 0) throw new AppError('NOT_FOUND', 'Ujian tidak ditemukan');
+  const exam = examRows[0];
+
+  // 2. Statistik skor & kelulusan peserta pada ujian ini
+  const { rows: examStats } = await pool.query(
+    `SELECT 
+       COUNT(r.id) AS total_examinees,
+       COUNT(CASE WHEN r.passed = true THEN 1 END) AS passed_count,
+       COALESCE(ROUND(AVG(r.score), 2), 0) AS avg_score,
+       COALESCE(MAX(r.score), 0) AS max_score,
+       COALESCE(MIN(r.score), 0) AS min_score,
+       COALESCE(ROUND(STDDEV(r.score), 2), 0) AS std_dev
+     FROM results r
+     JOIN attempts a ON a.id = r.attempt_id
+     JOIN session_enrollments se ON se.id = a.enrollment_id
+     JOIN exam_sessions s ON s.id = se.session_id
+     WHERE s.exam_id = $1 AND a.status IN ('submitted', 'auto_submitted', 'graded');`,
+    [examId]
+  );
+
+  const totalExaminees = parseInt(examStats[0]?.total_examinees || '0', 10);
+  const passedCount = parseInt(examStats[0]?.passed_count || '0', 10);
+  const passRate = totalExaminees > 0 ? parseFloat(((passedCount / totalExaminees) * 100).toFixed(1)) : 0;
+
+  // 3. Ambil daftar attempt id berurutan berdasarkan skor untuk kalkulasi Upper & Lower 27%
+  const { rows: rankedAttempts } = await pool.query(
+    `SELECT a.id, r.score
+     FROM attempts a
+     JOIN results r ON r.attempt_id = a.id
+     JOIN session_enrollments se ON se.id = a.enrollment_id
+     JOIN exam_sessions s ON s.id = se.session_id
+     WHERE s.exam_id = $1 AND a.status IN ('submitted', 'auto_submitted', 'graded')
+     ORDER BY r.score DESC;`,
+    [examId]
+  );
+
+  const groupSize = Math.max(1, Math.floor(rankedAttempts.length * 0.27));
+  const upperAttemptIds = new Set(rankedAttempts.slice(0, groupSize).map((r) => r.id));
+  const lowerAttemptIds = new Set(rankedAttempts.slice(-groupSize).map((r) => r.id));
+
+  // 4. Ambil semua soal yang diujikan dalam ujian ini (melalui attempt_questions)
+  const { rows: questionsRows } = await pool.query(
+    `SELECT DISTINCT
+       qv.id AS question_version_id,
+       q.id AS question_id,
+       q.code AS question_code,
+       qv.stem,
+       qv.difficulty AS intended_difficulty,
+       qv.weight,
+       st.name AS subtest_name,
+       c.name AS category_name
+     FROM attempt_questions aq
+     JOIN attempts a ON a.id = aq.attempt_id
+     JOIN session_enrollments se ON se.id = a.enrollment_id
+     JOIN exam_sessions s ON s.id = se.session_id
+     JOIN question_versions qv ON qv.id = aq.question_version_id
+     JOIN questions q ON q.id = qv.question_id
+     LEFT JOIN subtests st ON st.id = q.subtest_id
+     LEFT JOIN categories c ON c.id = st.category_id
+     WHERE s.exam_id = $1
+     ORDER BY q.code ASC;`,
+    [examId]
+  );
+
+  // Jika belum ada attempt, coba ambil soal dari aturan komposisi / question bank
+  let targetQuestions = questionsRows;
+  if (targetQuestions.length === 0) {
+    const { rows: fallbackQuestions } = await pool.query(
+      `SELECT 
+         qv.id AS question_version_id,
+         q.id AS question_id,
+         q.code AS question_code,
+         qv.stem,
+         qv.difficulty AS intended_difficulty,
+         qv.weight,
+         st.name AS subtest_name,
+         c.name AS category_name
+       FROM exam_question_rules eqr
+       JOIN questions q ON q.subtest_id = eqr.subtest_id
+       JOIN question_versions qv ON qv.question_id = q.id AND qv.version_number = (
+         SELECT MAX(version_number) FROM question_versions WHERE question_id = q.id
+       )
+       LEFT JOIN subtests st ON st.id = q.subtest_id
+       LEFT JOIN categories c ON c.id = st.category_id
+       WHERE eqr.exam_id = $1 AND q.status = 'active'
+       LIMIT 50;`,
+      [examId]
+    );
+    targetQuestions = fallbackQuestions;
+  }
+
+  // 5. Untuk setiap soal, ambil agregat jawaban dan distribusi opsi
+  const itemsAnalysis = await Promise.all(
+    targetQuestions.map(async (q) => {
+      // Ambil opsi jawaban soal
+      const { rows: options } = await pool.query(
+        `SELECT id, position, option_text, is_correct
+         FROM question_options
+         WHERE question_version_id = $1
+         ORDER BY position ASC;`,
+        [q.question_version_id]
+      );
+
+      // Ambil seluruh jawaban untuk versi soal ini pada ujian ini
+      const { rows: answers } = await pool.query(
+        `SELECT 
+           ans.selected_option_id,
+           ans.is_correct,
+           aq.attempt_id
+         FROM attempt_answers ans
+         JOIN attempt_questions aq ON aq.id = ans.attempt_question_id
+         JOIN attempts a ON a.id = aq.attempt_id
+         JOIN session_enrollments se ON se.id = a.enrollment_id
+         JOIN exam_sessions s ON s.id = se.session_id
+         WHERE s.exam_id = $1 AND ans.question_version_id = $2 AND ans.selected_option_id IS NOT NULL;`,
+        [examId, q.question_version_id]
+      );
+
+      const totalAnswered = answers.length;
+      const correctCount = answers.filter((a) => a.is_correct).length;
+      const difficultyIndex = totalAnswered > 0 ? parseFloat((correctCount / totalAnswered).toFixed(2)) : 0;
+
+      // Kategori Tingkat Kesulitan Empiris (P)
+      let difficultyCategory = 'Sedang';
+      if (difficultyIndex >= 0.7) {
+        difficultyCategory = 'Mudah';
+      } else if (difficultyIndex < 0.3) {
+        difficultyCategory = 'Sukar';
+      }
+
+      // Daya Pembeda (D)
+      let discriminationIndex = 0;
+      let discriminationCategory = 'Belum Ada Data';
+
+      if (rankedAttempts.length >= 4 && groupSize > 0) {
+        const upperCorrect = answers.filter((a) => upperAttemptIds.has(a.attempt_id) && a.is_correct).length;
+        const lowerCorrect = answers.filter((a) => lowerAttemptIds.has(a.attempt_id) && a.is_correct).length;
+        discriminationIndex = parseFloat(((upperCorrect - lowerCorrect) / groupSize).toFixed(2));
+
+        if (discriminationIndex >= 0.4) {
+          discriminationCategory = 'Sangat Baik';
+        } else if (discriminationIndex >= 0.3) {
+          discriminationCategory = 'Baik';
+        } else if (discriminationIndex >= 0.2) {
+          discriminationCategory = 'Cukup / Perlu Revisi';
+        } else {
+          discriminationCategory = 'Buruk / Diskualifikasi';
+        }
+      }
+
+      // Distribusi Opsi & Analisis Distractor
+      const optionStats = options.map((opt) => {
+        const count = answers.filter((a) => a.selected_option_id === opt.id).length;
+        const percentage = totalAnswered > 0 ? parseFloat(((count / totalAnswered) * 100).toFixed(1)) : 0;
+        const isDistractorFunctioning = opt.is_correct ? true : percentage >= 5;
+
+        return {
+          id: opt.id,
+          position: opt.position,
+          label: String.fromCharCode(64 + opt.position),
+          option_text: opt.option_text,
+          is_correct: opt.is_correct,
+          selection_count: count,
+          selection_percentage: percentage,
+          is_functioning: isDistractorFunctioning,
+        };
+      });
+
+      // Rekomendasi Soal
+      const recommendations: string[] = [];
+      if (totalAnswered > 5) {
+        if (discriminationIndex < 0.2) {
+          recommendations.push('Daya pembeda rendah; periksa kejelasan stem atau distraktor.');
+        }
+        const nonFunctioningDistractors = optionStats.filter((o) => !o.is_correct && !o.is_functioning);
+        if (nonFunctioningDistractors.length > 0) {
+          recommendations.push(
+            `Opsi pengecoh (${nonFunctioningDistractors.map((o) => o.label).join(', ')}) kurang efektif (<5% pemilih).`
+          );
+        }
+        if (difficultyIndex < 0.15) {
+          recommendations.push('Soal tergolong sangat sukar; evaluasi redaksi soal.');
+        } else if (difficultyIndex > 0.85) {
+          recommendations.push('Soal tergolong sangat mudah; hampir seluruh peserta menjawab benar.');
+        }
+      }
+      if (recommendations.length === 0) {
+        recommendations.push('Butir soal berkualitas baik dan memenuhi standar psikometri.');
+      }
+
+      return {
+        question_id: q.question_id,
+        question_version_id: q.question_version_id,
+        question_code: q.question_code,
+        subtest_name: q.subtest_name,
+        category_name: q.category_name,
+        stem: q.stem,
+        intended_difficulty: q.intended_difficulty,
+        empirical_difficulty: difficultyIndex,
+        difficulty_category: difficultyCategory,
+        discrimination_index: discriminationIndex,
+        discrimination_category: discriminationCategory,
+        weight: q.weight,
+        total_answered: totalAnswered,
+        correct_count: correctCount,
+        options: optionStats,
+        recommendations,
+      };
+    })
+  );
+
+  return {
+    exam: {
+      id: exam.id,
+      title: exam.title,
+      duration_minutes: exam.duration_minutes,
+      passing_score: exam.passing_score,
+      question_count: exam.question_count,
+    },
+    statistics: {
+      total_examinees: totalExaminees,
+      passed_count: passedCount,
+      pass_rate_percentage: passRate,
+      average_score: parseFloat(examStats[0]?.avg_score || '0'),
+      max_score: parseFloat(examStats[0]?.max_score || '0'),
+      min_score: parseFloat(examStats[0]?.min_score || '0'),
+      std_deviation: parseFloat(examStats[0]?.std_dev || '0'),
+    },
+    total_items: itemsAnalysis.length,
+    items: itemsAnalysis,
+  };
+}

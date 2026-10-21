@@ -187,3 +187,58 @@ export function formatWIBTimeRange(
   const endTime = formatWIBTime(endDate, false);
   return `${startTime}–${endTime} WIB`;
 }
+
+/**
+ * Returns date in YYYY-MM-DD format for WIB (Asia/Jakarta), with optional day offset.
+ * daysOffset = 0 for today, 1 for tomorrow, 2 for day after tomorrow.
+ */
+export function getWIBDateString(daysOffset: number = 0): string {
+  const target = new Date();
+  if (daysOffset !== 0) {
+    target.setDate(target.getDate() + daysOffset);
+  }
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: TIMEZONE_WIB,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(target);
+}
+
+/**
+ * Adds minutes to an HH:mm time string and returns the new HH:mm string.
+ */
+export function addMinutesToTime(timeStr: string, minutes: number): string {
+  if (!timeStr) return '00:00';
+  const parts = timeStr.split(':');
+  const h = parseInt(parts[0], 10) || 0;
+  const m = parseInt(parts[1], 10) || 0;
+  const total = h * 60 + m + minutes;
+  const newH = Math.floor(total / 60) % 24;
+  const newM = total % 60;
+  return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`;
+}
+
+/**
+ * Adds minutes to a YYYY-MM-DDTHH:mm string (representing WIB) and returns the new YYYY-MM-DDTHH:mm string.
+ */
+export function addMinutesToWIBDateTime(dateTimeStr: string, minutes: number): string {
+  if (!dateTimeStr) return '';
+  const [datePart, timePart] = dateTimeStr.split('T');
+  if (!datePart || !timePart) return dateTimeStr;
+  const d = new Date(`${datePart}T${timePart.slice(0, 5)}:00+07:00`);
+  if (isNaN(d.getTime())) return dateTimeStr;
+  const newDate = new Date(d.getTime() + minutes * 60000);
+  return formatToWIBInput(newDate);
+}
+
+/**
+ * Calculates duration in minutes between two YYYY-MM-DDTHH:mm WIB strings.
+ */
+export function calculateMinutesDuration(startDateTime: string, endDateTime: string): number {
+  if (!startDateTime || !endDateTime) return 0;
+  const s = new Date(`${startDateTime.slice(0, 16)}+07:00`);
+  const e = new Date(`${endDateTime.slice(0, 16)}+07:00`);
+  if (isNaN(s.getTime()) || isNaN(e.getTime())) return 0;
+  return Math.round((e.getTime() - s.getTime()) / 60000);
+}

@@ -1,5 +1,6 @@
 import WordExtractor from 'word-extractor';
 import { ParsedOption, ParsedQuestion, parseDocxQuestions } from './docx-parser.js';
+import { detectCategoryHeader } from './category-detector.js';
 
 interface RawOption {
   letter: string;
@@ -31,33 +32,7 @@ export function isZipBuffer(buffer: Buffer): boolean {
  * Normalizes and categorizes subtest headers.
  */
 function detectCategory(line: string): string | null {
-  const upper = line.toUpperCase();
-  if (
-    upper.includes('TES WAWASAN KEBANGSAAN') ||
-    upper.includes('(TWK)') ||
-    upper.includes('[TWK]') ||
-    /^[A-Z]\.\s+TES\s+WAWASAN/i.test(line)
-  ) {
-    return 'Tes Wawasan Kebangsaan';
-  }
-  if (
-    upper.includes('TES INTELIGENSI UMUM') ||
-    upper.includes('TES INTELEGENSI UMUM') ||
-    upper.includes('(TIU)') ||
-    upper.includes('[TIU]') ||
-    /^[A-Z]\.\s+TES\s+INTEL/i.test(line)
-  ) {
-    return 'Tes Inteligensia Umum';
-  }
-  if (
-    upper.includes('TES KARAKTERISTIK PRIBADI') ||
-    upper.includes('(TKP)') ||
-    upper.includes('[TKP]') ||
-    /^[A-Z]\.\s+TES\s+KARAKTERISTIK/i.test(line)
-  ) {
-    return 'Tes Karakteristik Pribadi';
-  }
-  return null;
+  return detectCategoryHeader(line);
 }
 
 /**

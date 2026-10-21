@@ -31,10 +31,10 @@ export async function createSession(data: CreateSessionInput, actorId: string, i
 
   const exam = exams[0];
   const sessionDurationMinutes = (endsAt.getTime() - startsAt.getTime()) / (60 * 1000);
-  if (sessionDurationMinutes < exam.duration_minutes) {
+  if (sessionDurationMinutes < 5) {
     throw new AppError(
       'VALIDATION_FAILED',
-      `Rentang waktu sesi (${sessionDurationMinutes} menit) kurang dari durasi ujian (${exam.duration_minutes} menit).`
+      `Rentang waktu sesi (${sessionDurationMinutes} menit) minimal harus 5 menit.`
     );
   }
 
@@ -90,6 +90,9 @@ export async function publishSession(sessionId: string, actorId: string, ipAddre
   if (sessions.length === 0) throw new AppError('NOT_FOUND');
 
   const s = sessions[0];
+  if (s.status === 'published') {
+    return s;
+  }
   if (s.status !== 'draft') {
     throw new AppError('INVALID_TRANSITION', 'Hanya sesi berstatus draft yang dapat dipublikasikan.');
   }
@@ -162,6 +165,67 @@ export async function cancelSession(sessionId: string, actorId: string, ipAddres
   return rows[0];
 }
 
+export async function deleteSession(sessionId: string, actorId: string, ipAddress?: string) {
+  const { rows: sessions } = await pool.query('SELECT * FROM exam_sessions WHERE id = $1;', [sessionId]);
+  if (sessions.length === 0) throw new AppError('NOT_FOUND', 'Sesi ujian tidak ditemukan.');
+  const session = sessions[0];
+
+  // Periksa apakah sudah ada pengerjaan yang aktif atau pernah submit
+  const { rows: check } = await pool.query(
+    `SELECT COUNT(*) AS active_attempts
+     FROM session_enrollments se
+     JOIN attempts a ON a.enrollment_id = se.id
+     WHERE se.session_id = $1 AND a.status <> 'void';`,
+    [sessionId]
+  );
+
+  if (parseInt(check[0].active_attempts, 10) > 0) {
+    throw new AppError(
+      'SESSION_LOCKED',
+      'Sesi ujian tidak dapat dihapus karena sudah memiliki riwayat pengerjaan ujian. Anda dapat membatalkan atau memfinalisasikannya.'
+    );
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN;');
+
+    // Bersihkan attempts void jika ada
+    await client.query(
+      `DELETE FROM attempts 
+       WHERE enrollment_id IN (SELECT id FROM session_enrollments WHERE session_id = $1);`,
+      [sessionId]
+    );
+
+    // Hapus seluruh peserta terdaftar
+    await client.query('DELETE FROM session_enrollments WHERE session_id = $1;', [sessionId]);
+
+    // Hapus sesi ujian
+    const { rows } = await client.query('DELETE FROM exam_sessions WHERE id = $1 RETURNING *;', [sessionId]);
+
+    await logAudit(
+      {
+        actorId,
+        actorRole: 'admin',
+        action: 'sessions.delete',
+        entityType: 'exam_sessions',
+        entityId: sessionId,
+        beforeData: session,
+        ipAddress,
+      },
+      client
+    );
+
+    await client.query('COMMIT;');
+    return rows[0];
+  } catch (err) {
+    await client.query('ROLLBACK;');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 export async function setSessionAccessCode(sessionId: string, accessCode: string | null, actorId: string, ipAddress?: string) {
   let accessCodeHash: string | null = null;
   if (accessCode) {
@@ -226,113 +290,116 @@ export async function enrollStudents(
     const skipped: Array<{ identifier: string; reason: string }> = [];
     let enrolledCount = 0;
 
-    for (const ident of studentIdentifiers) {
-      const cleanIdent = ident.trim();
-      if (!cleanIdent) continue;
+    const cleanIdents = Array.from(new Set(studentIdentifiers.map((i) => i.trim()).filter(Boolean)));
+    if (cleanIdents.length === 0) {
+      await client.query('COMMIT;');
+      return { enrolled: 0, skipped: [] };
+    }
 
-      // Check capacity (Default max 27 per lab session)
-      const maxCapacity = s.capacity ?? 27;
+    // 1 kueri agregat untuk memvalidasi kelayakan seluruh kandidat pendaftar sekaligus (mengeliminasi 6N kueri)
+    const { rows: candidateRows } = await client.query(
+      `SELECT 
+        sp.identifier, sp.full_name, u.id AS user_id, u.status AS user_status,
+        EXISTS(
+          SELECT 1 FROM session_enrollments se 
+          WHERE se.session_id = $1 AND se.student_id = u.id
+        ) AS is_enrolled_here,
+        (
+          SELECT es3.name FROM session_enrollments se3
+          JOIN exam_sessions es3 ON es3.id = se3.session_id
+          WHERE se3.student_id = u.id 
+            AND es3.id <> $1 
+            AND es3.status <> 'cancelled'
+            AND (es3.starts_at < $4 AND es3.ends_at > $3)
+          LIMIT 1
+        ) AS overlap_session_name,
+        EXISTS(
+          SELECT 1 FROM results r
+          JOIN attempts a ON a.id = r.attempt_id
+          JOIN session_enrollments se4 ON se4.id = a.enrollment_id
+          JOIN exam_sessions es4 ON es4.id = se4.session_id
+          WHERE se4.student_id = u.id AND es4.exam_id = $2 AND r.passed = true AND r.status = 'published'
+        ) AS has_passed,
+        (
+          SELECT COUNT(*) FROM attempts a
+          JOIN session_enrollments se5 ON se5.id = a.enrollment_id
+          JOIN exam_sessions es5 ON es5.id = se5.session_id
+          WHERE se5.student_id = u.id AND es5.exam_id = $2 AND a.status <> 'void'
+        ) AS attempts_used,
+        EXISTS(
+          SELECT 1 FROM results r
+          JOIN attempts a ON a.id = r.attempt_id
+          JOIN session_enrollments se6 ON se6.id = a.enrollment_id
+          JOIN exam_sessions es6 ON es6.id = se6.session_id
+          WHERE se6.student_id = u.id AND es6.exam_id = $2 AND r.status = 'pending_publication'
+        ) AS has_pending_result
+      FROM student_profiles sp
+      JOIN users u ON u.id = sp.user_id
+      WHERE sp.identifier = ANY($5::text[]) AND u.deleted_at IS NULL;`,
+      [sessionId, s.exam_id, s.starts_at, s.ends_at, cleanIdents]
+    );
+
+    const studentMap = new Map<string, any>();
+    for (const row of candidateRows) {
+      studentMap.set(row.identifier, row);
+    }
+
+    const studentIdsToEnroll: string[] = [];
+    const maxCapacity = s.capacity ?? 27;
+
+    for (const ident of cleanIdents) {
+      const st = studentMap.get(ident);
+      if (!st) {
+        skipped.push({ identifier: ident, reason: 'Peserta tidak ditemukan' });
+        continue;
+      }
+
+      if (st.user_status === 'suspended') {
+        skipped.push({ identifier: ident, reason: 'Akun peserta dinonaktifkan' });
+        continue;
+      }
+
+      if (st.is_enrolled_here) {
+        skipped.push({ identifier: ident, reason: 'Sudah terdaftar di sesi ini' });
+        continue;
+      }
+
+      if (st.overlap_session_name) {
+        skipped.push({ identifier: ident, reason: `Jadwal tumpang tindih dengan sesi "${st.overlap_session_name}"` });
+        continue;
+      }
+
+      if (st.has_passed) {
+        skipped.push({ identifier: ident, reason: 'Peserta sudah lulus ujian ini' });
+        continue;
+      }
+
+      if (parseInt(st.attempts_used || '0', 10) >= s.max_attempts_per_student) {
+        skipped.push({ identifier: ident, reason: 'Batas kesempatan percobaan ujian sudah habis' });
+        continue;
+      }
+
+      if (st.has_pending_result) {
+        skipped.push({ identifier: ident, reason: 'Hasil percobaan sebelumnya belum dipublikasikan' });
+        continue;
+      }
+
       if (currentEnrolled >= maxCapacity) {
-        skipped.push({ identifier: cleanIdent, reason: `Kapasitas sesi penuh (maksimal ${maxCapacity} peserta)` });
+        skipped.push({ identifier: ident, reason: `Kapasitas sesi penuh (maksimal ${maxCapacity} peserta)` });
         continue;
       }
 
-      // Find student user
-      const { rows: studentRows } = await client.query(
-        `SELECT u.id, u.status, sp.identifier, sp.full_name
-         FROM student_profiles sp
-         JOIN users u ON u.id = sp.user_id
-         WHERE sp.identifier = $1 AND u.deleted_at IS NULL;`,
-        [cleanIdent]
-      );
-
-      if (studentRows.length === 0) {
-        skipped.push({ identifier: cleanIdent, reason: 'Peserta tidak ditemukan' });
-        continue;
-      }
-
-      const st = studentRows[0];
-      if (st.status === 'suspended') {
-        skipped.push({ identifier: cleanIdent, reason: 'Akun peserta dinonaktifkan' });
-        continue;
-      }
-
-      // Check ALREADY_ENROLLED
-      const { rows: enrolledCheck } = await client.query(
-        `SELECT id FROM session_enrollments WHERE session_id = $1 AND student_id = $2;`,
-        [sessionId, st.id]
-      );
-      if (enrolledCheck.length > 0) {
-        skipped.push({ identifier: cleanIdent, reason: 'Sudah terdaftar di sesi ini' });
-        continue;
-      }
-
-      // Check SCHEDULE_OVERLAP (INV-09, TC-09)
-      const { rows: overlapCheck } = await client.query(
-        `SELECT s2.name, s2.starts_at, s2.ends_at
-         FROM session_enrollments se2
-         JOIN exam_sessions s2 ON s2.id = se2.session_id
-         WHERE se2.student_id = $1
-           AND s2.status <> 'cancelled'
-           AND s2.id <> $2
-           AND (s2.starts_at < $3 AND s2.ends_at > $4);`,
-        [st.id, sessionId, s.ends_at, s.starts_at]
-      );
-      if (overlapCheck.length > 0) {
-        skipped.push({ identifier: cleanIdent, reason: `Jadwal tumpang tindih dengan sesi "${overlapCheck[0].name}"` });
-        continue;
-      }
-
-      // Check ALREADY_PASSED (TC-41)
-      const { rows: passedCheck } = await client.query(
-        `SELECT r.id FROM results r
-         JOIN attempts a ON a.id = r.attempt_id
-         JOIN session_enrollments se ON se.id = a.enrollment_id
-         JOIN exam_sessions es ON es.id = se.session_id
-         WHERE se.student_id = $1 AND es.exam_id = $2 AND r.passed = true AND r.status = 'published';`,
-        [st.id, s.exam_id]
-      );
-      if (passedCheck.length > 0) {
-        skipped.push({ identifier: cleanIdent, reason: 'Peserta sudah lulus ujian ini' });
-        continue;
-      }
-
-      // Check QUOTA_EXCEEDED
-      const { rows: attemptsCount } = await client.query(
-        `SELECT COUNT(*) AS total FROM attempts a
-         JOIN session_enrollments se ON se.id = a.enrollment_id
-         JOIN exam_sessions es ON es.id = se.session_id
-         WHERE se.student_id = $1 AND es.exam_id = $2 AND a.status <> 'void';`,
-        [st.id, s.exam_id]
-      );
-      if (parseInt(attemptsCount[0].total, 10) >= s.max_attempts_per_student) {
-        skipped.push({ identifier: cleanIdent, reason: 'Batas kesempatan percobaan ujian sudah habis' });
-        continue;
-      }
-
-      // Check PREVIOUS_RESULT_PENDING (TC-44)
-      const { rows: pendingResult } = await client.query(
-        `SELECT r.id FROM results r
-         JOIN attempts a ON a.id = r.attempt_id
-         JOIN session_enrollments se ON se.id = a.enrollment_id
-         JOIN exam_sessions es ON es.id = se.session_id
-         WHERE se.student_id = $1 AND es.exam_id = $2 AND r.status = 'pending_publication';`,
-        [st.id, s.exam_id]
-      );
-      if (pendingResult.length > 0) {
-        skipped.push({ identifier: cleanIdent, reason: 'Hasil percobaan sebelumnya belum dipublikasikan' });
-        continue;
-      }
-
-      // Insert enrollment
-      await client.query(
-        `INSERT INTO session_enrollments (session_id, student_id, registered_by)
-         VALUES ($1, $2, $3);`,
-        [sessionId, st.id, adminActorId]
-      );
-
+      studentIdsToEnroll.push(st.user_id);
       currentEnrolled++;
       enrolledCount++;
+    }
+
+    if (studentIdsToEnroll.length > 0) {
+      await client.query(
+        `INSERT INTO session_enrollments (session_id, student_id, registered_by)
+         SELECT $1, unnest($2::uuid[]), $3;`,
+        [sessionId, studentIdsToEnroll, adminActorId]
+      );
     }
 
     await logAudit(
@@ -386,6 +453,15 @@ export async function extendAllAttempts(
        AND status = 'in_progress'
      RETURNING id, deadline_at, extra_seconds;`,
     [extraSeconds, extraMinutes, sessionId]
+  );
+
+  // Pastikan waktu selesai sesi (ends_at) juga diperpanjang agar jendela sesi tetap terbuka
+  await pool.query(
+    `UPDATE exam_sessions
+     SET ends_at = GREATEST(ends_at, ends_at + ($1 || ' seconds')::interval),
+         updated_at = now()
+     WHERE id = $2;`,
+    [extraSeconds, sessionId]
   );
 
   await logAudit({
@@ -449,6 +525,9 @@ export async function publishSessionResults(
   const client = await pool.connect();
   try {
     await client.query('BEGIN;');
+
+    // Kunci sesi untuk mencegah race condition antar-admin saat mempublikasikan hasil
+    await client.query('SELECT id FROM exam_sessions WHERE id = $1 FOR UPDATE;', [sessionId]);
 
     // 3. Update status results menjadi published
     const { rows: publishedResults } = await client.query(
@@ -590,7 +669,7 @@ export async function regradeSession(
     const { rows: attempts } = await client.query(
       `SELECT 
         a.id AS attempt_id, a.status,
-        r.id AS result_id, r.raw_score AS old_raw_score, r.score AS old_score, r.passed AS old_passed, r.revision_no,
+        r.id AS result_id, r.status AS result_status, r.raw_score AS old_raw_score, r.score AS old_score, r.passed AS old_passed, r.revision_no,
         sp.identifier, sp.full_name,
         c.id AS certificate_id, c.status AS cert_status
        FROM attempts a
@@ -602,42 +681,62 @@ export async function regradeSession(
       [sessionId]
     );
 
-    const changes = [];
+    // 1. Ambil seluruh butir soal dan jawaban untuk seluruh attempt pada sesi ini dalam 1 kueri agregat (eliminasi N+1)
+    const { rows: allSessionQuestions } = await client.query(
+      `SELECT 
+        aq.attempt_id,
+        aq.id AS attempt_question_id,
+        qv.id AS question_version_id,
+        qv.weight,
+        qo_correct.id AS correct_option_id,
+        ans.selected_option_id
+       FROM attempt_questions aq
+       JOIN question_versions qv ON qv.id = aq.question_version_id
+       JOIN question_options qo_correct ON qo_correct.question_version_id = qv.id AND qo_correct.is_correct = true
+       LEFT JOIN attempt_answers ans ON ans.attempt_question_id = aq.id
+       JOIN attempts a ON a.id = aq.attempt_id
+       JOIN session_enrollments se ON se.id = a.enrollment_id
+       WHERE se.session_id = $1 AND a.status <> 'void'
+       ORDER BY aq.attempt_id, aq.position ASC;`,
+      [sessionId]
+    );
 
-    for (const att of attempts) {
-      // Ambil soal dan jawaban attempt
-      const { rows: questions } = await client.query(
-        `SELECT 
-          aq.id AS attempt_question_id,
-          qv.id AS question_version_id,
-          qv.weight,
-          qo_correct.id AS correct_option_id,
-          ans.selected_option_id
-         FROM attempt_questions aq
-         JOIN question_versions qv ON qv.id = aq.question_version_id
-         JOIN question_options qo_correct ON qo_correct.question_version_id = qv.id AND qo_correct.is_correct = true
-         LEFT JOIN attempt_answers ans ON ans.attempt_question_id = aq.id
-         WHERE aq.attempt_id = $1;`,
-        [att.attempt_id]
-      );
+    // Grouping pertanyaan per attempt_id di memori
+    const questionsByAttempt = new Map<string, any[]>();
+    const allSessionQvIds = new Set<string>();
+    for (const q of allSessionQuestions) {
+      const list = questionsByAttempt.get(q.attempt_id) || [];
+      list.push(q);
+      questionsByAttempt.set(q.attempt_id, list);
+      allSessionQvIds.add(q.question_version_id);
+    }
 
-      // Ambil koreksi soal
-      const qvIds = questions.map((q) => q.question_version_id);
+    // 2. Ambil seluruh koreksi soal untuk seluruh question_versions dalam 1 kueri
+    const correctionsMap = new Map();
+    if (allSessionQvIds.size > 0) {
       const { rows: corrections } = await client.query(
         `SELECT question_version_id, type, old_option_id, new_option_id
          FROM question_corrections
          WHERE question_version_id = ANY($1::uuid[]);`,
-        [qvIds]
+        [Array.from(allSessionQvIds)]
       );
 
-      const correctionsMap = new Map();
       for (const c of corrections) {
         const list = correctionsMap.get(c.question_version_id) || [];
         list.push(c);
         correctionsMap.set(c.question_version_id, list);
       }
+    }
 
+    const changes = [];
+
+    for (const att of attempts) {
+      const questions = questionsByAttempt.get(att.attempt_id) || [];
       const gradingItems = [];
+      const updateAqIds: string[] = [];
+      const updatePoints: number[] = [];
+      const updateIsCorrect: boolean[] = [];
+
       for (const q of questions) {
         const qRules = correctionsMap.get(q.question_version_id) || [];
         const itemScore = calculateQuestionPoints(
@@ -648,15 +747,28 @@ export async function regradeSession(
         );
 
         if (commit) {
-          await client.query(
-            `UPDATE attempt_answers
-             SET points_awarded = $1, is_correct = $2
-             WHERE attempt_question_id = $3;`,
-            [itemScore.pointsAwarded, itemScore.isCorrect, q.attempt_question_id]
-          );
+          updateAqIds.push(q.attempt_question_id);
+          updatePoints.push(itemScore.pointsAwarded);
+          updateIsCorrect.push(itemScore.isCorrect);
         }
 
         gradingItems.push(itemScore);
+      }
+
+      // Batch update attempt_answers dalam 1 round-trip per attempt
+      if (commit && updateAqIds.length > 0) {
+        await client.query(
+          `UPDATE attempt_answers AS a
+           SET points_awarded = v.points_awarded,
+               is_correct = v.is_correct
+           FROM (
+             SELECT unnest($1::uuid[]) AS attempt_question_id,
+                    unnest($2::numeric[]) AS points_awarded,
+                    unnest($3::boolean[]) AS is_correct
+           ) AS v
+           WHERE a.attempt_question_id = v.attempt_question_id;`,
+          [updateAqIds, updatePoints, updateIsCorrect]
+        );
       }
 
       const evaluated = evaluateScore(gradingItems, passingScore);
@@ -699,8 +811,8 @@ export async function regradeSession(
           );
         }
 
-        // Jika sebelumnya tidak lulus lalu jadi lulus -> terbitkan sertifikat baru
-        if (!att.old_passed && evaluated.passed) {
+        // Jika sebelumnya tidak lulus lalu jadi lulus dan hasil sudah berstatus published -> terbitkan sertifikat baru
+        if (!att.old_passed && evaluated.passed && att.result_status === 'published') {
           await issueCertificateForResult(att.result_id, adminActorId, client);
         }
       }
@@ -729,6 +841,7 @@ export async function regradeSession(
       affected_count: changes.filter((c) => c.score_diff !== 0).length,
       status_changed_count: changes.filter((c) => c.status_changed).length,
       diffs: changes,
+      changes,
     };
   } catch (err) {
     if (commit) await client.query('ROLLBACK;');
@@ -758,6 +871,10 @@ export async function previewEnrollStudents(
   if (sessionRows.length === 0) throw new AppError('NOT_FOUND');
   const s = sessionRows[0];
 
+  if (s.status === 'cancelled') {
+    throw new AppError('INVALID_TRANSITION', 'Tidak dapat memeriksa pendaftaran peserta pada sesi yang dibatalkan.');
+  }
+
   const { rows: countRows } = await pool.query(
     `SELECT COUNT(*) AS total FROM session_enrollments WHERE session_id = $1;`,
     [sessionId]
@@ -767,94 +884,106 @@ export async function previewEnrollStudents(
   const validStudents: Array<{ identifier: string; full_name: string }> = [];
   const skippedStudents: Array<{ identifier: string; reason: string }> = [];
 
-  for (const ident of studentIdentifiers) {
-    const cleanIdent = ident.trim();
-    if (!cleanIdent) continue;
+  const cleanIdents = Array.from(new Set(studentIdentifiers.map((i) => i.trim()).filter(Boolean)));
+  if (cleanIdents.length === 0) {
+    return {
+      total_submitted: 0,
+      valid_to_enroll: 0,
+      skipped_count: 0,
+      valid_students: [],
+      skipped_students: [],
+    };
+  }
 
-    const maxCapacity = s.capacity ?? 27;
+  // 1 kueri agregat untuk memeriksa seluruh data dan validasi kelayakan pendaftar (mengeliminasi 6N kueri)
+  const { rows: candidateRows } = await pool.query(
+    `SELECT 
+      sp.identifier, sp.full_name, u.id AS user_id, u.status AS user_status,
+      EXISTS(
+        SELECT 1 FROM session_enrollments se 
+        WHERE se.session_id = $1 AND se.student_id = u.id
+      ) AS is_enrolled_here,
+      (
+        SELECT es3.name FROM session_enrollments se3
+        JOIN exam_sessions es3 ON es3.id = se3.session_id
+        WHERE se3.student_id = u.id 
+          AND es3.id <> $1 
+          AND es3.status <> 'cancelled'
+          AND (es3.starts_at < $4 AND es3.ends_at > $3)
+        LIMIT 1
+      ) AS overlap_session_name,
+      EXISTS(
+        SELECT 1 FROM results r
+        JOIN attempts a ON a.id = r.attempt_id
+        JOIN session_enrollments se4 ON se4.id = a.enrollment_id
+        JOIN exam_sessions es4 ON es4.id = se4.session_id
+        WHERE se4.student_id = u.id AND es4.exam_id = $2 AND r.passed = true AND r.status = 'published'
+      ) AS has_passed,
+      (
+        SELECT COUNT(*) FROM attempts a
+        JOIN session_enrollments se5 ON se5.id = a.enrollment_id
+        JOIN exam_sessions es5 ON es5.id = se5.session_id
+        WHERE se5.student_id = u.id AND es5.exam_id = $2 AND a.status <> 'void'
+      ) AS attempts_used,
+      EXISTS(
+        SELECT 1 FROM results r
+        JOIN attempts a ON a.id = r.attempt_id
+        JOIN session_enrollments se6 ON se6.id = a.enrollment_id
+        JOIN exam_sessions es6 ON es6.id = se6.session_id
+        WHERE se6.student_id = u.id AND es6.exam_id = $2 AND r.status = 'pending_publication'
+      ) AS has_pending_result
+    FROM student_profiles sp
+    JOIN users u ON u.id = sp.user_id
+    WHERE sp.identifier = ANY($5::text[]) AND u.deleted_at IS NULL;`,
+    [sessionId, s.exam_id, s.starts_at, s.ends_at, cleanIdents]
+  );
+
+  const studentMap = new Map<string, any>();
+  for (const row of candidateRows) {
+    studentMap.set(row.identifier, row);
+  }
+
+  const maxCapacity = s.capacity ?? 27;
+
+  for (const ident of cleanIdents) {
+    const st = studentMap.get(ident);
+    if (!st) {
+      skippedStudents.push({ identifier: ident, reason: 'Peserta tidak ditemukan' });
+      continue;
+    }
+
+    if (st.user_status === 'suspended') {
+      skippedStudents.push({ identifier: ident, reason: 'Akun peserta dinonaktifkan' });
+      continue;
+    }
+
+    if (st.is_enrolled_here) {
+      skippedStudents.push({ identifier: ident, reason: 'Sudah terdaftar di sesi ini' });
+      continue;
+    }
+
+    if (st.overlap_session_name) {
+      skippedStudents.push({ identifier: ident, reason: `Jadwal tumpang tindih dengan sesi "${st.overlap_session_name}"` });
+      continue;
+    }
+
+    if (st.has_passed) {
+      skippedStudents.push({ identifier: ident, reason: 'Peserta sudah lulus ujian ini' });
+      continue;
+    }
+
+    if (parseInt(st.attempts_used || '0', 10) >= s.max_attempts_per_student) {
+      skippedStudents.push({ identifier: ident, reason: 'Batas kesempatan percobaan ujian sudah habis' });
+      continue;
+    }
+
+    if (st.has_pending_result) {
+      skippedStudents.push({ identifier: ident, reason: 'Hasil percobaan sebelumnya belum dipublikasikan' });
+      continue;
+    }
+
     if (simulatedEnrolled >= maxCapacity) {
-      skippedStudents.push({ identifier: cleanIdent, reason: `Kapasitas sesi penuh (maksimal ${maxCapacity} peserta)` });
-      continue;
-    }
-
-    const { rows: studentRows } = await pool.query(
-      `SELECT u.id, u.status, sp.identifier, sp.full_name
-       FROM student_profiles sp
-       JOIN users u ON u.id = sp.user_id
-       WHERE sp.identifier = $1 AND u.deleted_at IS NULL;`,
-      [cleanIdent]
-    );
-
-    if (studentRows.length === 0) {
-      skippedStudents.push({ identifier: cleanIdent, reason: 'Peserta tidak ditemukan' });
-      continue;
-    }
-
-    const st = studentRows[0];
-    if (st.status === 'suspended') {
-      skippedStudents.push({ identifier: cleanIdent, reason: 'Akun peserta dinonaktifkan' });
-      continue;
-    }
-
-    const { rows: enrolledCheck } = await pool.query(
-      `SELECT id FROM session_enrollments WHERE session_id = $1 AND student_id = $2;`,
-      [sessionId, st.id]
-    );
-    if (enrolledCheck.length > 0) {
-      skippedStudents.push({ identifier: cleanIdent, reason: 'Sudah terdaftar di sesi ini' });
-      continue;
-    }
-
-    const { rows: overlapCheck } = await pool.query(
-      `SELECT s2.name
-       FROM session_enrollments se2
-       JOIN exam_sessions s2 ON s2.id = se2.session_id
-       WHERE se2.student_id = $1
-         AND s2.status <> 'cancelled'
-         AND s2.id <> $2
-         AND (s2.starts_at < $3 AND s2.ends_at > $4);`,
-      [st.id, sessionId, s.ends_at, s.starts_at]
-    );
-    if (overlapCheck.length > 0) {
-      skippedStudents.push({ identifier: cleanIdent, reason: `Jadwal tumpang tindih dengan sesi "${overlapCheck[0].name}"` });
-      continue;
-    }
-
-    const { rows: passedCheck } = await pool.query(
-      `SELECT r.id FROM results r
-       JOIN attempts a ON a.id = r.attempt_id
-       JOIN session_enrollments se ON se.id = a.enrollment_id
-       JOIN exam_sessions es ON es.id = se.session_id
-       WHERE se.student_id = $1 AND es.exam_id = $2 AND r.passed = true AND r.status = 'published';`,
-      [st.id, s.exam_id]
-    );
-    if (passedCheck.length > 0) {
-      skippedStudents.push({ identifier: cleanIdent, reason: 'Peserta sudah lulus ujian ini' });
-      continue;
-    }
-
-    const { rows: attemptsCount } = await pool.query(
-      `SELECT COUNT(*) AS total FROM attempts a
-       JOIN session_enrollments se ON se.id = a.enrollment_id
-       JOIN exam_sessions es ON es.id = se.session_id
-       WHERE se.student_id = $1 AND es.exam_id = $2 AND a.status <> 'void';`,
-      [st.id, s.exam_id]
-    );
-    if (parseInt(attemptsCount[0].total, 10) >= s.max_attempts_per_student) {
-      skippedStudents.push({ identifier: cleanIdent, reason: 'Batas kesempatan percobaan ujian sudah habis' });
-      continue;
-    }
-
-    const { rows: pendingResult } = await pool.query(
-      `SELECT r.id FROM results r
-       JOIN attempts a ON a.id = r.attempt_id
-       JOIN session_enrollments se ON se.id = a.enrollment_id
-       JOIN exam_sessions es ON es.id = se.session_id
-       WHERE se.student_id = $1 AND es.exam_id = $2 AND r.status = 'pending_publication';`,
-      [st.id, s.exam_id]
-    );
-    if (pendingResult.length > 0) {
-      skippedStudents.push({ identifier: cleanIdent, reason: 'Hasil percobaan sebelumnya belum dipublikasikan' });
+      skippedStudents.push({ identifier: ident, reason: `Kapasitas sesi penuh (maksimal ${maxCapacity} peserta)` });
       continue;
     }
 

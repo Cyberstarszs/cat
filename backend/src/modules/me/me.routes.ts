@@ -270,7 +270,7 @@ export const meRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => 
           r.id, r.raw_score, r.max_score, r.score, r.passing_score, r.passed,
           r.status, r.revision_no, r.published_at,
           a.id AS attempt_id, a.attempt_no, a.started_at, a.submitted_at,
-          s.id AS session_id, s.name AS session_name, s.code AS session_code,
+          s.id AS session_id, s.name AS session_name, s.code AS session_code, s.status AS session_status, s.ends_at AS session_ends_at,
           e.id AS exam_id, e.title AS exam_title, e.allow_review,
           c.id AS certificate_id, c.certificate_no, c.verification_code,
           se.student_id
@@ -280,7 +280,7 @@ export const meRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => 
         JOIN exam_sessions s ON s.id = se.session_id
         JOIN exams e ON e.id = s.exam_id
         LEFT JOIN certificates c ON c.result_id = r.id AND c.status = 'valid'
-        WHERE r.id = $1 AND r.status = 'published';
+        WHERE r.id = $1 AND r.status IN ('published', 'pending_publication');
       `;
 
       const { rows } = await pool.query(query, [id]);
@@ -290,9 +290,10 @@ export const meRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => 
 
       const result = rows[0];
 
-      // If exam allow_review is true, fetch question review details (sanitized)
+      // Detail review soal hanya diizinkan jika allow_review = true, status sudah published resmi, dan sesi tidak sedang berlangsung di lab
       let reviewQuestions = null;
-      if (result.allow_review) {
+      const isSessionOngoing = result.session_status !== 'completed' && new Date(result.session_ends_at).getTime() > Date.now();
+      if (result.allow_review && result.status === 'published' && !isSessionOngoing) {
         const qQuery = `
           SELECT 
             aq.position,
@@ -360,7 +361,7 @@ export const meRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => 
 
       // Cek apakah hasil milik mahasiswa
       const { rows } = await pool.query(
-        `SELECT r.id, r.status, r.published_at, r.graded_at, se.student_id
+        `SELECT r.id, r.attempt_id, r.status, r.published_at, r.graded_at, se.student_id
          FROM results r
          JOIN attempts a ON a.id = r.attempt_id
          JOIN session_enrollments se ON se.id = a.enrollment_id
@@ -375,6 +376,17 @@ export const meRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => 
       const resRow = rows[0];
       if (isStudentRole(user.role) && resRow.student_id !== user.id) {
         throw new AppError('NOT_FOUND');
+      }
+
+      // Validasi butir soal yang disanggah benar-benar bagian dari attempt ujian ini
+      if (question_version_id) {
+        const { rows: qCheck } = await pool.query(
+          `SELECT 1 FROM attempt_questions WHERE attempt_id = $1 AND question_version_id = $2;`,
+          [resRow.attempt_id, question_version_id]
+        );
+        if (qCheck.length === 0) {
+          throw new AppError('VALIDATION_FAILED', 'Soal yang disanggah tidak terdapat pada riwayat ujian ini.');
+        }
       }
 
       // Periksa batas waktu sanggah (APPEAL_WINDOW_DAYS = 7 hari sejak publikasi atau penilaian)
@@ -421,6 +433,34 @@ export const meRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => 
         success: true,
         appeal: appealRows[0],
       });
+    },
+  });
+
+  // GET /me/appeals (M only, FR-R07)
+  fastify.get('/me/appeals', {
+    preHandler: [requireRoles(['student'])],
+    handler: async (request, reply) => {
+      const user = request.user!;
+
+      const { rows } = await pool.query(
+        `SELECT 
+          ap.id, ap.result_id, ap.question_version_id, ap.message, ap.message AS reason,
+          ap.response, ap.response AS admin_notes, ap.status, ap.created_at, ap.responded_at,
+          r.score, r.passed,
+          e.title AS exam_title,
+          s.name AS session_name
+         FROM appeals ap
+         JOIN results r ON r.id = ap.result_id
+         JOIN attempts a ON a.id = r.attempt_id
+         JOIN session_enrollments se ON se.id = a.enrollment_id
+         JOIN exam_sessions s ON s.id = se.session_id
+         JOIN exams e ON e.id = s.exam_id
+         WHERE ap.student_id = $1
+         ORDER BY ap.created_at DESC;`,
+        [user.id]
+      );
+
+      return reply.send({ data: rows });
     },
   });
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { alert } from '../../utils/alert';
 import { Menu, LogOut, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -13,6 +14,15 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onToggleSidebar, title
   const navigate = useNavigate();
 
   const handleLogout = async () => {
+    const confirmed = await alert.confirm({
+      title: 'Keluar dari Sesi Administrator?',
+      text: 'Pastikan seluruh perubahan data telah tersimpan sebelum keluar dari portal manajemen CAT.',
+      confirmButtonText: 'Ya, Keluar',
+      cancelButtonText: 'Batal',
+      icon: 'question',
+    });
+    if (!confirmed) return;
+
     await logout();
     navigate('/login');
   };

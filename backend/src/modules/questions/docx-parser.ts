@@ -1,4 +1,5 @@
 import AdmZip from 'adm-zip';
+import { detectCategoryHeader } from './category-detector.js';
 
 export interface ParsedOption {
   position: number;
@@ -95,45 +96,13 @@ export function parseDocxQuestions(buffer: Buffer, defaultCategory: string = 'Um
   let curSectionItems: RawParaItem[] = [];
 
   for (const item of rawItems) {
-    const textUpper = item.text.toUpperCase();
-
-    // Check for Section Header
-    if (
-      textUpper.includes('TES WAWASAN KEBANGSAAN') ||
-      textUpper.includes('(TWK)') ||
-      /^[A-Z]\.\s+TES\s+WAWASAN/i.test(item.text)
-    ) {
+    // Check for Section / Subtest Header (TWK, TIU, TKP, Subtes:, Bagian:, Kategori:, etc.)
+    const detected = detectCategoryHeader(item.text);
+    if (detected) {
       if (curSectionItems.length > 0) {
         sections.push({ category: curCategory, items: curSectionItems });
       }
-      curCategory = 'Tes Wawasan Kebangsaan';
-      curSectionItems = [];
-      continue;
-    }
-
-    if (
-      textUpper.includes('TES INTELIGENSI UMUM') ||
-      textUpper.includes('TES INTELEGENSI UMUM') ||
-      textUpper.includes('(TIU)') ||
-      /^[A-Z]\.\s+TES\s+INTEL/i.test(item.text)
-    ) {
-      if (curSectionItems.length > 0) {
-        sections.push({ category: curCategory, items: curSectionItems });
-      }
-      curCategory = 'Tes Inteligensia Umum';
-      curSectionItems = [];
-      continue;
-    }
-
-    if (
-      textUpper.includes('TES KARAKTERISTIK PRIBADI') ||
-      textUpper.includes('(TKP)') ||
-      /^[A-Z]\.\s+TES\s+KARAKTERISTIK/i.test(item.text)
-    ) {
-      if (curSectionItems.length > 0) {
-        sections.push({ category: curCategory, items: curSectionItems });
-      }
-      curCategory = 'Tes Karakteristik Pribadi';
+      curCategory = detected;
       curSectionItems = [];
       continue;
     }
@@ -264,13 +233,24 @@ export function parseDocxQuestions(buffer: Buffer, defaultCategory: string = 'Um
         }
       }
     } else {
-      // Fallback: If no red highlight is used, parse by option letter markers A. B. C. D. E.
+      // Fallback: If no red highlight is used, parse by option letter markers A. B. C. D. E. and explicit key markers
       let currentStem: string[] = [];
       let currentOpts: ParsedOption[] = [];
+      let pendingKey: string | null = null;
 
       function flush() {
         if (currentStem.length > 0 && currentOpts.length >= 2) {
+          if (pendingKey) {
+            currentOpts.forEach((o) => {
+              o.is_correct = o.letter === pendingKey;
+            });
+          }
+
           const correct = currentOpts.find((o) => o.is_correct) || currentOpts[0];
+          if (!currentOpts.some((o) => o.is_correct)) {
+            correct.is_correct = true;
+          }
+
           allQuestions.push({
             number: questionNumber++,
             category: catName,
@@ -283,21 +263,37 @@ export function parseDocxQuestions(buffer: Buffer, defaultCategory: string = 'Um
         }
         currentStem = [];
         currentOpts = [];
+        pendingKey = null;
       }
 
       for (const it of secItems) {
-        const optMatch = it.text.match(/^([A-E])[\.\)]\s*(.*)$/i);
-        if (optMatch && currentStem.length > 0) {
-          const letter = optMatch[1].toUpperCase();
+        const keyMatch = it.text.match(/^(?:kunci|jawaban|kunci\s*jawaban|ans|answer)\s*:\s*([A-E])/i);
+        if (keyMatch && currentOpts.length >= 2) {
+          pendingKey = keyMatch[1].toUpperCase();
+          flush();
+          continue;
+        }
+
+        const starMatch = it.text.match(/^[\*•]?\s*([A-E])[\.\)]\s*(.*)$/i);
+        const hasAsterisk = it.text.trim().startsWith('*') || it.text.includes('*');
+
+        if (starMatch && currentStem.length > 0) {
+          const letter = starMatch[1].toUpperCase();
+          const cleanText = starMatch[2].replace(/^\*\s*/, '').trim() || it.text;
+          const isMarkedCorrect = it.isRed || hasAsterisk;
+
           currentOpts.push({
             position: currentOpts.length + 1,
             letter,
-            option_text: optMatch[2].trim() || it.text,
-            is_correct: it.isRed,
+            option_text: cleanText,
+            is_correct: isMarkedCorrect,
           });
           if (currentOpts.length === 5) flush();
         } else {
-          if (currentOpts.length > 0) flush();
+          const isNewQuestionHeader = /^\d+[\.\)]\s+/.test(it.text.trim());
+          if (isNewQuestionHeader && currentOpts.length > 0) {
+            flush();
+          }
           currentStem.push(it.text);
         }
       }

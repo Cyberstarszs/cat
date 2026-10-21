@@ -15,7 +15,7 @@ import {
 
 const saveAnswerSchema = z.object({
   selected_option_id: z.string().uuid().optional().nullable(),
-  is_flagged: z.boolean().default(false),
+  is_flagged: z.boolean().optional().nullable(),
   client_seq: z.number().int().min(0),
 });
 
@@ -87,7 +87,7 @@ export const attemptRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
         id,
         posNum,
         selected_option_id || null,
-        is_flagged,
+        is_flagged !== undefined ? is_flagged : null,
         client_seq,
         user.id
       );
@@ -105,7 +105,7 @@ export const attemptRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
       const body = (request.body || {}) as {
         attempt_question_id?: string;
         selected_option_id?: string | null;
-        is_flagged?: boolean;
+        is_flagged?: boolean | null;
         client_seq?: number;
       };
 
@@ -127,7 +127,7 @@ export const attemptRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
         id,
         aqRows[0].position,
         selected_option_id || null,
-        is_flagged ?? false,
+        is_flagged !== undefined ? is_flagged : null,
         client_seq || 1,
         user.id
       );
@@ -214,7 +214,7 @@ export const attemptRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
       }
 
       const { event_type, client_time, detail } = parse.data;
-      const result = await recordAttemptEvent(id, event_type, client_time, detail);
+      const result = await recordAttemptEvent(id, event_type, client_time, detail, request.user!.id);
 
       return reply.status(201).send({ success: true, event: result });
     },
@@ -254,8 +254,23 @@ export const attemptRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
         throw new AppError('NOT_FOUND');
       }
 
-      // Jika diakses oleh siswa: kembalikan struktur soal dan opsi teracak tanpa membocorkan is_correct
+      // Jika diakses oleh siswa: kembalikan struktur soal dan opsi teracak hanya jika status masih in_progress
       if (isStudentRole(user.role)) {
+        if (att.status !== 'in_progress') {
+          return reply.send({
+            attempt: {
+              id: att.id,
+              session_id: att.session_id,
+              exam_title: att.exam_title,
+              status: att.status,
+              started_at: att.started_at,
+              duration_minutes: att.duration_minutes,
+              time_remaining_seconds: 0,
+              questions: [],
+            },
+          });
+        }
+
         const { questions: rawQuestions } = await getAttemptQuestions(id, user.id);
         const now = new Date();
         const deadline = new Date(att.deadline_at);

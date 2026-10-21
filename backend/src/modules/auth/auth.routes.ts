@@ -11,7 +11,7 @@ const loginSchema = z.object({
 
 const changePasswordSchema = z.object({
   old_password: z.string().min(1, 'Kata sandi lama wajib diisi'),
-  new_password: z.string().min(10, 'Kata sandi baru minimal 10 karakter'),
+  new_password: z.string().min(4, 'Kata sandi baru minimal 4 karakter'),
 });
 
 export const authRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
@@ -91,17 +91,13 @@ export const authRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =
     });
   });
 
-  // Handler ganti kata sandi - hanya untuk administrator
+  // Handler ganti kata sandi mandiri
   const handleChangePassword = async (request: any, reply: any) => {
     const user = request.user!;
 
-    if (user.role !== 'admin') {
-      throw new AppError('FORBIDDEN', 'Hanya administrator yang memiliki wewenang untuk mengatur kata sandi.');
-    }
-
     const parseResult = changePasswordSchema.safeParse(request.body);
     if (!parseResult.success) {
-      throw new AppError('VALIDATION_FAILED', 'Format kata sandi tidak memenuhi syarat (minimal 10 karakter)', parseResult.error.format());
+      throw new AppError('VALIDATION_FAILED', 'Format kata sandi tidak memenuhi syarat (minimal 4 karakter)', parseResult.error.format());
     }
 
     const { old_password, new_password } = parseResult.data;
@@ -124,5 +120,19 @@ export const authRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =
   fastify.post('/me/password', {
     preHandler: [authenticate],
     handler: handleChangePassword,
+  });
+
+  // Opsi lewati / dismiss ubah kata sandi (tetap pakai sandi lama & jalan normal)
+  fastify.post('/auth/dismiss-password-change', {
+    preHandler: [authenticate],
+    handler: async (request: any, reply: any) => {
+      const user = request.user!;
+      const { pool } = await import('../../db/connection.js');
+      await pool.query('UPDATE users SET must_change_password = false, updated_at = now() WHERE id = $1', [user.id]);
+      return reply.send({
+        success: true,
+        message: 'Kata sandi lama tetap digunakan dan berjalan normal.',
+      });
+    },
   });
 };

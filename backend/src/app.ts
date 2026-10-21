@@ -25,6 +25,7 @@ import { reportRoutes } from './modules/reports/reports.routes.js';
 import { appealRoutes } from './modules/appeals/appeals.routes.js';
 import { notificationRoutes } from './modules/notifications/notifications.routes.js';
 import { auditRoutes } from './modules/audit/audit.routes.js';
+import { settingsRoutes } from './modules/settings/settings.routes.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const fastify = Fastify({
@@ -183,6 +184,7 @@ export async function buildApp(): Promise<FastifyInstance> {
       await v1.register(appealRoutes);
       await v1.register(notificationRoutes);
       await v1.register(auditRoutes);
+      await v1.register(settingsRoutes);
     },
     { prefix: '/api/v1' }
   );

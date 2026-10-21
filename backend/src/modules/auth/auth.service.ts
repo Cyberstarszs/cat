@@ -263,14 +263,6 @@ export async function changeUserPassword(
     );
   }
 
-  // Password complexity check
-  if (!/[a-z]/.test(newPass) || !/[A-Z]/.test(newPass) || !/[0-9]/.test(newPass)) {
-    throw new AppError(
-      'VALIDATION_FAILED',
-      'Kata sandi harus mengandung kombinasi huruf besar, huruf kecil, dan angka.'
-    );
-  }
-
   if (oldPass === newPass) {
     throw new AppError('VALIDATION_FAILED', 'Kata sandi baru tidak boleh sama dengan kata sandi saat ini.');
   }

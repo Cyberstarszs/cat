@@ -435,6 +435,90 @@ export async function commitStudentImport(
   totalImported: number;
   skippedCount: number;
 }> {
+  let skipped = 0;
+  const seenEmails = new Set<string>();
+  const seenIdentifiers = new Set<string>();
+  const candidates: Array<{
+    cleanEmail: string;
+    cleanIdentifier: string;
+    cleanFullName: string;
+    inst: string;
+    phone: string | null;
+    userRole: 'mahasiswa' | 'umum';
+  }> = [];
+
+  for (const student of studentsToImport) {
+    const cleanEmail = (student.email || '').trim().toLowerCase();
+    const cleanIdentifier = (student.identifier || '').trim();
+    const cleanFullName = (student.fullName || '').trim();
+
+    if (!cleanEmail || !cleanIdentifier || !cleanFullName) {
+      skipped++;
+      continue;
+    }
+
+    // Hindari duplikasi intra-batch CSV yang sama
+    if (seenEmails.has(cleanEmail) || seenIdentifiers.has(cleanIdentifier)) {
+      skipped++;
+      continue;
+    }
+
+    seenEmails.add(cleanEmail);
+    seenIdentifiers.add(cleanIdentifier);
+
+    const userRole = student.role === 'umum' || (student.institution && student.institution.toLowerCase().includes('umum'))
+      ? 'umum'
+      : 'mahasiswa';
+    const inst = student.institution?.trim() || (userRole === 'umum' ? 'Umum' : 'ADMINISTRASI PUBLIK');
+
+    candidates.push({
+      cleanEmail,
+      cleanIdentifier,
+      cleanFullName,
+      inst,
+      phone: student.phone ? student.phone.trim() : null,
+      userRole,
+    });
+  }
+
+  // 1 kueri untuk memeriksa seluruh email & identitas yang sudah ada di database
+  const candidateEmails = candidates.map((c) => c.cleanEmail);
+  const candidateIdentifiers = candidates.map((c) => c.cleanIdentifier);
+
+  const existingInDb = await pool.query(
+    `SELECT lower(u.email) AS email, sp.identifier
+     FROM users u
+     LEFT JOIN student_profiles sp ON sp.user_id = u.id
+     WHERE (lower(u.email) = ANY($1::text[]) OR sp.identifier = ANY($2::text[]))
+       AND u.deleted_at IS NULL;`,
+    [candidateEmails, candidateIdentifiers]
+  );
+
+  const dbEmails = new Set(existingInDb.rows.map((r: any) => (r.email || '').toLowerCase()));
+  const dbIdents = new Set(existingInDb.rows.map((r: any) => r.identifier));
+
+  const validToImport: typeof candidates = [];
+  for (const c of candidates) {
+    if (dbEmails.has(c.cleanEmail) || dbIdents.has(c.cleanIdentifier)) {
+      skipped++;
+    } else {
+      validToImport.push(c);
+    }
+  }
+
+  // Generate sandi sementara dan hash bcrypt secara asinkron SEBELUM membuka transaksi (lock-short-transactions)
+  const preparedRecords = await Promise.all(
+    validToImport.map(async (item) => {
+      const tempPassword = generateNumeric6DigitPassword();
+      const passwordHash = await hashPassword(tempPassword);
+      return {
+        ...item,
+        tempPassword,
+        passwordHash,
+      };
+    })
+  );
+
   const client = await pool.connect();
   const credentials: ImportCredentialItem[] = [];
 
@@ -442,43 +526,20 @@ export async function commitStudentImport(
     await client.query('BEGIN;');
 
     let imported = 0;
-    let skipped = 0;
 
-    for (const student of studentsToImport) {
-      // Check existing in DB
-      const check = await client.query(
-        `SELECT u.id FROM users u
-         LEFT JOIN student_profiles sp ON sp.user_id = u.id
-         WHERE (lower(u.email) = $1 OR sp.identifier = $2) AND u.deleted_at IS NULL;`,
-        [student.email.toLowerCase(), student.identifier]
-      );
-
-      if (check.rows.length > 0) {
-        skipped++;
-        continue;
-      }
-
-      const userRole = student.role === 'umum' || (student.institution && student.institution.toLowerCase().includes('umum'))
-        ? 'umum'
-        : 'mahasiswa';
-
-      const tempPassword = generateNumeric6DigitPassword();
-      const passwordHash = await hashPassword(tempPassword);
-
+    for (const item of preparedRecords) {
       const { rows: uRows } = await client.query(
         `INSERT INTO users (email, password_hash, role, status, must_change_password)
          VALUES ($1, $2, $3, 'active', false)
          RETURNING id;`,
-        [student.email.toLowerCase(), passwordHash, userRole]
+        [item.cleanEmail, item.passwordHash, item.userRole]
       );
       const userId = uRows[0].id;
-
-      const inst = student.institution?.trim() || (userRole === 'umum' ? 'Umum' : 'ADMINISTRASI PUBLIK');
 
       await client.query(
         `INSERT INTO student_profiles (user_id, identifier, full_name, institution, phone, initial_password)
          VALUES ($1, $2, $3, $4, $5, $6);`,
-        [userId, student.identifier, student.fullName, inst, student.phone || null, tempPassword]
+        [userId, item.cleanIdentifier, item.cleanFullName, item.inst, item.phone, item.tempPassword]
       );
 
       await client.query(
@@ -487,12 +548,12 @@ export async function commitStudentImport(
       );
 
       credentials.push({
-        identifier: student.identifier,
-        name: student.fullName,
-        email: student.email,
-        tempPassword,
-        role: userRole,
-        institution: inst,
+        identifier: item.cleanIdentifier,
+        name: item.cleanFullName,
+        email: item.cleanEmail,
+        tempPassword: item.tempPassword,
+        role: item.userRole,
+        institution: item.inst,
       });
 
       imported++;

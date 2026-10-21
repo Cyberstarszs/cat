@@ -11,6 +11,7 @@ export default defineConfig({
       'tests/integration/api.test.ts',
       'tests/integration/advanced-invariants.test.ts',
       'tests/integration/audit-completion.test.ts',
+      'tests/integration/audit-cycle4.test.ts',
     ],
   },
 });

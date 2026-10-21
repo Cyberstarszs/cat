@@ -15,11 +15,10 @@ export const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const [isAdminMode, setIsAdminMode] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // If already authenticated, redirect automatically based on role
+  // Jika sudah terautentikasi, alihkan langsung berdasarkan peran
   useEffect(() => {
     if (isAuthenticated && user) {
       if (user.role === 'admin') {
@@ -38,21 +37,28 @@ export const LoginPage: React.FC = () => {
     try {
       const res = await login(identifier.trim(), password);
       showToast(
-        isAdminMode ? 'Login Administrator berhasil.' : 'Berhasil masuk ke Portal Peserta.',
+        res.user.role === 'admin'
+          ? 'Login Administrator berhasil.'
+          : 'Berhasil masuk ke Portal Peserta.',
         'success'
       );
 
-      const fromPath = (location.state as any)?.from?.pathname;
+      // Pertahankan rute tujuan (redirect) jika ada
+      const searchRedirect = new URLSearchParams(location.search).get('redirect');
+      const fromLoc = (location.state as any)?.from;
+      const targetUrl = fromLoc
+        ? `${fromLoc.pathname || ''}${fromLoc.search || ''}${fromLoc.hash || ''}`
+        : searchRedirect || null;
 
       if (res.user.role === 'admin') {
-        if (fromPath && fromPath.startsWith('/admin')) {
-          navigate(fromPath, { replace: true });
+        if (targetUrl && targetUrl.startsWith('/admin')) {
+          navigate(targetUrl, { replace: true });
         } else {
           navigate('/admin/dashboard', { replace: true });
         }
       } else {
-        if (fromPath && !fromPath.startsWith('/admin') && fromPath !== '/login') {
-          navigate(fromPath, { replace: true });
+        if (targetUrl && !targetUrl.startsWith('/admin') && targetUrl !== '/login') {
+          navigate(targetUrl, { replace: true });
         } else {
           navigate('/dashboard', { replace: true });
         }
@@ -85,20 +91,13 @@ export const LoginPage: React.FC = () => {
               alt="CAT Governance FIA Universitas Madura"
             />
           </div>
-          <span className="system-live">
-            <i /> SISTEM AKTIF
-          </span>
         </div>
 
         <div className="auth-heading">
-          <div className="eyebrow">
-            {isAdminMode ? 'PORTAL ADMINISTRATOR / CAT 2026' : 'PORTAL PESERTA / CAT 2026'}
-          </div>
-          <h1>{isAdminMode ? 'Masuk Administrator' : 'Portal Ujian Kompetensi'}</h1>
+          <div className="eyebrow">PORTAL CAT FIA / 2026</div>
+          <h1>Masuk ke Sistem CAT</h1>
           <p>
-            {isAdminMode
-              ? 'Kelola user, ujian, bank soal, jadwal, dan hasil asesmen.'
-              : 'Akses ujian kompetensi dan hasil asesmen resmi.'}
+            Masukkan alamat email atau NIM dan kata sandi akun Anda.
           </p>
         </div>
 
@@ -113,11 +112,15 @@ export const LoginPage: React.FC = () => {
 
         <form className="auth-fields" onSubmit={handleSubmit}>
           <label>
-            <span>{isAdminMode ? 'Alamat email' : 'Alamat email atau NIM'}</span>
+            <span>Alamat email atau NIM</span>
             <input
+              id="auth-identifier"
+              name="identifier"
               required
-              type={isAdminMode ? 'email' : 'text'}
-              placeholder={isAdminMode ? 'admin@email.com' : 'nama@email.com atau NIM'}
+              type="text"
+              autoComplete="username"
+              spellCheck={false}
+              placeholder="nama@email.com atau NIM"
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
               autoFocus
@@ -127,8 +130,11 @@ export const LoginPage: React.FC = () => {
           <label className="auth-password-field">
             <span>Kata sandi</span>
             <input
+              id="auth-password"
+              name="password"
               required
               type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
               minLength={1}
               placeholder="Minimal 8 karakter"
               value={password}
@@ -138,6 +144,7 @@ export const LoginPage: React.FC = () => {
               type="button"
               className="auth-password-toggle"
               onClick={() => setShowPassword((value) => !value)}
+              aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
             >
               {showPassword ? 'Sembunyikan' : 'Tampilkan'}
             </button>
@@ -145,6 +152,8 @@ export const LoginPage: React.FC = () => {
 
           <label className="check">
             <input
+              id="auth-remember"
+              name="rememberMe"
               type="checkbox"
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
@@ -158,11 +167,7 @@ export const LoginPage: React.FC = () => {
             disabled={loading}
           >
             <FigmaIcon name="shield" />
-            {loading
-              ? 'MEMPROSES...'
-              : isAdminMode
-              ? 'MASUK SEBAGAI ADMIN'
-              : 'MASUK KE PORTAL'}
+            {loading ? 'MEMPROSES…' : 'MASUK KE SISTEM'}
           </button>
         </form>
 
@@ -175,20 +180,6 @@ export const LoginPage: React.FC = () => {
         >
           Lupa kata sandi?
         </button>
-
-        <div className="admin-role-entry">
-          <span>{isAdminMode ? 'Akses peserta ujian' : 'Akses pengelolaan sistem'}</span>
-          <button
-            type="button"
-            onClick={() => {
-              setIsAdminMode((prev) => !prev);
-              setError(null);
-            }}
-          >
-            <FigmaIcon name="shield" />
-            {isAdminMode ? 'Kembali ke Portal Peserta' : 'Role Administrator'}
-          </button>
-        </div>
       </section>
 
       <div className="auth-caption">CAT • ASSESSMENT • GOVERNANCE</div>

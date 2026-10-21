@@ -73,12 +73,17 @@ export const VerifyPage: React.FC = () => {
       <div className="max-w-xl mx-auto mb-10">
         <form onSubmit={handleSubmit} className="flex gap-2">
           <Input
+            id="verification-code-input"
+            name="verificationCode"
             placeholder="Kode verifikasi (contoh: A1B2C3D4E5F6)"
             value={inputCode}
             onChange={(e) => setInputCode(e.target.value.toUpperCase())}
             leftIcon={<QrCode className="w-4 h-4 text-gray-400" />}
-            className="font-mono tracking-widest text-center uppercase"
+            className="font-mono tracking-widest uppercase"
             required
+            aria-label="Kode verifikasi sertifikat"
+            autoComplete="off"
+            spellCheck={false}
           />
           <Button type="submit" variant="primary" isLoading={loading} rightIcon={<Search className="w-4 h-4" />}>
             Cek Sertifikat
@@ -146,7 +151,9 @@ export const VerifyPage: React.FC = () => {
                   <div>
                     <div className="text-[10px] text-[#595562] uppercase font-bold">Penerima Sertifikat</div>
                     <div className="font-bold text-sm text-[#24212b]">{certificate.recipient.name}</div>
-                    <div className="text-[#595562]">Identitas: {certificate.recipient.identifier}</div>
+                    <div className="text-[#595562]">
+                      {certificate.recipient.identifier?.startsWith('UMUM') ? 'No. Peserta' : 'NIM'}: {certificate.recipient.identifier}
+                    </div>
                   </div>
                 </div>
 

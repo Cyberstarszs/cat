@@ -6,6 +6,7 @@ import { AppError } from '../../lib/errors.js';
 import { CONSTANTS } from '../../config/constants.js';
 import { logAudit } from '../audit/audit.service.js';
 import { publishSessionResults } from '../sessions/sessions.service.js';
+import { issueCertificateForResult } from '../certificates/certificates.service.js';
 
 const submitAppealSchema = z
   .object({
@@ -122,7 +123,7 @@ export const resultRoutes: FastifyPluginAsync = async (fastify: FastifyInstance)
           r.*,
           a.id AS attempt_id, a.attempt_no, a.started_at, a.submitted_at, a.submit_reason, a.extra_seconds,
           sp.identifier, sp.full_name, sp.full_name AS student_name, sp.institution, sp.phone, u.email,
-          s.id AS session_id, s.name AS session_name, s.code AS session_code,
+          s.id AS session_id, s.name AS session_name, s.code AS session_code, s.status AS session_status, s.ends_at AS session_ends_at,
           e.id AS exam_id, e.title AS exam_title, e.allow_review,
           c.id AS certificate_id, c.certificate_no, c.verification_code, c.status AS cert_status,
           se.student_id,
@@ -176,29 +177,57 @@ export const resultRoutes: FastifyPluginAsync = async (fastify: FastifyInstance)
         [result.attempt_id]
       );
 
-      if (isStudentRole(user.role) && !result.allow_review) {
-        for (const ans of answers) {
-          delete ans.correct_label;
-          delete ans.correct_text;
-          delete ans.explanation;
+      let finalAnswers = answers;
+      if (isStudentRole(user.role)) {
+        const isSessionOngoing = result.session_status !== 'completed' && new Date(result.session_ends_at).getTime() > Date.now();
+        if (!result.allow_review || result.status !== 'published' || isSessionOngoing) {
+          // Cegah pembocoran butir soal & kunci jawaban jika:
+          // 1. allow_review = false
+          // 2. status nilai belum berstatus 'published' resmi oleh panitia
+          // 3. sesi ujian masih berlangsung (mencegah pembocoran ke peserta lain di lab yang sama)
+          finalAnswers = [];
         }
       }
 
-      return reply.send({ result: { ...result, answers } });
+      return reply.send({ result: { ...result, answers: finalAnswers } });
     },
   });
 
-  // POST /results/:id/publish (A)
+  // POST /results/:id/publish (A, FR-R02, INV-09)
   fastify.post('/results/:id/publish', {
     preHandler: [requireRoles(['admin'])],
     handler: async (request, reply) => {
       const { id } = request.params as { id: string };
+      const adminId = request.user!.id;
+
       const { rows } = await pool.query(
-        `UPDATE results SET status = 'published', published_at = now() WHERE id = $1 RETURNING id, status, published_at;`,
-        [id]
+        `UPDATE results 
+         SET status = 'published', 
+             published_at = now(),
+             published_by = $1
+         WHERE id = $2 
+         RETURNING id, passed, score, status, published_at;`,
+        [adminId, id]
       );
       if (rows.length === 0) throw new AppError('NOT_FOUND');
-      return reply.send({ success: true, result: rows[0] });
+
+      const result = rows[0];
+      let cert = null;
+      if (result.passed) {
+        cert = await issueCertificateForResult(id, adminId);
+      }
+
+      await logAudit({
+        actorId: adminId,
+        actorRole: 'admin',
+        action: 'results.publish',
+        entityType: 'results',
+        entityId: id,
+        afterData: { ...result, certificate_issued: !!cert },
+        ipAddress: request.ip,
+      });
+
+      return reply.send({ success: true, result, certificate: cert });
     },
   });
 
@@ -229,7 +258,7 @@ export const resultRoutes: FastifyPluginAsync = async (fastify: FastifyInstance)
 
       // Cek apakah hasil ujian valid dan milik mahasiswa
       const { rows } = await pool.query(
-        `SELECT r.id, r.status, r.published_at, r.graded_at, se.student_id
+        `SELECT r.id, r.attempt_id, r.status, r.published_at, r.graded_at, se.student_id
          FROM results r
          JOIN attempts a ON a.id = r.attempt_id
          JOIN session_enrollments se ON se.id = a.enrollment_id
@@ -244,6 +273,17 @@ export const resultRoutes: FastifyPluginAsync = async (fastify: FastifyInstance)
       const resRow = rows[0];
       if (isStudentRole(user.role) && resRow.student_id !== user.id) {
         throw new AppError('NOT_FOUND');
+      }
+
+      // Validasi butir soal yang disanggah benar-benar bagian dari attempt ujian ini
+      if (question_version_id) {
+        const { rows: qCheck } = await pool.query(
+          `SELECT 1 FROM attempt_questions WHERE attempt_id = $1 AND question_version_id = $2;`,
+          [resRow.attempt_id, question_version_id]
+        );
+        if (qCheck.length === 0) {
+          throw new AppError('VALIDATION_FAILED', 'Soal yang disanggah tidak terdapat pada riwayat ujian ini.');
+        }
       }
 
       // Periksa batas waktu sanggah (APPEAL_WINDOW_DAYS = 7 hari sejak hasil diterbitkan atau dinilai)

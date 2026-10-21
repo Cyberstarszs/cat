@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { User, StudentProfile, LoginResponse } from '../types';
 import { authService } from '../services';
+import { apiClient } from '../services/api';
 
 interface AuthContextType {
   user: User | null;
@@ -12,6 +13,7 @@ interface AuthContextType {
   login: (identifierOrEmail: string, password: string) => Promise<LoginResponse>;
   logout: () => Promise<void>;
   changePassword: (oldPass: string, newPass: string) => Promise<void>;
+  dismissPasswordChange: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
 
@@ -51,14 +53,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       } else {
         localStorage.removeItem('cat_profile');
       }
-    } catch {
-      // Jika token kedaluwarsa, bersihkan sesi
-      localStorage.removeItem('cat_token');
-      localStorage.removeItem('cat_user');
-      localStorage.removeItem('cat_profile');
-      setToken(null);
-      setUser(null);
-      setProfile(null);
+    } catch (err: any) {
+      // Hanya bersihkan sesi jika server secara eksplisit menolak kredensial (401),
+      // hindari logout mendadak saat ada gangguan jaringan sementara
+      if (err?.response?.status === 401 || err?.status === 401) {
+        localStorage.removeItem('cat_token');
+        localStorage.removeItem('cat_user');
+        localStorage.removeItem('cat_profile');
+        setToken(null);
+        setUser(null);
+        setProfile(null);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -68,10 +73,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     refreshProfile();
   }, [refreshProfile]);
 
+  // Sinkronisasi status autentikasi antar tab browser
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'cat_token') {
+        if (!e.newValue) {
+          setToken(null);
+          setUser(null);
+          setProfile(null);
+        } else {
+          setToken(e.newValue);
+          refreshProfile();
+        }
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [refreshProfile]);
+
   const login = async (identifierOrEmail: string, password: string): Promise<LoginResponse> => {
     const res = await authService.login(identifierOrEmail, password);
     localStorage.setItem('cat_token', res.token);
     setToken(res.token);
+    apiClient.defaults.headers.common.Authorization = `Bearer ${res.token}`;
 
     // Format user object
     const authUser: User = {
@@ -86,14 +110,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUser(authUser);
     localStorage.setItem('cat_user', JSON.stringify(authUser));
 
-    if (res.user.student_profile) {
-      setProfile(res.user.student_profile);
-      localStorage.setItem('cat_profile', JSON.stringify(res.user.student_profile));
+    const userProfile =
+      res.user.student_profile || (res.user as any)?.profile || null;
+
+    if (userProfile) {
+      setProfile(userProfile);
+      localStorage.setItem('cat_profile', JSON.stringify(userProfile));
     } else {
       setProfile(null);
       localStorage.removeItem('cat_profile');
     }
 
+    setIsLoading(false);
     return res;
   };
 
@@ -101,6 +129,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       await authService.logout();
     } finally {
+      delete apiClient.defaults.headers.common.Authorization;
       localStorage.removeItem('cat_token');
       localStorage.removeItem('cat_user');
       localStorage.removeItem('cat_profile');
@@ -119,6 +148,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const dismissPasswordChange = async (): Promise<void> => {
+    await authService.dismissPasswordChange();
+    if (user) {
+      const updatedUser = { ...user, must_change_password: false };
+      setUser(updatedUser);
+      localStorage.setItem('cat_user', JSON.stringify(updatedUser));
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -127,10 +165,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         token,
         isAuthenticated: !!token && !!user,
         isLoading,
-        mustChangePassword: false,
+        mustChangePassword: Boolean(user?.must_change_password),
         login,
         logout,
         changePassword,
+        dismissPasswordChange,
         refreshProfile,
       }}
     >

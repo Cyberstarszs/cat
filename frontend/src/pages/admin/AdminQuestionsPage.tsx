@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { questionService, examService } from '../../services';
+import { QuestionImportView } from './AdminImportQuestionsPage';
 import { Question, ExamCategory } from '../../types';
 import { useToast } from '../../context/ToastContext';
+import { alert } from '../../utils/alert';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -27,6 +29,7 @@ import {
   Layers,
   Upload,
   BookOpen,
+  Trash2,
 } from 'lucide-react';
 
 export const AdminQuestionsPage: React.FC = () => {
@@ -40,6 +43,29 @@ export const AdminQuestionsPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('');
   const [availableYears, setAvailableYears] = useState<number[]>([]);
+  // Tab Terpadu: 'library' (Pustaka Soal) vs 'import' (Fitur Impor Soal)
+  const tabQuery = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState<'library' | 'import'>(
+    tabQuery === 'import' ? 'import' : 'library'
+  );
+
+  useEffect(() => {
+    const t = searchParams.get('tab');
+    if (t === 'import') {
+      setActiveTab('import');
+    } else {
+      setActiveTab('library');
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (tab: 'library' | 'import') => {
+    setActiveTab(tab);
+    if (tab === 'import') {
+      setSearchParams({ tab: 'import' });
+    } else {
+      setSearchParams(selectedYear ? { year: String(selectedYear) } : {});
+    }
+  };
 
   // Selected Year for card drill-down navigation
   const yearQuery = searchParams.get('year');
@@ -101,6 +127,124 @@ export const AdminQuestionsPage: React.FC = () => {
   const [simulatedImpact, setSimulatedImpact] = useState<any>(null);
   const [simulating, setSimulating] = useState(false);
   const [applyingCorrection, setApplyingCorrection] = useState(false);
+
+
+  // Edit Question (Create New Version) State
+  const [editQuestionModalOpen, setEditQuestionModalOpen] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [editQStem, setEditQStem] = useState('');
+  const [editQWeight, setEditQWeight] = useState(1);
+  const [editOptions, setEditOptions] = useState([
+    { label: 'A', text: '', is_correct: true },
+    { label: 'B', text: '', is_correct: false },
+    { label: 'C', text: '', is_correct: false },
+    { label: 'D', text: '', is_correct: false },
+    { label: 'E', text: '', is_correct: false },
+  ]);
+  const [savingNewVersion, setSavingNewVersion] = useState(false);
+
+  const openEditQuestionModal = async (q: Question) => {
+    try {
+      const detailed = await questionService.getQuestionById(q.id);
+      setEditingQuestion(detailed);
+      setEditQStem(detailed.stem || '');
+      setEditQWeight(detailed.weight || 1);
+      
+      const opts = detailed.options && detailed.options.length >= 2
+        ? detailed.options.map((o: any, idx: number) => ({
+            label: o.label || String.fromCharCode(65 + idx),
+            text: o.text || o.option_text || '',
+            is_correct: !!o.is_correct,
+          }))
+        : [
+            { label: 'A', text: '', is_correct: true },
+            { label: 'B', text: '', is_correct: false },
+            { label: 'C', text: '', is_correct: false },
+            { label: 'D', text: '', is_correct: false },
+            { label: 'E', text: '', is_correct: false },
+          ];
+      
+      setEditOptions(opts);
+      setEditQuestionModalOpen(true);
+    } catch (err: any) {
+      showToast(err.message || 'Gagal memuat detail butir soal untuk diedit.', 'error');
+    }
+  };
+
+  const handleEditOptionCorrectChange = (index: number) => {
+    setEditOptions((prev) =>
+      prev.map((opt, i) => ({
+        ...opt,
+        is_correct: i === index,
+      }))
+    );
+  };
+
+  const handleEditOptionTextChange = (index: number, text: string) => {
+    setEditOptions((prev) =>
+      prev.map((opt, i) => (i === index ? { ...opt, text } : opt))
+    );
+  };
+
+  const handleSaveNewVersion = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingQuestion) return;
+    if (!editQStem.trim()) {
+      showToast('Teks pertanyaan (stem) wajib diisi.', 'error');
+      return;
+    }
+    const hasEmptyOption = editOptions.some((o) => !o.text.trim());
+    if (hasEmptyOption) {
+      showToast('Semua pilihan opsi jawaban wajib diisi teksnya.', 'error');
+      return;
+    }
+    const correctCount = editOptions.filter((o) => o.is_correct).length;
+    if (correctCount !== 1) {
+      showToast('Harus ada tepat satu kunci jawaban yang benar.', 'error');
+      return;
+    }
+
+    setSavingNewVersion(true);
+    try {
+      await questionService.createNewVersion(editingQuestion.id, {
+        stem: editQStem.trim(),
+        weight: Number(editQWeight),
+        options: editOptions.map((o, idx) => ({
+          label: o.label,
+          position: idx + 1,
+          text: o.text.trim(),
+          option_text: o.text.trim(),
+          is_correct: o.is_correct,
+        } as any)),
+      });
+      showToast(`Versi baru butir soal ${editingQuestion.code || ''} berhasil diterbitkan!`, 'success');
+      setEditQuestionModalOpen(false);
+      fetchQuestionsAndCategories();
+    } catch (err: any) {
+      showToast(err.message || 'Gagal menyimpan versi baru soal.', 'error');
+    } finally {
+      setSavingNewVersion(false);
+    }
+  };
+
+  const handleDeleteQuestion = async (q: Question) => {
+    const qCodeName = q.code || `Q-${q.id.slice(0, 8)}`;
+    const confirmed = await alert.confirm({
+      title: 'Hapus / Arsipkan Soal?',
+      text: `Apakah Anda yakin ingin menghapus butir soal "${qCodeName}"? Soal ini akan diarsipkan dan tidak akan ditarik pada sesi ujian baru.`,
+      confirmButtonText: 'Ya, Hapus Butir Soal',
+      isDangerous: true,
+    });
+    if (!confirmed) return;
+
+    try {
+      await questionService.deleteQuestion(q.id);
+      alert.toast(`Butir soal "${qCodeName}" berhasil dihapus.`, 'success');
+      fetchQuestionsAndCategories();
+    } catch (err: any) {
+      alert.error('Gagal Menghapus Soal', err?.response?.data?.message || err.message || 'Terjadi kesalahan sistem.');
+    }
+  };
 
   // Edit Question Year Modal
   const [editYearModalOpen, setEditYearModalOpen] = useState(false);
@@ -200,6 +344,10 @@ export const AdminQuestionsPage: React.FC = () => {
 
   const handleSaveQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!qCategory) {
+      showToast('Kategori atau subtes soal wajib dipilih.', 'error');
+      return;
+    }
     if (!qStem.trim()) {
       showToast('Teks soal wajib diisi.', 'error');
       return;
@@ -227,11 +375,11 @@ export const AdminQuestionsPage: React.FC = () => {
           is_correct: o.is_correct,
         } as any)),
       });
-      showToast('Butir soal berhasil ditambahkan ke bank soal!', 'success');
+      alert.toast('Butir soal berhasil ditambahkan ke bank soal!', 'success');
       setCreateModalOpen(false);
       fetchQuestionsAndCategories();
     } catch (err: any) {
-      showToast(err.message || 'Gagal menambahkan soal.', 'error');
+      alert.error('Gagal Menambahkan Soal', err?.response?.data?.message || err.message || 'Periksa kelengkapan form.');
     } finally {
       setSavingQuestion(false);
     }
@@ -302,11 +450,14 @@ export const AdminQuestionsPage: React.FC = () => {
         undefined,
         correctionType === 'annulled' ? undefined : newCorrectOptionId
       );
-      showToast('Koreksi kunci berhasil diterapkan dan nilai seluruh peserta telah dihitung ulang!', 'success');
+      alert.success(
+        'Koreksi Kunci Jawaban Diterapkan',
+        'Koreksi kunci jawaban resmi berhasil disimpan. Sistem secara otomatis telah menghitung ulang nilai seluruh peserta ujian terkait.'
+      );
       setCorrectionModalOpen(false);
       fetchQuestionsAndCategories();
     } catch (err: any) {
-      showToast(err.message || 'Gagal menerapkan koreksi kunci.', 'error');
+      alert.error('Gagal Menerapkan Koreksi Kunci', err?.response?.data?.message || err.message || 'Terjadi kesalahan sistem.');
     } finally {
       setApplyingCorrection(false);
     }
@@ -359,34 +510,75 @@ export const AdminQuestionsPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {selectedYear === null ? (
+      {/* Tab Navigasi Terpadu Bank Soal & Fitur Impor */}
+      <div className="flex border-b border-[#e6e1eb] gap-6">
+        <button
+          type="button"
+          onClick={() => handleTabChange('library')}
+          className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition ${
+            activeTab === 'library'
+              ? 'border-[#583682] text-[#583682] font-bold'
+              : 'border-transparent text-[#595562] hover:text-[#24212b]'
+          }`}
+        >
+          <BookOpen className="w-4 h-4" />
+          <span>Bank Soal</span>
+          <span className="px-2 py-0.5 rounded-full text-[10px] bg-[#eae2f5] text-[#583682] font-bold">
+            {questions.length} Butir
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleTabChange('import')}
+          className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition ${
+            activeTab === 'import'
+              ? 'border-[#583682] text-[#583682] font-bold'
+              : 'border-transparent text-[#595562] hover:text-[#24212b]'
+          }`}
+        >
+          <Upload className="w-4 h-4" />
+          <span>Impor Soal (.docx / .csv)</span>
+        </button>
+      </div>
+
+      {activeTab === 'import' ? (
+        <QuestionImportView
+          hideHeaderTitle={true}
+          onImportSuccess={() => {
+            handleTabChange('library');
+            fetchQuestionsAndCategories();
+          }}
+        />
+      ) : (
+        selectedYear === null ? (
         /* ==================== CARD TAHUN VIEW ==================== */
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-[#e6e1eb]">
             <div>
-              <div className="eyebrow mb-1">BANK SOAL & VERSI</div>
+              <div className="eyebrow mb-1">BANK SOAL</div>
               <h1 className="font-display font-bold text-2xl text-[#24212b]">
-                Pustaka Bank Soal Berdasarkan Tahun
+                Bank Soal per Tahun
               </h1>
               <p className="text-xs text-[#595562] mt-0.5">
-                Pilih kartu tahun untuk melihat dan mengelola seluruh butir soal yang berlaku pada tahun tersebut.
+                Pilih tahun untuk mengelola butir soal ujian.
               </p>
             </div>
 
             <div className="flex items-center gap-2">
               <Button
                 variant="secondary"
-                onClick={() => navigate('/admin/questions/import')}
+                onClick={() => handleTabChange('import')}
                 leftIcon={<Upload className="w-4 h-4" />}
               >
-                Impor Soal DOCX/CSV
+                Impor Soal
               </Button>
               <Button
                 variant="primary"
                 onClick={() => openCreateModal()}
                 leftIcon={<Plus className="w-4 h-4" />}
               >
-                Tulis Soal Baru
+                Tambah Soal
               </Button>
             </div>
           </div>
@@ -488,10 +680,10 @@ export const AdminQuestionsPage: React.FC = () => {
                   <Plus className="w-6 h-6" />
                 </div>
                 <h3 className="font-display font-bold text-base text-[#24212b] group-hover:text-[#583682] transition mb-1">
-                  Tambah Bank Soal Tahun Baru
+                  Tambah Soal Tahun Baru
                 </h3>
                 <p className="text-xs text-[#595562] max-w-xs">
-                  Tulis butir soal baru dan tentukan tahun berlakunya untuk menambah kumpulan soal tahun akademik baru.
+                  Tulis butir soal untuk membuka arsip tahun akademik baru.
                 </p>
               </div>
             </div>
@@ -507,34 +699,34 @@ export const AdminQuestionsPage: React.FC = () => {
                 className="inline-flex items-center gap-1.5 text-xs font-bold text-[#583682] hover:text-[#352148] transition mb-2"
               >
                 <ArrowLeft className="w-4 h-4" />
-                Kembali ke Daftar Kartu Tahun
+                Kembali ke Pilihan Tahun
               </button>
               <div className="flex items-center gap-2 mb-1">
                 <Badge variant="purple">Tahun {selectedYear}</Badge>
-                {selectedYear === currentYear && <Badge variant="success">Tahun Berjalan / Aktif</Badge>}
+                {selectedYear === currentYear && <Badge variant="success">Tahun Aktif</Badge>}
               </div>
               <h1 className="font-display font-bold text-2xl text-[#24212b]">
-                Bank Soal Tahun {selectedYear}
+                Soal Tahun {selectedYear}
               </h1>
               <p className="text-xs text-[#595562] mt-0.5">
-                Menampilkan seluruh butir soal yang berlaku untuk sesi ujian tahun {selectedYear}.
+                Daftar butir soal yang digunakan pada tahun {selectedYear}.
               </p>
             </div>
 
             <div className="flex items-center gap-2">
               <Button
                 variant="secondary"
-                onClick={() => navigate('/admin/questions/import')}
+                onClick={() => handleTabChange('import')}
                 leftIcon={<Upload className="w-4 h-4" />}
               >
-                Impor Soal DOCX/CSV
+                Impor Soal
               </Button>
               <Button
                 variant="primary"
                 onClick={() => openCreateModal(selectedYear)}
                 leftIcon={<Plus className="w-4 h-4" />}
               >
-                Tulis Soal Baru ({selectedYear})
+                Tambah Soal ({selectedYear})
               </Button>
             </div>
           </div>
@@ -546,7 +738,7 @@ export const AdminQuestionsPage: React.FC = () => {
             <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto flex-1">
               <div className="w-full sm:w-72">
                 <Input
-                  placeholder="Cari kode atau potongan teks soal..."
+                  placeholder="Cari kode atau teks soal..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   leftIcon={<Search className="w-4 h-4 text-gray-400" />}
@@ -625,10 +817,16 @@ export const AdminQuestionsPage: React.FC = () => {
                           {q.weight || 1.0} Poin
                         </td>
                         <td className="px-6 py-4">
-                          <Badge variant="neutral">v{q.version_number ?? (q as any).version_no ?? 1}</Badge>
+                          <div className="flex items-center gap-1.5">
+                            <Badge variant={q.status === 'active' ? 'success' : 'neutral'}>
+                              {q.status === 'active' ? 'Aktif' : 'Arsip'}
+                            </Badge>
+                            <Badge variant="purple">v{q.version_number ?? (q as any).version_no ?? 1}</Badge>
+                          </div>
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
+                            {/* Pratinjau Soal */}
                             <button
                               onClick={() => openPreview(q)}
                               className="p-1.5 text-[#583682] hover:bg-[#eae2f5] rounded transition"
@@ -636,19 +834,37 @@ export const AdminQuestionsPage: React.FC = () => {
                             >
                               <Eye className="w-4 h-4" />
                             </button>
+                            {/* Edit Redaksi Soal (Buat Versi Baru) */}
                             <button
-                              onClick={() => openEditYearModal(q)}
-                              className="p-1.5 text-[#583682] hover:bg-[#eae2f5] rounded transition"
-                              title="Ubah Tahun Butir Soal"
+                              onClick={() => openEditQuestionModal(q)}
+                              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition"
+                              title="Edit Redaksi Pertanyaan & Pilihan Opsi (Buat Versi Baru)"
                             >
                               <Edit2 className="w-4 h-4" />
                             </button>
+                            {/* Ubah Tahun Soal */}
+                            <button
+                              onClick={() => openEditYearModal(q)}
+                              className="p-1.5 text-purple-600 hover:bg-purple-50 rounded transition"
+                              title="Ubah Tahun Akademik Berlakunya Butir Soal"
+                            >
+                              <Calendar className="w-4 h-4" />
+                            </button>
+                            {/* Koreksi Kunci Jawaban */}
                             <button
                               onClick={() => openCorrectionModal(q)}
-                              className="p-1.5 text-[#a96817] hover:bg-[#fdf6ec] rounded transition"
-                              title="Koreksi Kunci Jawaban (FR-Q08)"
+                              className="p-1.5 text-amber-600 hover:bg-amber-50 rounded transition"
+                              title="Koreksi Kunci Jawaban Resmi (FR-Q08)"
                             >
                               <RotateCcw className="w-4 h-4" />
+                            </button>
+                            {/* Hapus / Arsipkan Soal */}
+                            <button
+                              onClick={() => handleDeleteQuestion(q)}
+                              className="p-1.5 text-red-500 hover:bg-red-50 rounded transition"
+                              title="Hapus / Arsipkan Butir Soal"
+                            >
+                              <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
                         </td>
@@ -660,14 +876,15 @@ export const AdminQuestionsPage: React.FC = () => {
             )}
           </Card>
         </div>
-      )}
+      )
+    )}
 
       {/* Create Question Modal */}
       <Modal
         isOpen={createModalOpen}
         onClose={() => setCreateModalOpen(false)}
-        title="Tulis Butir Soal Baru"
-        description="Masukkan pertanyaan dan opsi pilihan ganda A hingga E."
+        title="Tambah Butir Soal"
+        description="Masukkan pertanyaan dan opsi jawaban A hingga E."
         maxWidth="2xl"
       >
         <form onSubmit={handleSaveQuestion} className="space-y-4">
@@ -682,7 +899,7 @@ export const AdminQuestionsPage: React.FC = () => {
             />
             <div>
               <label className="block text-xs font-bold text-[#24212b] mb-1">
-                Subtes / Kategori <span className="text-[#b63b48]">*</span>
+                Subtes <span className="text-[#b63b48]">*</span>
               </label>
               <select
                 value={qCategory}
@@ -708,7 +925,7 @@ export const AdminQuestionsPage: React.FC = () => {
             />
             <Input
               type="number"
-              label="Bobot Nilai (Poin)"
+              label="Bobot Nilai"
               required
               min={0.1}
               step={0.1}
@@ -719,14 +936,14 @@ export const AdminQuestionsPage: React.FC = () => {
 
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-[#24212b] mb-1.5">
-              Pokok Pertanyaan / Kasus (Stem) <span className="text-[#b63b48]">*</span>
+              Pertanyaan Soal <span className="text-[#b63b48]">*</span>
             </label>
             <textarea
               rows={4}
               required
               value={qStem}
               onChange={(e) => setQStem(e.target.value)}
-              placeholder="Tuliskan butir soal atau narasi studi kasus..."
+              placeholder="Tuliskan isi pertanyaan soal..."
               className="w-full p-3 bg-white border border-[#e6e1eb] rounded-[6px] text-xs text-[#24212b] outline-none focus:border-[#583682]"
             />
           </div>
@@ -734,7 +951,7 @@ export const AdminQuestionsPage: React.FC = () => {
           {/* Options A - E */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-[#24212b] mb-2">
-              Pilihan Jawaban (Pilih satu radio sebagai kunci benar)
+              Pilihan Jawaban (Tandai lingkaran untuk kunci benar)
             </label>
             <div className="space-y-2.5">
               {options.map((opt, idx) => (
@@ -756,7 +973,7 @@ export const AdminQuestionsPage: React.FC = () => {
                     required
                     value={opt.text}
                     onChange={(e) => handleOptionTextChange(idx, e.target.value)}
-                    placeholder={`Teks pilihan opsi ${opt.label}...`}
+                    placeholder={`Pilihan ${opt.label}...`}
                     className="flex-1 h-10 px-3 bg-white border border-[#e6e1eb] rounded-[6px] text-xs text-[#24212b] outline-none focus:border-[#583682]"
                   />
                 </div>
@@ -769,18 +986,18 @@ export const AdminQuestionsPage: React.FC = () => {
               Batal
             </Button>
             <Button type="submit" variant="primary" isLoading={savingQuestion}>
-              Simpan Soal ke Bank Soal
+              Simpan Soal
             </Button>
           </div>
         </form>
       </Modal>
 
-      {/* Preview Modal (FR-Q07) */}
+      {/* Preview Modal */}
       <Modal
         isOpen={previewModalOpen}
         onClose={() => setPreviewModalOpen(false)}
-        title="Pratinjau Butir Soal (FR-Q07)"
-        description="Tampilan soal dan pilihan opsi persis seperti yang dilihat oleh peserta ujian."
+        title="Pratinjau Soal"
+        description="Tampilan butir soal pada layar peserta ujian."
         maxWidth="lg"
       >
         {loadingPreview ? (
@@ -817,31 +1034,31 @@ export const AdminQuestionsPage: React.FC = () => {
                     </span>
                     <span>{opt.text}</span>
                   </div>
-                  {opt.is_correct && <Badge variant="success">Kunci Benar Asli</Badge>}
+                  {opt.is_correct && <Badge variant="success">Kunci Benar</Badge>}
                 </div>
               ))}
             </div>
 
             <div className="flex justify-end pt-3 border-t border-[#e6e1eb]">
               <Button variant="ghost" onClick={() => setPreviewModalOpen(false)}>
-                Tutup Pratinjau
+                Tutup
               </Button>
             </div>
           </div>
         ) : null}
       </Modal>
 
-      {/* Key Correction Modal (FR-Q08) */}
+      {/* Key Correction Modal */}
       <Modal
         isOpen={correctionModalOpen}
         onClose={() => setCorrectionModalOpen(false)}
-        title="Koreksi Kunci & Pembatalan Soal (FR-Q08)"
-        description="Aturan resmi untuk mengganti kunci, menerima kunci ganda, atau menganulir butir soal."
+        title="Koreksi Kunci Jawaban"
+        description="Penyesuaian kunci jawaban dan penilaian ulang."
         maxWidth="xl"
       >
         <form onSubmit={handleApplyCorrection} className="space-y-6">
           <div className="p-3 bg-[#fdf6ec] border border-[#f6ddba] rounded text-xs text-[#a96817] leading-relaxed">
-            <strong>Integritas Penilaian (INV-12):</strong> Setiap koreksi yang diterapkan akan mencatat log audit permanen dan secara otomatis memicu perhitungan ulang nilai (*auto-regrade*) untuk seluruh peserta yang pernah mengerjakan butir soal ini.
+            <strong>Penilaian Ulang:</strong> Nilai seluruh peserta yang telah mengerjakan soal ini akan dihitung ulang secara otomatis.
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -852,15 +1069,15 @@ export const AdminQuestionsPage: React.FC = () => {
                 onChange={(e) => setCorrectionType(e.target.value as any)}
                 className="w-full h-10 px-3 bg-white border border-[#e6e1eb] rounded text-xs text-[#24212b]"
               >
-                <option value="key_changed">Ganti Kunci Jawaban (key_changed)</option>
-                <option value="also_accept">Terima Kunci Tambahan (also_accept)</option>
-                <option value="annulled">Anulir / Batalkan Soal (annulled)</option>
+                <option value="key_changed">Ganti Kunci Jawaban</option>
+                <option value="also_accept">Terima Kunci Tambahan (Bonus)</option>
+                <option value="annulled">Batalkan / Anulir Soal</option>
               </select>
             </div>
 
             {correctionType !== 'annulled' && (
               <div>
-                <label className="block text-xs font-bold text-[#24212b] mb-1">Pilih Opsi Kunci Baru</label>
+                <label className="block text-xs font-bold text-[#24212b] mb-1">Kunci Jawaban Baru</label>
                 <select
                   value={newCorrectOptionId}
                   onChange={(e) => setNewCorrectOptionId(e.target.value)}
@@ -882,14 +1099,14 @@ export const AdminQuestionsPage: React.FC = () => {
 
           <div>
             <label className="block text-xs font-bold text-[#24212b] mb-1">
-              Alasan / Justifikasi Koreksi <span className="text-[#b63b48]">*</span>
+              Alasan Koreksi <span className="text-[#b63b48]">*</span>
             </label>
             <textarea
               rows={3}
               required
               value={correctionReason}
               onChange={(e) => setCorrectionReason(e.target.value)}
-              placeholder="Contoh: Berdasarkan hasil telaah tim pakar, opsi C memiliki rujukan hukum terbaru..."
+              placeholder="Tuliskan alasan koreksi kunci..."
               className="w-full p-3 bg-white border border-[#e6e1eb] rounded text-xs text-[#24212b] outline-none focus:border-[#583682]"
             />
           </div>
@@ -898,7 +1115,7 @@ export const AdminQuestionsPage: React.FC = () => {
           <div className="p-4 bg-[#faf9fc] rounded border border-[#e6e1eb] space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-[#24212b]">
-                Pratinjau Dampak Skor Peserta (Dry-Run Simulation)
+                Simulasi Perubahan Nilai Peserta
               </span>
               <Button
                 type="button"
@@ -907,7 +1124,7 @@ export const AdminQuestionsPage: React.FC = () => {
                 isLoading={simulating}
                 className="text-xs min-h-[34px] px-3"
               >
-                Simulasikan Dampak
+                Cek Dampak
               </Button>
             </div>
 
@@ -915,7 +1132,7 @@ export const AdminQuestionsPage: React.FC = () => {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center pt-2">
                 <div className="p-2 bg-white rounded border border-[#e6e1eb]">
                   <div className="font-bold text-sm text-[#583682]">{simulatedImpact.total_evaluated_attempts}</div>
-                  <div className="text-[10px] text-[#595562]">Total Attempt</div>
+                  <div className="text-[10px] text-[#595562]">Total Ujian</div>
                 </div>
                 <div className="p-2 bg-white rounded border border-[#e6e1eb]">
                   <div className="font-bold text-sm text-[#287a58]">+{simulatedImpact.students_improved}</div>
@@ -943,7 +1160,7 @@ export const AdminQuestionsPage: React.FC = () => {
               isLoading={applyingCorrection}
               className="bg-[#287a58] border-[#287a58] hover:bg-[#206346]"
             >
-              Terapkan Koreksi & Regrade
+              Terapkan Koreksi
             </Button>
           </div>
         </form>
@@ -953,8 +1170,8 @@ export const AdminQuestionsPage: React.FC = () => {
       <Modal
         isOpen={editYearModalOpen}
         onClose={() => setEditYearModalOpen(false)}
-        title="Ubah Tahun Butir Soal"
-        description="Perbarui tahun berlakunya butir soal ini dalam bank soal."
+        title="Ubah Tahun Soal"
+        description="Ubah tahun berlakunya butir soal ini."
         maxWidth="md"
       >
         <form onSubmit={handleSaveEditYear} className="space-y-4">
@@ -967,13 +1184,13 @@ export const AdminQuestionsPage: React.FC = () => {
 
           <Input
             type="number"
-            label="Tahun Berlakunya Soal"
+            label="Tahun Soal"
             required
             min={2000}
             max={2100}
             value={editYearValue}
             onChange={(e) => setEditYearValue(Number(e.target.value))}
-            helperText="Butir soal ini hanya akan ditarik pada sesi ujian yang memilih tahun tersebut."
+            helperText="Soal akan terhubung ke paket ujian pada tahun ini."
           />
 
           <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#e6e1eb]">
@@ -981,11 +1198,114 @@ export const AdminQuestionsPage: React.FC = () => {
               Batal
             </Button>
             <Button type="submit" variant="primary" isLoading={savingEditYear}>
-              Simpan Perubahan Tahun
+              Simpan Tahun
             </Button>
           </div>
         </form>
       </Modal>
+
+      {/* Edit Question Modal */}
+      <Modal
+        isOpen={editQuestionModalOpen}
+        onClose={() => setEditQuestionModalOpen(false)}
+        title={`Edit Soal (${editingQuestion?.code || (editingQuestion?.id ? `Q-${editingQuestion.id.slice(0, 8).toUpperCase()}` : '')})`}
+        description="Perubahan akan tersimpan sebagai versi baru tanpa mengubah hasil ujian lama."
+        maxWidth="2xl"
+      >
+        <form onSubmit={handleSaveNewVersion} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-[#24212b] mb-1">Kode Butir Soal</label>
+              <input
+                type="text"
+                disabled
+                value={editingQuestion?.code || (editingQuestion?.id ? `Q-${editingQuestion.id.slice(0, 8).toUpperCase()}` : '')}
+                className="w-full h-10 px-3 bg-gray-100 border border-[#e6e1eb] rounded-[6px] text-xs font-mono text-gray-600 cursor-not-allowed uppercase"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-[#24212b] mb-1">Subtes / Kategori</label>
+              <input
+                type="text"
+                disabled
+                value={editingQuestion?.category_name || (editingQuestion as any)?.category_code || '-'}
+                className="w-full h-10 px-3 bg-gray-100 border border-[#e6e1eb] rounded-[6px] text-xs text-gray-600 cursor-not-allowed"
+              />
+            </div>
+            <Input
+              type="number"
+              label="Bobot Nilai (Poin)"
+              required
+              min={0.1}
+              step={0.1}
+              value={editQWeight}
+              onChange={(e) => setEditQWeight(Number(e.target.value))}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-[#24212b] mb-1.5">
+              Pokok Pertanyaan / Kasus (Stem) <span className="text-[#b63b48]">*</span>
+            </label>
+            <textarea
+              rows={4}
+              required
+              value={editQStem}
+              onChange={(e) => setEditQStem(e.target.value)}
+              placeholder="Perbarui teks pertanyaan atau studi kasus..."
+              className="w-full p-3 bg-white border border-[#e6e1eb] rounded-[6px] text-xs text-[#24212b] outline-none focus:border-[#583682]"
+            />
+          </div>
+
+          {/* Options A - E */}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-[#24212b] mb-2">
+              Pilihan Jawaban (Pilih satu radio sebagai kunci benar)
+            </label>
+            <div className="space-y-2.5">
+              {editOptions.map((opt, idx) => (
+                <div key={opt.label || idx} className="flex items-center gap-3">
+                  <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                    <input
+                      type="radio"
+                      name="edit_correct_option"
+                      checked={opt.is_correct}
+                      onChange={() => handleEditOptionCorrectChange(idx)}
+                      className="w-4 h-4 text-[#583682] accent-[#583682] cursor-pointer"
+                    />
+                    <span className="font-display font-bold text-xs text-[#583682] w-4">
+                      {opt.label}.
+                    </span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={opt.text}
+                    onChange={(e) => handleEditOptionTextChange(idx, e.target.value)}
+                    placeholder={`Teks pilihan opsi ${opt.label}...`}
+                    className="flex-1 h-10 px-3 bg-white border border-[#e6e1eb] rounded-[6px] text-xs text-[#24212b] outline-none focus:border-[#583682]"
+                  />
+                  {opt.is_correct && (
+                    <Badge variant="success" className="text-[10px] shrink-0">
+                      Kunci Benar
+                    </Badge>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#e6e1eb]">
+            <Button type="button" variant="ghost" onClick={() => setEditQuestionModalOpen(false)}>
+              Batal
+            </Button>
+            <Button type="submit" variant="primary" isLoading={savingNewVersion}>
+              Simpan Perubahan Soal
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
     </div>
   );
 };

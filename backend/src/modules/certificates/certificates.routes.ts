@@ -88,6 +88,43 @@ export const certificateRoutes: FastifyPluginAsync = async (fastify: FastifyInst
     },
   });
 
+  // GET /certificates/:id (A, M, FR-C01, INV-14)
+  fastify.get('/certificates/:id', {
+    preHandler: [authenticate],
+    handler: async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const user = request.user!;
+
+      const query = `
+        SELECT 
+          c.id, c.certificate_no, c.verification_code, c.status, c.issued_at,
+          c.revoked_at, c.revoked_reason,
+          r.id AS result_id, r.score, r.passed,
+          sp.identifier, sp.full_name, sp.full_name AS student_name, sp.institution,
+          e.id AS exam_id, e.title AS exam_title,
+          se.student_id
+        FROM certificates c
+        JOIN results r ON r.id = c.result_id
+        JOIN attempts a ON a.id = r.attempt_id
+        JOIN session_enrollments se ON se.id = a.enrollment_id
+        JOIN student_profiles sp ON sp.user_id = se.student_id
+        JOIN exam_sessions s ON s.id = se.session_id
+        JOIN exams e ON e.id = s.exam_id
+        WHERE c.id = $1;
+      `;
+
+      const { rows } = await pool.query(query, [id]);
+      if (rows.length === 0) throw new AppError('NOT_FOUND');
+
+      const cert = rows[0];
+      if (isStudentRole(user.role) && cert.student_id !== user.id) {
+        throw new AppError('NOT_FOUND'); // Anti-IDOR (INV-14)
+      }
+
+      return reply.send({ certificate: cert });
+    },
+  });
+
   // GET /certificates/:id/pdf (A, M, FR-C02)
   fastify.get('/certificates/:id/pdf', {
     preHandler: [authenticate],
@@ -111,11 +148,19 @@ export const certificateRoutes: FastifyPluginAsync = async (fastify: FastifyInst
         }
       }
 
-      const host = request.headers.host || 'localhost:3000';
-      const protocol = request.protocol || 'http';
-      const baseUrl = `${protocol}://${host}`;
+      const origin = (request.headers.origin as string) || (request.headers.referer as string) || '';
+      let frontendUrl = 'http://localhost:5173';
+      if (origin) {
+        try {
+          const u = new URL(origin);
+          frontendUrl = `${u.protocol}//${u.host}`;
+        } catch {}
+      } else if (request.headers.host) {
+        const hostWithoutPort = (request.headers.host as string).split(':')[0];
+        frontendUrl = `http://${hostWithoutPort}:5173`;
+      }
 
-      const pdfBuffer = await generateCertificatePDFBuffer(id, baseUrl);
+      const pdfBuffer = await generateCertificatePDFBuffer(id, frontendUrl);
 
       reply.header('Content-Type', 'application/pdf');
       reply.header('Content-Disposition', `inline; filename="sertifikat_${id.slice(0, 8)}.pdf"`);

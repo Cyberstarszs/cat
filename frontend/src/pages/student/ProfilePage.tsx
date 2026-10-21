@@ -42,10 +42,10 @@ export const ProfilePage: React.FC = () => {
       <div className="pb-4 border-b border-[#e6e1eb]">
         <div className="eyebrow mb-1">PENGATURAN AKUN</div>
         <h1 className="font-display font-bold text-2xl md:text-3xl text-[#24212b]">
-          Profil & Keamanan Akun
+          Profil Akun
         </h1>
         <p className="text-xs text-[#595562] mt-1">
-          Kelola informasi identitas peserta dan kata sandi akun ujian Anda.
+          Informasi identitas akun peserta ujian Anda.
         </p>
       </div>
 
@@ -54,7 +54,7 @@ export const ProfilePage: React.FC = () => {
         <Card hasShadow>
           <h3 className="font-display font-bold text-base text-[#24212b] mb-4 pb-3 border-b border-[#e6e1eb] flex items-center gap-2">
             <User className="w-4 h-4 text-[#583682]" />
-            Informasi Pribadi Peserta
+            Data Pribadi
           </h3>
 
           {/* Student Photo & Profile Header */}
@@ -90,16 +90,16 @@ export const ProfilePage: React.FC = () => {
           <form onSubmit={handleUpdateProfile} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
-                label="Nomor Identitas (NIM / No. Peserta)"
+                label="Nomor Identitas"
                 value={profile?.identifier || '-'}
                 disabled
-                helperText="Nomor identitas ditetapkan oleh sistem dan tidak dapat diubah."
+                helperText="Ditetapkan otomatis oleh sistem."
               />
               <Input
-                label="Alamat Email"
+                label="Email"
                 value={user?.email || '-'}
                 disabled
-                helperText="Email akun utama terdaftar."
+                helperText="Email akun terdaftar."
               />
             </div>
 
@@ -108,7 +108,7 @@ export const ProfilePage: React.FC = () => {
               required
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              placeholder="Masukkan nama lengkap Anda"
+              placeholder="Masukkan nama lengkap"
             />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -116,21 +116,21 @@ export const ProfilePage: React.FC = () => {
                 label="Nomor Telepon / WhatsApp"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="Contoh: 08123456789"
+                placeholder="08xxxxxxxxxx"
                 leftIcon={<Phone className="w-4 h-4 text-gray-400" />}
               />
               <Input
                 label="Instansi / Asal"
                 value={institution}
                 onChange={(e) => setInstitution(e.target.value)}
-                placeholder="Contoh: FIA UNIRA atau Umum"
+                placeholder="Nama instansi atau prodi"
                 leftIcon={<Building className="w-4 h-4 text-gray-400" />}
               />
             </div>
 
             <div className="pt-2 flex justify-end">
               <Button type="submit" variant="primary" isLoading={savingProfile}>
-                Simpan Perubahan Profil
+                Simpan Profil
               </Button>
             </div>
           </form>
@@ -140,14 +140,14 @@ export const ProfilePage: React.FC = () => {
         <Card hasShadow>
           <h3 className="font-display font-bold text-base text-[#24212b] mb-3 pb-3 border-b border-[#e6e1eb] flex items-center gap-2">
             <KeyRound className="w-4 h-4 text-[#583682]" />
-            Keamanan & Kata Sandi Akun
+            Keamanan Akun
           </h3>
           <div className="p-4 bg-[#faf9fc] rounded border border-[#e6e1eb] text-xs text-[#595562] leading-relaxed space-y-2">
             <p>
-              Pengaturan dan reset kata sandi akun peserta dikelola secara terpusat oleh <strong>Administrator Sistem</strong> untuk menjamin keamanan dan ketertiban administrasi ujian.
+              Kata sandi akun peserta dikelola oleh <strong>Administrator Sistem</strong> untuk menjaga ketertiban administrasi ujian.
             </p>
             <p>
-              Jika Anda memerlukan reset kata sandi, silakan hubungi pengawas atau panitia ujian CAT FIA UNIRA.
+              Hubungi pengawas atau panitia ujian CAT FIA jika Anda memerlukan bantuan reset kata sandi.
             </p>
           </div>
         </Card>

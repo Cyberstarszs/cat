@@ -14,6 +14,7 @@ export interface ExamInput {
   max_attempts_per_student?: number;
   allow_review?: boolean;
   status?: 'draft' | 'active' | 'archived';
+  year?: number;
 }
 
 export interface ExamRuleInput {
@@ -54,6 +55,15 @@ export async function validateQuestionPoolSufficiency(
   examId: string,
   questionYear?: number | null
 ): Promise<void> {
+  // Ambil tahun ujian dari master exams jika tidak ditentukan eksplisit
+  let effectiveYear = questionYear;
+  if (effectiveYear === undefined) {
+    const examRes = await pool.query('SELECT year FROM exams WHERE id = $1;', [examId]);
+    if (examRes.rows.length > 0 && examRes.rows[0].year) {
+      effectiveYear = parseInt(examRes.rows[0].year, 10);
+    }
+  }
+
   const rulesQuery = `
     SELECT r.id, r.category_id, r.difficulty, r.question_count, c.name AS category_name
     FROM exam_question_rules r
@@ -64,7 +74,7 @@ export async function validateQuestionPoolSufficiency(
 
   for (const rule of rules) {
     const diffCondition = rule.difficulty ? `AND qv.difficulty = ${rule.difficulty}` : '';
-    const yearCondition = questionYear ? `AND q.year = ${parseInt(String(questionYear), 10)}` : '';
+    const yearCondition = effectiveYear ? `AND q.year = ${parseInt(String(effectiveYear), 10)}` : '';
     const poolCheck = `
       SELECT COUNT(DISTINCT q.id) AS available
       FROM questions q
@@ -79,7 +89,7 @@ export async function validateQuestionPoolSufficiency(
     let available = parseInt(poolRows[0].available, 10);
 
     // Jika tahun spesifik kurang, cek ketersediaan lintas tahun
-    if (available < rule.question_count && questionYear) {
+    if (available < rule.question_count && effectiveYear) {
       const fallbackCheck = `
         SELECT COUNT(DISTINCT q.id) AS available
         FROM questions q
@@ -94,7 +104,7 @@ export async function validateQuestionPoolSufficiency(
     }
 
     if (available < rule.question_count) {
-      const yearText = questionYear ? ` tahun ${questionYear}` : '';
+      const yearText = effectiveYear ? ` tahun ${effectiveYear}` : '';
       throw new AppError(
         'QUESTION_POOL_INSUFFICIENT',
         `Bank soal untuk kategori "${rule.category_name}"${rule.difficulty ? ` (tingkat ${rule.difficulty})` : ''}${yearText} tidak mencukupi (dibutuhkan ${rule.question_count}, tersedia ${available}).`
@@ -111,12 +121,14 @@ export async function createExam(data: ExamInput, actorId: string, ipAddress?: s
     throw new AppError('VALIDATION_FAILED', `Kode ujian "${cleanCode}" sudah digunakan.`);
   }
 
+  const examYear = data.year || new Date().getFullYear();
+
   const { rows } = await pool.query(
     `INSERT INTO exams (
       code, title, description, duration_minutes, question_count,
       passing_score, shuffle_questions, shuffle_options,
-      max_attempts_per_student, allow_review, status, created_by
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      max_attempts_per_student, allow_review, status, year, created_by
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
     RETURNING *;`,
     [
       cleanCode,
@@ -130,6 +142,7 @@ export async function createExam(data: ExamInput, actorId: string, ipAddress?: s
       data.max_attempts_per_student || 3,
       data.allow_review || false,
       data.status || 'draft',
+      examYear,
       actorId,
     ]
   );
@@ -209,6 +222,10 @@ export async function updateExam(
     updates.push(`status = $${idx++}`);
     params.push(data.status);
   }
+  if (data.year !== undefined) {
+    updates.push(`year = $${idx++}`);
+    params.push(data.year);
+  }
 
   params.push(examId);
   const { rows } = await pool.query(
@@ -249,8 +266,8 @@ export async function copyExam(examId: string, actorId: string, ipAddress?: stri
       `INSERT INTO exams (
         code, title, description, duration_minutes, question_count,
         passing_score, shuffle_questions, shuffle_options,
-        max_attempts_per_student, allow_review, status, created_by
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'draft', $11)
+        max_attempts_per_student, allow_review, status, year, created_by
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'draft', $11, $12)
       RETURNING *;`,
       [
         newCode,
@@ -263,6 +280,7 @@ export async function copyExam(examId: string, actorId: string, ipAddress?: stri
         src.shuffle_options,
         src.max_attempts_per_student,
         src.allow_review,
+        src.year || new Date().getFullYear(),
         actorId,
       ]
     );
@@ -398,6 +416,19 @@ export async function deleteExam(examId: string, actorId: string, ipAddress?: st
   const client = await pool.connect();
   try {
     await client.query('BEGIN;');
+
+    // Cek apakah masih ada sesi yang terhubung dengan ujian ini (mencegah pelanggaran foreign key)
+    const { rows: sessionCheck } = await client.query(
+      'SELECT COUNT(*) AS count FROM exam_sessions WHERE exam_id = $1;',
+      [examId]
+    );
+    if (parseInt(sessionCheck[0].count, 10) > 0) {
+      throw new AppError(
+        'CONFIG_LOCKED',
+        'Ujian tidak dapat dihapus karena masih memiliki sesi ujian yang terhubung.'
+      );
+    }
+
     await client.query('DELETE FROM exam_question_rules WHERE exam_id = $1;', [examId]);
     const { rows } = await client.query('DELETE FROM exams WHERE id = $1 RETURNING id, title, code;', [examId]);
     if (rows.length === 0) throw new AppError('NOT_FOUND');

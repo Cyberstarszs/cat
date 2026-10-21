@@ -1,10 +1,16 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import logoImg from '../../assets/cat-governance-logo.png';
 import { FigmaIcon } from '../common/FigmaIcon';
 
-export const Footer: React.FC = () => {
+export interface FooterProps {
+  minimal?: boolean;
+}
+
+export const Footer: React.FC<FooterProps> = ({ minimal = false }) => {
   const navigate = useNavigate();
+  const { isAuthenticated, user } = useAuth();
 
   const goSection = (id: string) => {
     if (window.location.pathname !== '/') {
@@ -17,6 +23,25 @@ export const Footer: React.FC = () => {
     }
   };
 
+  // Minimal Footer untuk Halaman Portal Mahasiswa / Siswa
+  if (minimal) {
+    return (
+      <footer className="mt-auto py-3.5 px-6 border-t border-[#e6e1eb] bg-white text-xs text-[#595562]">
+        <div className="max-w-[1280px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-xs">
+            <span className="font-bold text-[#583682]">CAT GOVERNANCE</span>
+            <span className="text-[#dcd6e5]">•</span>
+            <span>Fakultas Ilmu Administrasi Universitas Madura</span>
+          </div>
+          <div className="text-[11px] text-[#8e859b]">
+            <span>© 2026 Hak Cipta Dilindungi</span>
+          </div>
+        </div>
+      </footer>
+    );
+  }
+
+  // Full Footer untuk Halaman Publik & Landing
   return (
     <footer id="bantuan" className="site-footer">
       <div className="site-footer__main">
@@ -53,7 +78,7 @@ export const Footer: React.FC = () => {
               Beranda
             </button>
             <button type="button" onClick={() => navigate('/explore')}>
-              Jadwal & Informasi Ujian
+              Jadwal Sesi Ujian
             </button>
             <button type="button" onClick={() => goSection('tentang')}>
               Tentang Platform
@@ -71,10 +96,28 @@ export const Footer: React.FC = () => {
         <div className="site-footer__col">
           <h4>Akses & Layanan</h4>
           <div className="site-footer__links">
-            <button type="button" onClick={() => navigate('/login')}>
+            <button
+              type="button"
+              onClick={() => {
+                if (isAuthenticated) {
+                  navigate(user?.role === 'admin' ? '/admin/dashboard' : '/dashboard');
+                } else {
+                  navigate('/login');
+                }
+              }}
+            >
               Ruang Ujian Peserta
             </button>
-            <button type="button" onClick={() => navigate('/login')}>
+            <button
+              type="button"
+              onClick={() => {
+                if (isAuthenticated && user?.role === 'admin') {
+                  navigate('/admin/dashboard');
+                } else {
+                  navigate('/login');
+                }
+              }}
+            >
               Portal Administrator
             </button>
             <button type="button" onClick={() => goSection('bantuan')}>
@@ -89,15 +132,11 @@ export const Footer: React.FC = () => {
         </div>
       </div>
 
-      {/* Baris Bawah: Hak Cipta & Status Sistem */}
+      {/* Baris Bawah: Hak Cipta */}
       <div className="site-footer__bottom">
         <small>
           © 2026 CAT GOVERNANCE — Fakultas Ilmu Administrasi, Universitas Madura. Seluruh hak cipta dilindungi undang-undang.
         </small>
-        <div className="system-live-dark">
-          <i />
-          <span>Sistem Ujian CAT Aktif & Terverifikasi</span>
-        </div>
       </div>
     </footer>
   );

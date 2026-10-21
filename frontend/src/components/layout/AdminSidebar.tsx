@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
 import logoImg from '../../assets/cat-governance-logo.png';
 import {
   LayoutDashboard,
@@ -32,22 +32,19 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose }) =
       ],
     },
     {
-      title: 'MANAJEMEN UJIAN',
+      title: 'UJIAN & SOAL',
       items: [
-        { label: 'Kategori & Subtes', path: '/admin/subtests', icon: <FolderTree className="w-4 h-4" /> },
-        { label: 'Daftar Ujian', path: '/admin/exams', icon: <FileText className="w-4 h-4" /> },
         { label: 'Bank Soal', path: '/admin/questions', icon: <HelpCircle className="w-4 h-4" /> },
-        { label: 'Impor Soal', path: '/admin/questions/import', icon: <Upload className="w-4 h-4" /> },
-        { label: 'Jadwal Ujian', path: '/admin/schedules', icon: <Calendar className="w-4 h-4" /> },
-        { label: 'Peserta Ujian', path: '/admin/participants', icon: <UserCheck className="w-4 h-4" /> },
+        { label: 'Paket Ujian', path: '/admin/exams', icon: <FileText className="w-4 h-4" /> },
+        { label: 'Jadwal Sesi', path: '/admin/schedules', icon: <Calendar className="w-4 h-4" /> },
+        { label: 'Data Peserta', path: '/admin/participants', icon: <UserCheck className="w-4 h-4" /> },
       ],
     },
     {
       title: 'HASIL & PENGAWASAN',
       items: [
         { label: 'Hasil Ujian', path: '/admin/results', icon: <BarChart3 className="w-4 h-4" /> },
-        { label: 'Log Aktivitas', path: '/admin/activity-log', icon: <ShieldAlert className="w-4 h-4" /> },
-        { label: 'Notifikasi', path: '/admin/notifications', icon: <Bell className="w-4 h-4" /> },
+        { label: 'Log & Notifikasi', path: '/admin/activity-log', icon: <ShieldAlert className="w-4 h-4" /> },
       ],
     },
     {
@@ -125,13 +122,14 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose }) =
 
         {/* Footer / Switch Portal Link */}
         <div className="p-4 border-t border-[#4d3363]">
-          <a
-            href="/"
+          <Link
+            to="/"
+            onClick={() => onClose()}
             className="flex items-center justify-between px-3 py-2 text-xs text-[#cfc3dc] hover:text-white hover:bg-[#4d3363] rounded-[6px] transition"
           >
             <span>Buka Portal Publik</span>
             <ExternalLink className="w-3.5 h-3.5" />
-          </a>
+          </Link>
         </div>
       </aside>
     </>

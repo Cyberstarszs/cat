@@ -44,6 +44,10 @@ export interface ExamCategory {
   code: string;
   description?: string;
   created_at: string;
+  question_count?: number;
+  active_question_count?: number;
+  total_question_count?: number;
+  all_years_active_count?: number;
 }
 
 export type ExamStatus = 'draft' | 'active' | 'archived';
@@ -62,12 +66,18 @@ export interface Exam {
   title: string;
   code: string;
   description?: string;
+  year?: number;
   passing_score: number;
   duration_minutes: number;
   status: ExamStatus;
   created_at: string;
   rules?: ExamQuestionRule[];
   total_questions?: number;
+  question_count?: number;
+  total_rules_count?: number | string;
+  session_count?: number | string;
+  shuffle_questions?: boolean;
+  shuffle_options?: boolean;
 }
 
 export type SessionStatus = 'scheduled' | 'active' | 'completed' | 'cancelled';
@@ -81,10 +91,13 @@ export interface ExamSession {
   ends_at: string;
   status: SessionStatus;
   exam_title?: string;
+  exam_code?: string;
+  exam_year?: number;
   passing_score?: number;
   duration_minutes?: number;
   capacity?: number | null;
   question_year?: number | null;
+  has_access_code?: boolean;
   enrolled_count?: number;
   completed_count?: number;
   created_at: string;
@@ -162,6 +175,7 @@ export interface QuestionVersion {
 }
 
 export interface Question {
+  status?: 'draft' | 'active' | 'archived';
   id: string;
   code?: string;
   category_id: string;
@@ -234,7 +248,7 @@ export interface ExamResult {
   score: number;
   passed: boolean;
   passing_score: number;
-  status: 'draft' | 'published';
+  status: 'draft' | 'published' | 'pending_publication';
   published_at?: string;
   submitted_at?: string;
   created_at: string;
@@ -261,6 +275,20 @@ export interface ResultDetail extends ExamResult {
     is_correct?: boolean;
     is_annulled?: boolean;
   }[];
+  answers?: Array<{
+    position: number;
+    stem: string;
+    weight: number;
+    explanation?: string;
+    selected_option_id?: string | null;
+    is_correct?: boolean;
+    points_awarded?: number;
+    answered_at?: string;
+    selected_label?: string;
+    selected_text?: string;
+    correct_label?: string;
+    correct_text?: string;
+  }>;
 }
 
 export interface Certificate {
@@ -338,6 +366,8 @@ export interface AuditLog {
   entity_id?: string;
   ip_address?: string;
   reason?: string;
+  before_data?: any;
+  after_data?: any;
   created_at: string;
 }
 

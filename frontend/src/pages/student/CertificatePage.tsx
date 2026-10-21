@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { resultService } from '../../services';
 import { Certificate } from '../../types';
 import { formatWIBDate } from '../../utils/date';
@@ -11,7 +11,8 @@ import { Download, ShieldCheck, Printer } from 'lucide-react';
 
 export const CertificatePage: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const certId = searchParams.get('id');
+  const { id: paramId } = useParams<{ id?: string }>();
+  const certId = paramId || searchParams.get('id');
   const { showToast } = useToast();
   const navigate = useNavigate();
 
@@ -112,9 +113,9 @@ export const CertificatePage: React.FC = () => {
       {/* 1. Section Head (no-print) */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-[#e6e1eb] no-print">
         <div>
-          <div className="eyebrow text-xs mb-1">SERTIFIKAT DIGITAL</div>
+          <div className="eyebrow text-xs mb-1">SERTIFIKAT RESMI</div>
           <h1 className="font-display font-bold text-2xl md:text-3xl text-[#24212b]">
-            Sertifikat Anda
+            Sertifikat Kelulusan
           </h1>
         </div>
         <div className="flex items-center gap-3">
@@ -174,14 +175,14 @@ export const CertificatePage: React.FC = () => {
               {cert.student_name || cert.full_name || '-'}
             </h3>
             <p className="text-xs text-[#595562] mt-2">
-              NIM: <strong className="text-[#24212b]">{cert.identifier}</strong> · Instansi: {cert.institution || 'Fakultas Ilmu Administrasi'}
+              {cert.identifier?.startsWith('UMUM') ? 'No. Peserta' : 'NIM'}: <strong className="text-[#24212b]">{cert.identifier}</strong> · Instansi: {cert.institution || (cert.identifier?.startsWith('UMUM') ? 'Umum' : 'Fakultas Ilmu Administrasi')}
             </p>
           </div>
 
           <div className="space-y-1">
             <p className="text-xs text-[#595562]">atas keberhasilannya menyelesaikan evaluasi:</p>
             <h4 className="font-display font-bold text-base sm:text-lg text-[#24212b]">
-              {cert.exam_title || 'SOAL ASSESSMENT LG / UJI KOMPETENSI'}
+              {cert.exam_title || 'Uji Kompetensi CAT'}
             </h4>
           </div>
 
@@ -224,15 +225,15 @@ export const CertificatePage: React.FC = () => {
                 </span>
               </div>
               <div className="text-[10px] text-[#595562] leading-tight font-semibold uppercase tracking-wider">
-                SCAN TO VERIFY
+                PINDAI UNTUK
                 <br />
-                CERTIFICATE
+                VERIFIKASI
               </div>
             </div>
           </div>
 
           <div className="text-[10px] text-gray-400 pt-4">
-            Dokumen resmi terverifikasi secara kriptografis oleh CAT GOVERNANCE FIA Universitas Madura.
+            Dokumen resmi terverifikasi secara elektronik oleh CAT GOVERNANCE FIA Universitas Madura.
           </div>
         </div>
       </div>

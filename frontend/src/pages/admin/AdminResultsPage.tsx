@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { resultService, sessionService } from '../../services';
-import { ExamResult, Appeal, ExamSession } from '../../types';
+import { resultService, sessionService, reportService } from '../../services';
+import { ExamResult, Appeal, ExamSession, ResultDetail } from '../../types';
 import { useToast } from '../../context/ToastContext';
+import { alert } from '../../utils/alert';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { CardSkeleton } from '../../components/ui/Skeleton';
+import { ExamItemAnalysisTab } from '../../components/results/ExamItemAnalysisTab';
 import { EmptyState, ErrorAlert } from '../../components/ui/EmptyState';
 import {
   Award,
@@ -20,11 +22,15 @@ import {
   Check,
   X,
   FileText,
+  BarChart3,
+  Eye,
+  Download,
+  FileSpreadsheet,
 } from 'lucide-react';
 
 export const AdminResultsPage: React.FC = () => {
   const { showToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'results' | 'appeals'>('results');
+  const [activeTab, setActiveTab] = useState<'results' | 'appeals' | 'item_analysis'>('results');
 
   const [results, setResults] = useState<ExamResult[]>([]);
   const [appeals, setAppeals] = useState<Appeal[]>([]);
@@ -43,6 +49,12 @@ export const AdminResultsPage: React.FC = () => {
 
   // Bulk publish
   const [publishing, setPublishing] = useState(false);
+
+  // Detail Transkrip Modal
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [selectedResultDetail, setSelectedResultDetail] = useState<ResultDetail | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [exportingCSV, setExportingCSV] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -68,27 +80,44 @@ export const AdminResultsPage: React.FC = () => {
   }, [selectedSessionFilter]);
 
   const handlePublishSingle = async (resultId: string) => {
+    const confirmed = await alert.confirm({
+      title: 'Publikasikan Nilai Peserta?',
+      text: 'Nilai dan transkrip ujian akan resmi diterbitkan dan dapat langsung diakses oleh peserta di dashboard mereka.',
+      confirmButtonText: 'Ya, Publikasikan',
+      icon: 'question',
+    });
+    if (!confirmed) return;
+
     try {
       await resultService.publishResult(resultId);
-      showToast('Hasil penilaian berhasil dipublikasikan ke peserta!', 'success');
+      alert.toast('Hasil penilaian berhasil dipublikasikan!', 'success');
       fetchData();
     } catch (err: any) {
-      showToast(err.message || 'Gagal mempublikasikan hasil.', 'error');
+      alert.error('Gagal Mempublikasikan Hasil', err?.response?.data?.message || err.message);
     }
   };
 
   const handleBulkPublishSession = async () => {
     if (!selectedSessionFilter) {
-      showToast('Pilih filter sesi terlebih dahulu untuk mempublikasikan sekaligus.', 'warning');
+      alert.warning('Pilih Sesi Terlebih Dahulu', 'Pilih filter sesi ujian untuk mempublikasikan seluruh nilai peserta sekaligus.');
       return;
     }
+    const sessionObj = sessions.find((s) => s.id === selectedSessionFilter);
+    const confirmed = await alert.confirm({
+      title: 'Publikasikan Semua Nilai Sesi?',
+      text: `Apakah Anda yakin ingin mempublikasikan nilai untuk semua peserta pada sesi "${sessionObj?.name || 'Sesi Terpilih'}"? Seluruh peserta ujian akan dapat langsung melihat skor akhir mereka.`,
+      confirmButtonText: 'Ya, Publikasikan Semua',
+      icon: 'question',
+    });
+    if (!confirmed) return;
+
     setPublishing(true);
     try {
       await resultService.publishSessionResults(selectedSessionFilter);
-      showToast('Seluruh hasil ujian sesi ini berhasil dipublikasikan!', 'success');
+      alert.success('Nilai Sesi Berhasil Dipublikasikan!', 'Seluruh hasil ujian pada sesi ini telah resmi dirilis ke peserta.');
       fetchData();
     } catch (err: any) {
-      showToast(err.message || 'Gagal mempublikasikan sesi.', 'error');
+      alert.error('Gagal Mempublikasikan Hasil Sesi', err?.response?.data?.message || err.message);
     } finally {
       setPublishing(false);
     }
@@ -107,7 +136,7 @@ export const AdminResultsPage: React.FC = () => {
     setResolving(true);
     try {
       await resultService.resolveAppeal(activeAppeal.id, resolutionStatus, adminNotes.trim());
-      showToast(
+      alert.toast(
         resolutionStatus === 'approved'
           ? 'Sanggahan diterima dan disetujui!'
           : 'Sanggahan ditolak dengan catatan resmi.',
@@ -116,7 +145,7 @@ export const AdminResultsPage: React.FC = () => {
       setResolveModalOpen(false);
       fetchData();
     } catch (err: any) {
-      showToast(err.message || 'Gagal memproses keputusan sanggahan.', 'error');
+      alert.error('Gagal Memproses Sanggahan', err?.response?.data?.message || err.message);
     } finally {
       setResolving(false);
     }
@@ -138,16 +167,68 @@ export const AdminResultsPage: React.FC = () => {
     (a) => a.status === 'pending' || (a.status as any) === 'open'
   ).length;
 
+  const handleViewDetail = async (resultId: string) => {
+    setLoadingDetail(true);
+    setDetailModalOpen(true);
+    try {
+      const data = await resultService.getResultById(resultId);
+      setSelectedResultDetail(data);
+    } catch (err: any) {
+      showToast(err.message || 'Gagal memuat detail transkrip nilai peserta.', 'error');
+      setDetailModalOpen(false);
+    } finally {
+      setLoadingDetail(false);
+    }
+  };
+
+  const handleDownloadCert = async (certId: string, studentName: string) => {
+    try {
+      const blob = await resultService.downloadCertificatePDF(certId);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Sertifikat_${(studentName || 'Peserta').replace(/\s+/g, '_')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      showToast('Sertifikat kelulusan berhasil diunduh!', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Gagal mengunduh sertifikat.', 'error');
+    }
+  };
+
+  const handleExportSessionCSV = async () => {
+    if (!selectedSessionFilter) return;
+    setExportingCSV(true);
+    try {
+      const blob = await reportService.exportSessionCSV(selectedSessionFilter);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Rekap_Nilai_Sesi_${selectedSessionFilter.slice(0, 8)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      showToast('Rekap nilai sesi berhasil diekspor ke format CSV!', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Gagal mengekspor CSV rekap sesi.', 'error');
+    } finally {
+      setExportingCSV(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-[#e6e1eb]">
         <div>
-          <div className="eyebrow mb-1">EVALUASI & TRANSPARANSI</div>
+          <div className="eyebrow mb-1">HASIL & SANGGAHAN</div>
           <h1 className="font-display font-bold text-2xl text-[#24212b]">
-            Hasil Penilaian & Sanggahan Nilai
+            Hasil Ujian & Sanggahan
           </h1>
           <p className="text-xs text-[#595562] mt-0.5">
-            Publikasikan hasil ujian peserta dan tinjau sanggahan keberatan kunci jawaban secara resmi.
+            Kelola publikasi nilai peserta dan tindak lanjuti sanggahan.
           </p>
         </div>
 
@@ -159,7 +240,7 @@ export const AdminResultsPage: React.FC = () => {
             leftIcon={<Send className="w-4 h-4" />}
             className="text-xs bg-[#287a58] border-[#287a58] hover:bg-[#206346]"
           >
-            Publikasikan Hasil Sesi Ini
+            Publikasikan Nilai Sesi
           </Button>
         )}
       </div>
@@ -176,7 +257,7 @@ export const AdminResultsPage: React.FC = () => {
               : 'border-transparent text-[#595562] hover:text-[#583682]'
           }`}
         >
-          Daftar Hasil Penilaian ({results.length})
+          Hasil Penilaian ({results.length})
         </button>
 
         <button
@@ -194,6 +275,18 @@ export const AdminResultsPage: React.FC = () => {
             </span>
           )}
         </button>
+
+        <button
+          onClick={() => setActiveTab('item_analysis')}
+          className={`pb-3 text-xs font-bold uppercase tracking-wider transition border-b-2 flex items-center gap-1.5 ${
+            activeTab === 'item_analysis'
+              ? 'border-[#583682] text-[#583682]'
+              : 'border-transparent text-[#595562] hover:text-[#583682]'
+          }`}
+        >
+          <BarChart3 className="w-4 h-4" />
+          <span>Analisis Butir Soal</span>
+        </button>
       </div>
 
       {/* TAB 1: RESULTS */}
@@ -203,7 +296,7 @@ export const AdminResultsPage: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-center gap-4">
             <div className="w-full sm:w-72">
               <Input
-                placeholder="Cari nama atau NIM peserta..."
+                placeholder="Cari nama atau NIM..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 leftIcon={<Search className="w-4 h-4 text-gray-400" />}
@@ -224,6 +317,19 @@ export const AdminResultsPage: React.FC = () => {
                 ))}
               </select>
             </div>
+
+            {selectedSessionFilter && (
+              <Button
+                variant="secondary"
+                onClick={handleExportSessionCSV}
+                isLoading={exportingCSV}
+                leftIcon={<FileSpreadsheet className="w-4 h-4 text-[#287a58]" />}
+                className="text-xs h-[46px] shrink-0"
+                title="Ekspor CSV"
+              >
+                Ekspor CSV
+              </Button>
+            )}
           </div>
 
           <Card hasShadow className="overflow-hidden p-0">
@@ -235,7 +341,7 @@ export const AdminResultsPage: React.FC = () => {
               <div className="p-8">
                 <EmptyState
                   title="Belum Ada Hasil Ujian"
-                  description="Peserta yang telah menyelesaikan sesi ujian atau difinalisasi akan otomatis muncul di sini."
+                  description="Peserta yang menyelesaikan ujian akan otomatis muncul di sini."
                   icon={<Award className="w-8 h-8 text-[#583682]" />}
                 />
               </div>
@@ -248,8 +354,8 @@ export const AdminResultsPage: React.FC = () => {
                       <th className="px-6 py-3.5">Nama Peserta</th>
                       <th className="px-6 py-3.5">Ujian / Sesi</th>
                       <th className="px-6 py-3.5">Skor Akhir</th>
-                      <th className="px-6 py-3.5">Status Kelulusan</th>
-                      <th className="px-6 py-3.5">Publikasi</th>
+                      <th className="px-6 py-3.5">Kelulusan</th>
+                      <th className="px-6 py-3.5">Status</th>
                       <th className="px-6 py-3.5 text-right">Aksi</th>
                     </tr>
                   </thead>
@@ -276,21 +382,46 @@ export const AdminResultsPage: React.FC = () => {
                         </td>
                         <td className="px-6 py-4">
                           <Badge variant={r.status === 'published' ? 'success' : 'neutral'}>
-                            {r.status === 'published' ? 'DIPUBLIKASIKAN' : 'DRAFT'}
+                            {r.status === 'published' ? 'TERBIT' : 'DRAFT'}
                           </Badge>
                         </td>
                         <td className="px-6 py-4 text-right">
-                          {r.status !== 'published' ? (
-                            <Button
-                              variant="secondary"
-                              className="text-[11px] min-h-[30px] px-2.5"
-                              onClick={() => handlePublishSingle(r.id)}
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => handleViewDetail(r.id)}
+                              className="p-1.5 text-gray-500 hover:text-[#583682] hover:bg-[#eae2f5] rounded transition cursor-pointer"
+                              title="Lihat Transkrip"
                             >
-                              Publikasikan
-                            </Button>
-                          ) : (
-                            <span className="text-[11px] text-[#287a58] font-bold">Terbit</span>
-                          )}
+                              <Eye className="w-4 h-4" />
+                            </button>
+
+                            {r.passed && (r as any).certificate_id && (
+                              <button
+                                onClick={() =>
+                                  handleDownloadCert(
+                                    (r as any).certificate_id,
+                                    r.student_name || r.full_name || 'Peserta'
+                                  )
+                                }
+                                className="p-1.5 text-gray-500 hover:text-[#287a58] hover:bg-[#eaf4ef] rounded transition cursor-pointer"
+                                title="Unduh Sertifikat PDF"
+                              >
+                                <Download className="w-4 h-4" />
+                              </button>
+                            )}
+
+                            {r.status !== 'published' ? (
+                              <Button
+                                variant="secondary"
+                                className="text-[11px] min-h-[30px] px-2.5"
+                                onClick={() => handlePublishSingle(r.id)}
+                              >
+                                Terbitkan
+                              </Button>
+                            ) : (
+                              <span className="text-[11px] text-[#287a58] font-bold px-1.5">Terbit</span>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -320,7 +451,7 @@ export const AdminResultsPage: React.FC = () => {
                   <tr>
                     <th className="px-6 py-3.5">Peserta</th>
                     <th className="px-6 py-3.5">Ujian</th>
-                    <th className="px-6 py-3.5">Argumen Sanggahan</th>
+                    <th className="px-6 py-3.5">Alasan Sanggahan</th>
                     <th className="px-6 py-3.5">Status</th>
                     <th className="px-6 py-3.5">Tanggal</th>
                     <th className="px-6 py-3.5 text-right">Aksi</th>
@@ -362,7 +493,7 @@ export const AdminResultsPage: React.FC = () => {
                             ? 'DISETUJUI'
                             : app.status === 'rejected'
                             ? 'DITOLAK'
-                            : 'MENUNGGU VERIFIKASI'}
+                            : 'MENUNGGU'}
                         </Badge>
                       </td>
                       <td className="px-6 py-4 text-gray-400">
@@ -388,21 +519,24 @@ export const AdminResultsPage: React.FC = () => {
         </Card>
       )}
 
+      {/* TAB 3: ITEM ANALYSIS */}
+      {activeTab === 'item_analysis' && <ExamItemAnalysisTab />}
+
       {/* Sanggah Decision Modal */}
       <Modal
         isOpen={resolveModalOpen}
         onClose={() => setResolveModalOpen(false)}
-        title="Keputusan Sanggahan Nilai"
-        description={`Pemohon: ${activeAppeal?.student_name || activeAppeal?.full_name || '-'} (${activeAppeal?.identifier || '-'})`}
+        title="Tanggapi Sanggahan Nilai"
+        description={`Peserta: ${activeAppeal?.student_name || activeAppeal?.full_name || '-'} (${activeAppeal?.identifier || '-'})`}
       >
         <form onSubmit={handleResolveAppeal} className="space-y-4">
           <div className="p-3 bg-[#faf9fc] rounded border border-[#e6e1eb] text-xs">
-            <strong className="text-[#24212b] block mb-1">Argumen Mahasiswa:</strong>
+            <strong className="text-[#24212b] block mb-1">Alasan Peserta:</strong>
             <p className="text-[#595562] italic leading-relaxed">{activeAppeal?.reason || activeAppeal?.message || '-'}</p>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-[#24212b] mb-1">Keputusan Akhir</label>
+            <label className="block text-xs font-bold text-[#24212b] mb-1">Keputusan</label>
             <div className="grid grid-cols-2 gap-3">
               <label
                 className={`flex items-center gap-2 p-3 rounded border cursor-pointer text-xs font-bold transition ${
@@ -419,7 +553,7 @@ export const AdminResultsPage: React.FC = () => {
                   onChange={() => setResolutionStatus('approved')}
                   className="w-4 h-4 accent-[#287a58]"
                 />
-                <span>Setujui Sanggahan</span>
+                <span>Setujui</span>
               </label>
 
               <label
@@ -437,21 +571,21 @@ export const AdminResultsPage: React.FC = () => {
                   onChange={() => setResolutionStatus('rejected')}
                   className="w-4 h-4 accent-[#b63b48]"
                 />
-                <span>Tolak Sanggahan</span>
+                <span>Tolak</span>
               </label>
             </div>
           </div>
 
           <div>
             <label className="block text-xs font-bold text-[#24212b] mb-1">
-              Catatan Resmi untuk Mahasiswa <span className="text-[#b63b48]">*</span>
+              Catatan untuk Peserta <span className="text-[#b63b48]">*</span>
             </label>
             <textarea
               rows={3}
               required
               value={adminNotes}
               onChange={(e) => setAdminNotes(e.target.value)}
-              placeholder="Tuliskan justifikasi keputusan tim verifikator..."
+              placeholder="Tuliskan catatan atau pertimbangan keputusan..."
               className="w-full p-3 bg-white border border-[#e6e1eb] rounded text-xs text-[#24212b] outline-none focus:border-[#583682]"
             />
           </div>
@@ -461,10 +595,158 @@ export const AdminResultsPage: React.FC = () => {
               Batal
             </Button>
             <Button type="submit" variant="primary" isLoading={resolving}>
-              Simpan Keputusan Resmi
+              Simpan Keputusan
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Detail Transkrip & Lembar Jawaban Modal */}
+      <Modal
+        isOpen={detailModalOpen}
+        onClose={() => {
+          setDetailModalOpen(false);
+          setSelectedResultDetail(null);
+        }}
+        title="Transkrip Lembar Jawaban"
+        description={`Peserta: ${selectedResultDetail?.student_name || selectedResultDetail?.full_name || '-'} (${selectedResultDetail?.identifier || '-'})`}
+        footer={
+          <div className="flex items-center justify-end w-full">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setDetailModalOpen(false);
+                setSelectedResultDetail(null);
+              }}
+            >
+              Tutup
+            </Button>
+          </div>
+        }
+      >
+        {loadingDetail ? (
+          <div className="py-8">
+            <CardSkeleton />
+          </div>
+        ) : !selectedResultDetail ? (
+          <p className="text-xs text-gray-500 py-4 text-center">Data hasil penilaian tidak ditemukan.</p>
+        ) : (
+          <div className="space-y-6">
+            {/* Header Ringkasan Peserta */}
+            <div className="p-4 bg-[#faf9fc] rounded-[8px] border border-[#e6e1eb] grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+              <div>
+                <span className="text-[11px] text-[#595562] block">Nama & NIM:</span>
+                <strong className="text-[#24212b] block">{selectedResultDetail.student_name || selectedResultDetail.full_name}</strong>
+                <span className="font-mono text-[11px] text-[#583682]">{selectedResultDetail.identifier}</span>
+              </div>
+              <div>
+                <span className="text-[11px] text-[#595562] block">Ujian & Sesi:</span>
+                <strong className="text-[#24212b] block">{selectedResultDetail.exam_title}</strong>
+                <span className="text-[11px] text-gray-400">{selectedResultDetail.session_name}</span>
+              </div>
+              <div>
+                <span className="text-[11px] text-[#595562] block">Skor:</span>
+                <div className="text-base font-extrabold text-[#583682]">
+                  {selectedResultDetail.score} <span className="text-xs font-normal text-gray-400">/ 100</span>
+                </div>
+                <span className="text-[10px] text-[#595562]">Ambang: {selectedResultDetail.passing_score}</span>
+              </div>
+              <div>
+                <span className="text-[11px] text-[#595562] block mb-1">Kelulusan:</span>
+                <Badge variant={selectedResultDetail.passed ? 'success' : 'danger'}>
+                  {selectedResultDetail.passed ? 'LULUS' : 'TIDAK LULUS'}
+                </Badge>
+                <div className="mt-1">
+                  <Badge variant={selectedResultDetail.status === 'published' ? 'success' : 'neutral'} className="text-[10px]">
+                    {selectedResultDetail.status === 'published' ? 'TERBIT' : 'DRAFT'}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+
+            {/* Riwayat Jawaban Butir Soal */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between pb-1 border-b border-[#e6e1eb]">
+                <h4 className="text-xs font-bold text-[#24212b] uppercase tracking-wider flex items-center gap-1.5">
+                  <FileText className="w-4 h-4 text-[#583682]" />
+                  <span>Rincian Jawaban ({selectedResultDetail.answers?.length || 0} Soal)</span>
+                </h4>
+              </div>
+
+              {(!selectedResultDetail.answers || selectedResultDetail.answers.length === 0) ? (
+                <div className="p-4 bg-gray-50 rounded text-center text-xs text-[#595562]">
+                  Detail lembar jawaban tidak tersedia.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {selectedResultDetail.answers.map((ans: any, idx: number) => {
+                    const isCorrect = ans.is_correct === true;
+                    const isAnswered = !!ans.selected_label;
+
+                    return (
+                      <div
+                        key={idx}
+                        className={`p-3.5 rounded-[8px] border text-xs space-y-2 transition ${
+                          isCorrect
+                            ? 'bg-[#eaf4ef]/40 border-[#bce2cf]'
+                            : isAnswered
+                            ? 'bg-[#fbeeed]/40 border-[#f3c5c9]'
+                            : 'bg-gray-50 border-gray-200'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-full bg-[#583682] text-white flex items-center justify-center font-bold text-[11px]">
+                              {ans.position || idx + 1}
+                            </span>
+                            <Badge variant={isCorrect ? 'success' : isAnswered ? 'danger' : 'neutral'}>
+                              {isCorrect ? 'BENAR' : isAnswered ? 'SALAH' : 'KOSONG'}
+                            </Badge>
+                          </div>
+                          <span className="font-mono text-[11px] text-gray-500">
+                            Poin: <strong>{ans.points_awarded ?? 0}</strong> / {ans.weight ?? 1}
+                          </span>
+                        </div>
+
+                        {/* Stem Pertanyaan */}
+                        <p className="text-[#24212b] font-medium leading-relaxed">
+                          {ans.stem}
+                        </p>
+
+                        {/* Jawaban Siswa vs Kunci Jawaban */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-[11px]">
+                          <div className={`p-2 rounded border ${
+                            isCorrect
+                              ? 'bg-[#eaf4ef] border-[#bce2cf] text-[#287a58]'
+                              : isAnswered
+                              ? 'bg-[#fbeeed] border-[#f3c5c9] text-[#b63b48]'
+                              : 'bg-gray-100 border-gray-200 text-gray-500'
+                          }`}>
+                            <span className="font-bold block text-[10px] uppercase">Jawaban Peserta:</span>
+                            <span>{isAnswered ? `${ans.selected_label}. ${ans.selected_text || ''}` : '(Kosong)'}</span>
+                          </div>
+
+                          <div className="p-2 rounded border bg-[#eaf4ef] border-[#bce2cf] text-[#287a58]">
+                            <span className="font-bold block text-[10px] uppercase">Kunci Resmi:</span>
+                            <span>{ans.correct_label}. {ans.correct_text || ''}</span>
+                          </div>
+                        </div>
+
+                        {/* Pembahasan / Penjelasan */}
+                        {ans.explanation && (
+                          <div className="p-2 bg-[#faf9fc] rounded border border-[#e6e1eb] text-[11px] text-[#595562] italic">
+                            <span className="font-bold text-[#583682] not-italic block">Pembahasan:</span>
+                            {ans.explanation}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

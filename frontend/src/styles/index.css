@@ -34,7 +34,7 @@ h1, h2, h3, h4, p { margin-top: 0; }
 em { color: var(--purple); font-style: italic; font-weight: 500; }
 .icon { display: inline-block; flex: 0 0 auto; }
 
-.button { min-height: 44px; padding: 0 20px; border: 1px solid var(--purple); border-radius: var(--radius-control); background: var(--purple); color: white; display: inline-flex; align-items: center; justify-content: center; gap: 12px; font-size: 13px; font-weight: 700; letter-spacing: .01em; transition: background-color var(--motion-fast), border-color var(--motion-fast), color var(--motion-fast), transform var(--motion-fast), box-shadow var(--motion-fast); }
+.button { min-height: 38px; padding: 0 16px; border: 1px solid var(--purple); border-radius: var(--radius-control); background: var(--purple); color: white; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 12.5px; font-weight: 600; transition: background-color var(--motion-fast), border-color var(--motion-fast), color var(--motion-fast), transform var(--motion-fast), box-shadow var(--motion-fast); }
 .button:hover { background: var(--dark); border-color: var(--dark); transform: translateY(-1px); }
 .button--secondary { background: transparent; color: var(--purple); }
 .button--ghost { border-color: var(--line); background: white; color: var(--purple); }
@@ -51,7 +51,7 @@ em { color: var(--purple); font-style: italic; font-weight: 500; }
 .app-navbar .brand__logo,
 .exam-room > header .brand__logo,
 .lp-cat-head .brand__logo,
-footer .brand__logo { filter: brightness(0) invert(1); }
+.site-footer .brand__logo { filter: brightness(0) invert(1); }
 .brand-button { border: 0; background: transparent; }
 
 /* Sticky Permanent Header - Polished & Aligned */
@@ -385,7 +385,7 @@ footer .brand__logo { filter: brightness(0) invert(1); }
 .cta .eyebrow { color: var(--lavender); }
 .cta h2 em { color: white; }
 /* Professional Academic Footer */
-footer, .site-footer {
+.site-footer {
   padding: 60px max(5vw, calc((100vw - var(--content))/2)) 30px;
   background: #1e1b24;
   color: white;
@@ -783,9 +783,9 @@ label.check input, label.confirm input { width: 18px; min-height: 18px; accent-c
   .steps { grid-template-columns: 1fr; }
   .step { min-height: auto; padding: 25px 0 !important; border-right: 0; border-bottom: 1px solid #59466f; }
   .step h3 { margin-top: 40px; }
-  footer { grid-template-columns: 1fr; padding: 55px 24px; }
-  footer > div { justify-content: flex-start; }
-  footer small { grid-column: auto; }
+  .site-footer { grid-template-columns: 1fr; padding: 55px 24px; }
+  .site-footer > div { justify-content: flex-start; }
+  .site-footer small { grid-column: auto; }
   .page, .detail-page { padding-top: 55px; }
   .page-title h1, .detail-hero h1, .verify h1 { font-size: 48px; }
   .filterbar { grid-template-columns: 1fr; }
@@ -1110,7 +1110,7 @@ label.check input, label.confirm input { width: 18px; min-height: 18px; accent-c
 .status-line p { margin: 0; }
 .status-line p b, .status-line p small { display: block; font-size: 14px; }
 .status-line p small { margin-top: 5px; color: var(--text); }
-.status-pill { padding: 7px 9px; font: 700 15px Manrope; letter-spacing: .08em; }
+.status-pill { padding: 3px 8px; font: 700 11px Manrope; letter-spacing: .05em; border-radius: 4px; }
 .status-pill.waiting { background: #fff4df; color: var(--warning); }
 .status-pill.passed { background: #e8f3ed; color: var(--success); }
 .status-pill.failed { background: #f8e9eb; color: var(--error); }
@@ -1241,7 +1241,7 @@ label.check input, label.confirm input { width: 18px; min-height: 18px; accent-c
 
 /* Landing page portal CAT */
 .landing { background: var(--ivory); overflow: hidden; }
-.landing + footer { position: relative; background: var(--dark); }
+.landing + .site-footer { position: relative; background: var(--dark); }
 .site-header { position: sticky; top: 0; backdrop-filter: blur(12px); }
 .lp-section { max-width: var(--content); margin: auto; padding: 120px 0; }
 .lp-hero { max-width: none; min-height: 760px; margin: auto; padding-left: max(5vw, calc((100vw - var(--content))/2)); padding-right: max(5vw, calc((100vw - var(--content))/2)); display: grid; grid-template-columns: 1.05fr .95fr; align-items: center; gap: 6vw; position: relative; color: white; background: radial-gradient(circle at 82% 25%, rgba(134,97,197,.3), transparent 32%), linear-gradient(135deg, #251632 0%, var(--dark) 48%, #4a2c68 100%); }
@@ -2279,8 +2279,8 @@ label.check input, label.confirm input { width: 18px; min-height: 18px; accent-c
   font-style: normal;
 }
 .course-exam-card__action {
-  min-height: 49px;
-  padding: 0 22px;
+  min-height: 40px;
+  padding: 0 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2288,8 +2288,8 @@ label.check input, label.confirm input { width: 18px; min-height: 18px; accent-c
   border-top: 1px solid var(--line);
   background: white;
   color: var(--purple);
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
 }
 .course-exam-card__action:hover {
   color: white;
@@ -2954,12 +2954,12 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .participant-status small, .exam-session small, .schedule-course small,
 .academic-identity small, .nearest-spec small, .exam-progress-info small,
 .exam-progress-info > div:first-child, .timer span, .question__meta > span,
-.legend span, .question-nav > p, .status-pill, .schedule-status {
-  font-size: 15px;
+.question-nav > p, .schedule-status {
+  font-size: 13px;
   line-height: 1.5;
 }
 .schedule-row > span:not(.schedule-number):not(.schedule-status),
-.history-table__row, .profile-groups section > div, footer button {
+.history-table__row, .profile-groups section > div, .site-footer button {
   font-size: 14px;
 }
 .admin-modal-backdrop { animation: modal-backdrop-in var(--motion-fast); }

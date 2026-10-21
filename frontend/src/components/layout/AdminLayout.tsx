@@ -9,16 +9,14 @@ export const AdminLayout: React.FC = () => {
 
   const getPageTitle = (pathname: string): string => {
     if (pathname.includes('/admin/dashboard')) return 'Dashboard';
-    if (pathname.includes('/admin/users')) return 'Kelola Pengguna';
-    if (pathname.includes('/admin/subtests')) return 'Kategori & Subtes';
-    if (pathname.includes('/admin/exams')) return 'Daftar Ujian';
-    if (pathname.includes('/admin/questions/import')) return 'Impor Soal';
+    if (pathname.includes('/admin/users')) return 'Pengguna';
+    if (pathname.includes('/admin/subtests') || pathname.includes('/admin/categories')) return 'Subtes Soal';
+    if (pathname.includes('/admin/exams')) return 'Paket Ujian';
     if (pathname.includes('/admin/questions')) return 'Bank Soal';
-    if (pathname.includes('/admin/schedules')) return 'Jadwal Ujian';
-    if (pathname.includes('/admin/participants')) return 'Peserta Ujian';
+    if (pathname.includes('/admin/schedules')) return 'Jadwal Sesi';
+    if (pathname.includes('/admin/participants')) return 'Data Peserta';
     if (pathname.includes('/admin/results')) return 'Hasil Ujian';
-    if (pathname.includes('/admin/activity-log')) return 'Log Aktivitas';
-    if (pathname.includes('/admin/notifications')) return 'Notifikasi';
+    if (pathname.includes('/admin/activity-log') || pathname.includes('/admin/notifications')) return 'Log & Notifikasi';
     if (pathname.includes('/admin/settings')) return 'Pengaturan';
     return 'Admin';
   };
@@ -35,6 +33,16 @@ export const AdminLayout: React.FC = () => {
         <main className="flex-1 p-6 md:p-8 overflow-x-hidden">
           <Outlet />
         </main>
+        <footer className="mt-auto py-3 px-6 md:px-8 border-t border-[#e6e1eb] bg-white text-[11px] text-[#8e859b] flex flex-col sm:flex-row items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-[#583682]">CAT GOVERNANCE</span>
+            <span className="text-[#dcd6e5]">·</span>
+            <span>Panel Administrasi FIA Universitas Madura</span>
+          </div>
+          <div>
+            <span>Versi 2.4</span>
+          </div>
+        </footer>
       </div>
     </div>
   );

@@ -13,7 +13,6 @@ import logoImg from '../../assets/cat-governance-logo.png';
 import {
   Clock,
   CheckCircle2,
-  Bookmark,
   ChevronLeft,
   ChevronRight,
   Send,
@@ -35,7 +34,6 @@ export const ExamRoomPage: React.FC = () => {
   const [questions, setQuestions] = useState<AttemptQuestionItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string | null>>({});
-  const [flaggedQuestions, setFlaggedQuestions] = useState<Record<string, boolean>>({});
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
   const [savingStatus, setSavingStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('saved');
   const [finishModalOpen, setFinishModalOpen] = useState(false);
@@ -46,6 +44,8 @@ export const ExamRoomPage: React.FC = () => {
 
   // Client sequence for idempotent updates
   const clientSeqRef = useRef<number>(1);
+  const submittingRef = useRef<boolean>(false);
+  const targetDeadlineRef = useRef<number | null>(null);
 
   // Load attempt data
   useEffect(() => {
@@ -61,7 +61,9 @@ export const ExamRoomPage: React.FC = () => {
         setAttempt(data);
         const questionsList = data.questions || [];
         setQuestions(questionsList);
-        setTimeRemaining(data.time_remaining_seconds || (data.duration_minutes ? data.duration_minutes * 60 : 0));
+        const remainingSec = data.time_remaining_seconds || (data.duration_minutes ? data.duration_minutes * 60 : 0);
+        setTimeRemaining(remainingSec);
+        targetDeadlineRef.current = Date.now() + remainingSec * 1000;
 
         // Prepopulate answers
         const ansMap: Record<string, string | null> = {};
@@ -100,36 +102,49 @@ export const ExamRoomPage: React.FC = () => {
     };
   }, [attemptId]);
 
-  // Submit attempt handler
+  // Submit attempt handler with synchronous double-submit protection
   const handleFinishExam = useCallback(async () => {
-    if (!attemptId || submitting) return;
+    if (!attemptId || submittingRef.current) return;
+    submittingRef.current = true;
     setSubmitting(true);
     try {
       const res = await attemptService.finishAttempt(attemptId);
       navigate(`/results/latest?resultId=${res.result_id}`);
     } catch (err: any) {
-      alert(err.message || 'Gagal mengirimkan ujian. Silakan coba kembali.');
+      submittingRef.current = false;
       setSubmitting(false);
+      alert(err.message || 'Gagal mengirimkan ujian. Silakan coba kembali.');
     }
-  }, [attemptId, submitting, navigate]);
+  }, [attemptId, navigate]);
 
-  // Countdown Timer
+  // Countdown Timer with zero-drift & background-tab compensation
   useEffect(() => {
-    if (loading || timeRemaining <= 0) return;
+    if (loading || !targetDeadlineRef.current) return;
 
-    const interval = setInterval(() => {
-      setTimeRemaining((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          handleFinishExam();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    const updateTimer = () => {
+      if (!targetDeadlineRef.current) return;
+      const remaining = Math.max(0, Math.floor((targetDeadlineRef.current - Date.now()) / 1000));
+      setTimeRemaining(remaining);
+      if (remaining <= 0) {
+        handleFinishExam();
+      }
+    };
 
-    return () => clearInterval(interval);
-  }, [loading, timeRemaining, handleFinishExam]);
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        updateTimer();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [loading, handleFinishExam]);
 
   // Format seconds into HH:MM:SS
   const formatTime = (seconds: number) => {
@@ -151,28 +166,24 @@ export const ExamRoomPage: React.FC = () => {
     }));
 
     setSavingStatus('saving');
-    clientSeqRef.current += 1;
+    const seq = ++clientSeqRef.current;
 
     try {
       await attemptService.autosaveAnswer(attemptId, {
         attempt_question_id: currentQ.id,
         selected_option_id: optionId,
-        client_seq: clientSeqRef.current,
+        is_flagged: false,
+        client_seq: seq,
       });
-      setSavingStatus('saved');
+      if (clientSeqRef.current === seq) {
+        setSavingStatus('saved');
+      }
     } catch (err) {
       console.error('Autosave failed:', err);
-      setSavingStatus('error');
+      if (clientSeqRef.current === seq) {
+        setSavingStatus('error');
+      }
     }
-  };
-
-  // Toggle doubtful flag
-  const toggleDoubtful = () => {
-    const currentQ = questions[currentIndex];
-    setFlaggedQuestions((prev) => ({
-      ...prev,
-      [currentQ.id]: !prev[currentQ.id],
-    }));
   };
 
   if (loading) {
@@ -199,7 +210,6 @@ export const ExamRoomPage: React.FC = () => {
 
   const currentQuestion = questions[currentIndex];
   const answeredCount = Object.values(selectedAnswers).filter(Boolean).length;
-  const flaggedCount = Object.values(flaggedQuestions).filter(Boolean).length;
   const isTimeCritical = timeRemaining < 300; // < 5 mins
   const progressPercent = Math.round((answeredCount / questions.length) * 100);
 
@@ -211,10 +221,10 @@ export const ExamRoomPage: React.FC = () => {
           <img src={logoImg} alt="CAT GOVERNANCE" className="h-8 w-auto brightness-0 invert" />
           <div className="hidden md:block border-l border-[#59466f] pl-4">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#bda8d6] block">
-              UJI KOMPETENSI · SOAL {currentIndex + 1} DARI {questions.length}
+              SOAL {currentIndex + 1} DARI {questions.length}
             </span>
             <strong className="text-sm font-display text-white">
-              {attempt?.exam_title || 'Soal Assessment LG / Uji Kompetensi'}
+              {attempt?.exam_title || 'Uji Kompetensi CAT'}
             </strong>
           </div>
         </div>
@@ -240,14 +250,14 @@ export const ExamRoomPage: React.FC = () => {
             }`}
           >
             <Clock className="w-4 h-4 shrink-0" />
-            <span className="hidden sm:inline">Waktu Tersisa:</span>
+            <span className="hidden sm:inline">Sisa:</span>
             <span>{formatTime(timeRemaining)}</span>
           </div>
 
           <button
             onClick={() => setMobileNavOpen(!mobileNavOpen)}
             className="lg:hidden p-2 bg-[#4d3363] rounded border border-[#59466f] text-[#eae2f5]"
-            title="Navigasi Soal"
+            title="Daftar Soal"
           >
             <LayoutGrid className="w-4 h-4" />
           </button>
@@ -276,7 +286,7 @@ export const ExamRoomPage: React.FC = () => {
         {/* Left Column: Participant Identity & Live Telemetry (3 cols) */}
         <aside className="hidden lg:block lg:col-span-3 bg-white border border-[#e6e1eb] rounded-[8px] p-5 shadow-sm space-y-5">
           <div className="eyebrow text-[11px]">
-            PESERTA / {profile?.identifier ? profile.identifier.slice(-6) : '001245'}
+            IDENTITAS PESERTA
           </div>
 
           <div className="flex flex-col items-center text-center p-4 bg-[#faf9fc] rounded border border-[#e6e1eb]">
@@ -298,27 +308,21 @@ export const ExamRoomPage: React.FC = () => {
               {profile?.full_name || 'Peserta Ujian'}
             </h2>
             <span className="text-xs text-[#595562] mt-0.5">
-              {user?.role === 'umum' || profile?.identifier?.startsWith('UMUM') ? 'NO. PESERTA' : 'NIM'}{' '}
+              {user?.role === 'umum' || profile?.identifier?.startsWith('UMUM') ? 'No. Peserta' : 'NIM'}{' '}
               {profile?.identifier || '-'}
-            </span>
-            <span className="text-[11px] font-mono font-semibold text-[#583682] mt-0.5">
-              CAT-2026-{profile?.identifier ? profile.identifier.slice(-6) : '001245'}
             </span>
           </div>
 
-          {/* System Normal State */}
-          <div className="flex items-start gap-3 p-3 bg-[#eaf4ef] border border-[#badfcb] rounded text-xs text-[#287a58]">
-            <div className="w-2.5 h-2.5 rounded-full bg-[#287a58] mt-1 shrink-0 animate-ping" />
-            <div>
-              <b className="block">Sistem Normal</b>
-              <span className="text-[11px] text-[#287a58]">Jawaban tersimpan otomatis</span>
-            </div>
+          {/* Autosave Status */}
+          <div className="flex items-center gap-2 p-2.5 bg-[#faf9fc] border border-[#e6e1eb] rounded text-xs text-[#595562]">
+            <Shield className="w-4 h-4 text-[#583682] shrink-0" />
+            <span>Jawaban tersimpan otomatis ke server</span>
           </div>
 
           {/* Progress summary */}
           <div className="space-y-2 pt-2 border-t border-[#e6e1eb]">
             <div className="flex justify-between text-xs font-semibold text-[#24212b]">
-              <span>KEMAJUAN UJIAN</span>
+              <span>PROGRES</span>
               <b>{answeredCount} / {questions.length} Soal</b>
             </div>
             <div className="h-2 bg-[#f6f2fa] rounded-full overflow-hidden border border-[#e6e1eb]">
@@ -344,7 +348,7 @@ export const ExamRoomPage: React.FC = () => {
                     Soal No. {currentIndex + 1}
                   </span>
                   <span className="text-xs text-[#595562]">
-                    / PILIHAN GANDA
+                    / Pilihan Ganda
                   </span>
                 </div>
 
@@ -364,18 +368,6 @@ export const ExamRoomPage: React.FC = () => {
                       <AlertTriangle className="w-3.5 h-3.5" /> Gagal simpan
                     </span>
                   )}
-
-                  <button
-                    onClick={toggleDoubtful}
-                    className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold border transition cursor-pointer ${
-                      flaggedQuestions[currentQuestion.id]
-                        ? 'bg-[#fdf6ec] text-[#a96817] border-[#f6ddba]'
-                        : 'bg-white text-gray-400 border-gray-200 hover:text-gray-600'
-                    }`}
-                  >
-                    <Bookmark className="w-3.5 h-3.5" />
-                    <span>{flaggedQuestions[currentQuestion.id] ? 'Ditandai Ragu' : 'Tandai Ragu'}</span>
-                  </button>
                 </div>
               </div>
 
@@ -421,38 +413,26 @@ export const ExamRoomPage: React.FC = () => {
                 disabled={currentIndex === 0}
                 onClick={() => setCurrentIndex((prev) => Math.max(0, prev - 1))}
                 leftIcon={<ChevronLeft className="w-4 h-4" />}
-                className="text-xs"
+                className="text-xs h-9 px-4"
               >
-                Soal Sebelumnya
+                Sebelumnya
               </Button>
-
-              <button
-                onClick={toggleDoubtful}
-                className={`hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded text-xs font-semibold border transition cursor-pointer ${
-                  flaggedQuestions[currentQuestion.id]
-                    ? 'bg-[#fdf6ec] text-[#a96817] border-[#f6ddba]'
-                    : 'bg-white text-[#595562] border-[#e6e1eb] hover:bg-[#faf9fc]'
-                }`}
-              >
-                <Bookmark className="w-3.5 h-3.5" />
-                {flaggedQuestions[currentQuestion.id] ? 'Ditandai untuk ditinjau' : 'Tandai untuk ditinjau'}
-              </button>
 
               {currentIndex < questions.length - 1 ? (
                 <Button
                   variant="primary"
                   onClick={() => setCurrentIndex((prev) => Math.min(questions.length - 1, prev + 1))}
                   rightIcon={<ChevronRight className="w-4 h-4" />}
-                  className="text-xs"
+                  className="text-xs h-9 px-5"
                 >
-                  Soal Berikutnya
+                  Berikutnya
                 </Button>
               ) : (
                 <Button
                   variant="primary"
                   onClick={() => setFinishModalOpen(true)}
                   rightIcon={<Send className="w-4 h-4" />}
-                  className="text-xs bg-[#287a58] border-[#287a58] hover:bg-[#206346]"
+                  className="text-xs h-9 px-5 bg-[#287a58] border-[#287a58] hover:bg-[#206346]"
                 >
                   Selesaikan Ujian
                 </Button>
@@ -486,13 +466,13 @@ export const ExamRoomPage: React.FC = () => {
 
           <div className="flex items-center justify-between pb-3 border-b border-[#e6e1eb]">
             <h3 className="font-display font-bold text-sm text-[#24212b]">
-              NAVIGASI SOAL
+              DAFTAR SOAL
             </h3>
             <button
               onClick={() => setFinishModalOpen(true)}
               className="text-xs font-bold text-[#583682] hover:underline cursor-pointer"
             >
-              Selesaikan Ujian
+              Selesaikan
             </button>
           </div>
 
@@ -501,17 +481,17 @@ export const ExamRoomPage: React.FC = () => {
             {questions.map((q, idx) => {
               const isCurrent = idx === currentIndex;
               const isAnswered = !!selectedAnswers[q.id];
-              const isFlagged = !!flaggedQuestions[q.id];
 
-              let btnStyle = 'bg-white border-[#e6e1eb] text-[#24212b] hover:bg-[#faf9fc]';
-              if (isFlagged) {
-                btnStyle = 'bg-[#fdf6ec] border-[#a96817] text-[#a96817] font-bold';
-              } else if (isAnswered) {
-                btnStyle = 'bg-[#583682] border-[#583682] text-white font-bold';
-              }
-
+              let btnStyle = '';
               if (isCurrent) {
-                btnStyle += ' ring-2 ring-[#754ead] ring-offset-1 font-bold';
+                // Warna 1: Nomor aktif yang sedang dibuka (kotak lavender dengan border tebal ungu & ring)
+                btnStyle = 'bg-[#eae2f5] border-2 border-[#583682] text-[#583682] font-black ring-2 ring-[#583682]/25 shadow-xs';
+              } else if (isAnswered) {
+                // Warna 2: Sudah dijawab (ungu solid)
+                btnStyle = 'bg-[#583682] border-[#583682] text-white font-bold';
+              } else {
+                // Warna 3: Belum dijawab / dilewati / ditinggalkan (putih)
+                btnStyle = 'bg-white border-[#dcd6e5] text-[#595562] font-medium hover:bg-[#faf9fc]';
               }
 
               return (
@@ -529,31 +509,34 @@ export const ExamRoomPage: React.FC = () => {
             })}
           </div>
 
-          {/* Legend */}
-          <div className="space-y-1.5 text-[11px] text-[#595562] pt-3 border-t border-[#e6e1eb]">
+          {/* Legend: 3 Colors Only */}
+          <div className="space-y-2 text-xs text-[#595562] pt-3 border-t border-[#e6e1eb]">
             <div className="flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded bg-[#583682]" /> Terjawab:
+              <span className="flex items-center gap-2">
+                <span className="w-3.5 h-3.5 rounded-[3px] bg-[#eae2f5] border-2 border-[#583682]" />
+                Sedang Dibuka:
               </span>
-              <b>{answeredCount}</b>
+              <b className="font-mono text-[#583682]">No. {currentIndex + 1}</b>
             </div>
             <div className="flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded bg-white border border-[#e6e1eb]" /> Belum dijawab:
+              <span className="flex items-center gap-2">
+                <span className="w-3.5 h-3.5 rounded-[3px] bg-[#583682]" />
+                Sudah Dijawab:
               </span>
-              <b>{questions.length - answeredCount}</b>
+              <b className="font-mono text-[#24212b]">{answeredCount}</b>
             </div>
             <div className="flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded bg-[#fdf6ec] border border-[#a96817]" /> Ditandai:
+              <span className="flex items-center gap-2">
+                <span className="w-3.5 h-3.5 rounded-[3px] bg-white border border-[#dcd6e5]" />
+                Belum Dijawab:
               </span>
-              <b>{flaggedCount}</b>
+              <b className="font-mono text-[#24212b]">{questions.length - answeredCount}</b>
             </div>
           </div>
 
           <p className="text-[10px] text-[#595562] flex items-center gap-1.5 pt-2 border-t border-[#e6e1eb]">
             <Shield className="w-3.5 h-3.5 text-[#583682] shrink-0" />
-            Jawaban tersimpan otomatis pada perangkat ini.
+            Jawaban tersimpan otomatis secara berkala.
           </p>
         </aside>
       </div>
@@ -562,25 +545,21 @@ export const ExamRoomPage: React.FC = () => {
       <Modal
         isOpen={finishModalOpen}
         onClose={() => setFinishModalOpen(false)}
-        title="Konfirmasi Pengiriman Ujian"
-        description="Selesaikan dan kirim seluruh lembar jawaban ujian?"
+        title="Selesaikan Ujian?"
+        description="Pastikan semua soal telah Anda periksa sebelum dikirim."
         maxWidth="md"
       >
         <div className="space-y-4">
-          <div className="grid grid-cols-3 gap-3 text-center p-3 bg-[#faf9fc] rounded border border-[#e6e1eb]">
+          <div className="grid grid-cols-2 gap-3 text-center p-3 bg-[#faf9fc] rounded border border-[#e6e1eb]">
             <div>
-              <div className="font-display font-bold text-lg text-[#287a58]">{answeredCount}</div>
-              <div className="text-[10px] text-[#595562] font-semibold">Soal Terjawab</div>
+              <div className="font-display font-bold text-xl text-[#287a58]">{answeredCount}</div>
+              <div className="text-[11px] text-[#595562] font-semibold">Sudah Dijawab</div>
             </div>
             <div>
-              <div className="font-display font-bold text-lg text-[#a96817]">{flaggedCount}</div>
-              <div className="text-[10px] text-[#595562] font-semibold">Ditandai</div>
-            </div>
-            <div>
-              <div className="font-display font-bold text-lg text-[#b63b48]">
+              <div className="font-display font-bold text-xl text-[#b63b48]">
                 {questions.length - answeredCount}
               </div>
-              <div className="text-[10px] text-[#595562] font-semibold">Belum Dijawab</div>
+              <div className="text-[11px] text-[#595562] font-semibold">Belum Dijawab</div>
             </div>
           </div>
 
@@ -588,13 +567,13 @@ export const ExamRoomPage: React.FC = () => {
             <div className="p-3 bg-[#fff4df] border border-[#f6ddba] rounded text-xs text-[#a96817] flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
               <div>
-                <b>Periksa kembali jawaban Anda:</b> Masih terdapat {questions.length - answeredCount} butir soal yang belum dijawab.
+                <b>Perhatian:</b> Masih ada {questions.length - answeredCount} butir soal yang belum Anda jawab.
               </div>
             </div>
           )}
 
           <p className="text-xs text-[#595562] leading-relaxed">
-            Setelah dikirimkan, jawaban tidak dapat diubah kembali dan hasil asesmen akan segera diproses oleh sistem.
+            Setelah dikirim, lembar jawaban tidak dapat diubah lagi dan sistem akan memproses nilai Anda.
           </p>
 
           <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#e6e1eb]">
@@ -602,14 +581,15 @@ export const ExamRoomPage: React.FC = () => {
               variant="secondary"
               onClick={() => setFinishModalOpen(false)}
               disabled={submitting}
+              className="text-xs h-9 px-4"
             >
-              Kembali Periksa Jawaban
+              Periksa Lagi
             </Button>
             <Button
               variant="primary"
               onClick={handleFinishExam}
               isLoading={submitting}
-              className="bg-[#287a58] border-[#287a58] hover:bg-[#206346]"
+              className="bg-[#287a58] border-[#287a58] hover:bg-[#206346] text-xs h-9 px-5"
             >
               Kirim Jawaban <Send className="w-3.5 h-3.5 ml-1.5" />
             </Button>

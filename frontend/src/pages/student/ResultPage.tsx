@@ -134,13 +134,28 @@ export const ResultPage: React.FC = () => {
 
   const passed = result.passed;
 
+  const isPending = result.status === 'pending_publication';
+
   return (
-    <div className="max-w-[800px] mx-auto px-6 py-12 w-full space-y-8">
+    <div className="max-w-[800px] mx-auto px-6 py-12 w-full space-y-6">
       <div>
         <Link to="/dashboard" className="text-xs font-semibold text-[#583682] hover:underline inline-flex items-center gap-1.5">
           <ArrowLeft className="w-3.5 h-3.5" /> Kembali ke Dashboard
         </Link>
       </div>
+
+      {/* Banner Hasil Sementara jika status pending_publication */}
+      {isPending && (
+        <div className="p-4 bg-amber-50 border border-amber-200 rounded-[8px] text-amber-900 text-xs flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 flex-shrink-0 text-amber-600 mt-0.5" />
+          <div className="space-y-1">
+            <div className="font-bold text-amber-950">Hasil Belum Diumumkan Resmi</div>
+            <p className="text-amber-800 leading-relaxed">
+              Nilai ini masih dalam tahap rekapitulasi panitia. Sertifikat akan terbit setelah pengumuman resmi.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Main Score Card */}
       <Card
@@ -157,9 +172,13 @@ export const ResultPage: React.FC = () => {
           )}
         </div>
 
-        <div className="eyebrow mb-1">HASIL EVALUASI AKHIR</div>
+        <div className="eyebrow mb-1">
+          {isPending ? 'HASIL EVALUASI SEMENTARA' : 'HASIL EVALUASI AKHIR'}
+        </div>
         <h1 className="font-display font-bold text-3xl md:text-4xl text-[#24212b] mb-2">
-          {passed ? 'Dinyatakan LULUS Kompetensi' : 'Belum Memenuhi Ambang Batas'}
+          {isPending
+            ? (passed ? 'Memenuhi Ambang Batas' : 'Belum Memenuhi Ambang Batas')
+            : (passed ? 'Dinyatakan Lulus' : 'Belum Memenuhi Ambang Batas')}
         </h1>
         <p className="text-xs text-[#595562] max-w-md mx-auto mb-8">
           Ujian: <strong>{result.exam_title || result.session_name}</strong>
@@ -168,7 +187,7 @@ export const ResultPage: React.FC = () => {
         {/* Score Dial */}
         <div className="inline-block p-6 bg-[#faf9fc] rounded-[8px] border border-[#e6e1eb] min-w-[240px] mb-8">
           <div className="text-[11px] font-bold uppercase tracking-wider text-[#595562] mb-1">
-            Skor Diperoleh
+            Nilai Akhir
           </div>
           <div
             className={`font-display font-extrabold text-5xl md:text-6xl ${
@@ -178,35 +197,44 @@ export const ResultPage: React.FC = () => {
             {result.score}
           </div>
           <div className="text-xs text-[#595562] mt-2 font-medium">
-            Ambang Batas Kelulusan: <strong className="text-[#24212b]">{result.passing_score}</strong> / 100
+            Ambang Batas: <strong className="text-[#24212b]">{result.passing_score}</strong> / 100
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap items-center justify-center gap-4 pt-4 border-t border-[#e6e1eb]">
-          {passed && result.certificate_id && (
+        <div className="flex flex-col items-center gap-4 pt-4 border-t border-[#e6e1eb]">
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            {passed && result.certificate_id && (
+              <Button
+                variant="primary"
+                onClick={handleDownloadPDF}
+                isLoading={downloading}
+                leftIcon={<Download className="w-4 h-4" />}
+                className="bg-[#287a58] border-[#287a58] hover:bg-[#206346]"
+              >
+                Unduh Sertifikat PDF
+              </Button>
+            )}
+
             <Button
-              variant="primary"
-              onClick={handleDownloadPDF}
-              isLoading={downloading}
-              leftIcon={<Download className="w-4 h-4" />}
-              className="bg-[#287a58] border-[#287a58] hover:bg-[#206346]"
+              variant="secondary"
+              onClick={() => setAppealModalOpen(true)}
+              leftIcon={<HelpCircle className="w-4 h-4" />}
             >
-              Unduh Sertifikat PDF Resmi
+              {result.has_appeal ? 'Lihat Sanggahan' : 'Ajukan Sanggahan'}
             </Button>
+
+            <Link to="/history">
+              <Button variant="ghost">Riwayat Ujian</Button>
+            </Link>
+          </div>
+
+          {passed && !result.certificate_id && isPending && (
+            <div className="text-[11px] text-[#595562] italic flex items-center gap-1.5 mt-2">
+              <FileCheck className="w-3.5 h-3.5 text-[#583682]" />
+              Sertifikat resmi terbit setelah panitia mengumumkan hasil ujian.
+            </div>
           )}
-
-          <Button
-            variant="secondary"
-            onClick={() => setAppealModalOpen(true)}
-            leftIcon={<HelpCircle className="w-4 h-4" />}
-          >
-            {result.has_appeal ? 'Lihat Status Sanggahan' : 'Ajukan Sanggah Nilai'}
-          </Button>
-
-          <Link to="/history">
-            <Button variant="ghost">Riwayat Ujian Saya</Button>
-          </Link>
         </div>
       </Card>
 
@@ -214,16 +242,16 @@ export const ResultPage: React.FC = () => {
       <Modal
         isOpen={appealModalOpen}
         onClose={() => setAppealModalOpen(false)}
-        title="Pengajuan Sanggahan Hasil Ujian"
-        description="Gunakan hak sanggah jika Anda menemukan indikasi kesalahan kunci jawaban atau ambiguitas soal."
+        title="Sanggah Nilai Ujian"
+        description="Ajukan sanggahan jika terdapat kekeliruan soal atau kunci jawaban."
         maxWidth="md"
       >
         {appealSuccess ? (
           <div className="p-6 text-center space-y-3">
             <CheckCircle2 className="w-12 h-12 text-[#287a58] mx-auto" />
-            <h4 className="font-bold text-base text-[#24212b]">Sanggahan Diterima</h4>
+            <h4 className="font-bold text-base text-[#24212b]">Sanggahan Terkirim</h4>
             <p className="text-xs text-[#595562]">
-              Tim verifikator dan panitia ujian FIA akan mereview butir soal dan memberitahukan hasilnya kepada Anda.
+              Panitia ujian akan meninjau pengajuan Anda.
             </p>
           </div>
         ) : result.has_appeal ? (
@@ -266,7 +294,7 @@ export const ResultPage: React.FC = () => {
                 </div>
               ) : (
                 <p className="text-[11px] text-[#595562] italic">
-                  Sanggahan Anda sedang dalam antrean verifikasi oleh panitia dan tim penguji.
+                  Sanggahan Anda sedang diperiksa oleh panitia.
                 </p>
               )}
             </div>
@@ -280,19 +308,19 @@ export const ResultPage: React.FC = () => {
         ) : (
           <form onSubmit={handleSubmitAppeal} className="space-y-4">
             <div className="text-xs text-[#595562] leading-relaxed p-3 bg-[#faf9fc] rounded border border-[#e6e1eb]">
-              Sesuai ketentuan, sanggahan yang diterima akan diuji terhadap riwayat kunci jawaban. Jika sanggahan disetujui, nilai seluruh peserta yang terdampak akan dihitung ulang secara otomatis (*auto-regrade*).
+              Sanggahan yang disetujui akan diverifikasi oleh panitia dan nilai yang terdampak akan disesuaikan otomatis.
             </div>
 
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-[#24212b] mb-1.5">
-                Alasan / Catatan Sanggahan <span className="text-[#b63b48]">*</span>
+                Alasan Sanggahan <span className="text-[#b63b48]">*</span>
               </label>
               <textarea
                 rows={4}
                 required
                 value={appealReason}
                 onChange={(e) => setAppealReason(e.target.value)}
-                placeholder="Tuliskan nomor soal dan argumen sanggahan Anda secara jelas dan objektif..."
+                placeholder="Tuliskan nomor soal dan alasan sanggahan..."
                 className="w-full p-3 bg-white border border-[#e6e1eb] rounded-[6px] text-xs text-[#24212b] outline-none focus:border-[#583682]"
               />
             </div>
@@ -302,7 +330,7 @@ export const ResultPage: React.FC = () => {
                 Batal
               </Button>
               <Button type="submit" variant="primary" isLoading={submittingAppeal}>
-                Kirimkan Sanggahan
+                Kirim Sanggahan
               </Button>
             </div>
           </form>

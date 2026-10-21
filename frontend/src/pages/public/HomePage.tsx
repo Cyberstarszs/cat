@@ -1,11 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { sessionService } from '../../services';
+import { formatWIBDate, formatWIBTimeRange } from '../../utils/date';
+import { Clock, Calendar, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import logoImg from '../../assets/cat-governance-logo.png';
 import { FigmaIcon, IconName } from '../../components/common/FigmaIcon';
 
 export const HomePage: React.FC = () => {
   const navigate = useNavigate();
-  const [verifyCertNumber, setVerifyCertNumber] = useState('CAT-2026-001245');
+  const { isAuthenticated, user } = useAuth();
+
+  const handlePrimaryCta = () => {
+    if (!isAuthenticated) {
+      navigate('/login');
+    } else if (user?.role === 'admin') {
+      navigate('/admin/dashboard');
+    } else {
+      navigate('/dashboard');
+    }
+  };
+
+  const primaryCtaLabel = !isAuthenticated
+    ? 'Masuk ke Ruang Ujian'
+    : user?.role === 'admin'
+    ? 'Buka Portal Administrator'
+    : 'Buka Dashboard Ujian';
+  const [verifyCertNumber, setVerifyCertNumber] = useState('');
+  const [publicSessions, setPublicSessions] = useState<any[]>([]);
+  const [publicLoading, setPublicLoading] = useState(true);
+
+  useEffect(() => {
+    sessionService
+      .getPublicSessions()
+      .then((data) => setPublicSessions(data || []))
+      .catch(() => setPublicSessions([]))
+      .finally(() => setPublicLoading(false));
+  }, []);
 
   const handleVerifySubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,27 +78,30 @@ export const HomePage: React.FC = () => {
           <span className="orbit-dot orbit-dot--three" />
         </div>
         <div className="minimal-hero-copy">
-          <div className="eyebrow">PUSAT ASESMEN RESMI FIA UNIVERSITAS MADURA</div>
+          <div className="eyebrow">FAKULTAS ILMU ADMINISTRASI · UNIVERSITAS MADURA</div>
           <h1>CAT GOVERNANCE</h1>
           <p>
-            Pusat Asesmen dan Sertifikasi Kompetensi Terstandarisasi — Fakultas Ilmu Administrasi,
-            Universitas Madura. Melayani evaluasi akademik mahasiswa internal serta uji kompetensi
-            bagi peserta eksternal dan siswa.
+            Sistem evaluasi akademik dan uji kompetensi berbasis Computer Assisted Test (CAT) mandiri
+            di lingkungan Fakultas Ilmu Administrasi, Universitas Madura.
           </p>
           <div className="minimal-hero-actions">
             <button
               type="button"
               className="button button--light"
-              onClick={() => navigate('/login')}
+              onClick={handlePrimaryCta}
             >
-              Masuk ke Ruang Ujian
+              {primaryCtaLabel}
             </button>
             <button
               type="button"
               className="button button--secondary"
-              onClick={() => navigate('/explore')}
+              onClick={() => {
+                const el = document.getElementById('jadwal-publik');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+                else navigate('/explore');
+              }}
             >
-              Jadwal & Informasi Ujian
+              Jadwal Sesi Ujian
             </button>
           </div>
         </div>
@@ -105,7 +139,7 @@ export const HomePage: React.FC = () => {
             [
               '03',
               'award',
-              'Sertifikasi Terverifikasi',
+              'Sertifikasi Kompetensi',
               'Peserta yang memenuhi standar kelulusan memperoleh sertifikat resmi beridentitas unik yang dapat diverifikasi langsung oleh publik.',
             ],
           ].map((item) => (
@@ -117,6 +151,89 @@ export const HomePage: React.FC = () => {
             </article>
           ))}
         </div>
+      </section>
+
+      {/* 2b. Jadwal Sesi Ujian Publik */}
+      <section className="lp-section max-w-[1280px] mx-auto px-6 py-12" id="jadwal-publik">
+        <div className="lp-section-heading">
+          <div className="eyebrow">JADWAL SESI UJIAN</div>
+          <h2>
+            Jadwal Sesi Ujian yang Sedang
+            <br />
+            dan Akan Berlangsung
+          </h2>
+          <p>
+            Pilih sesi ujian kompetensi yang tersedia di bawah ini untuk mengikuti asesmen mandiri.
+          </p>
+        </div>
+
+        {publicLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+            <div className="h-48 bg-white border border-[#e6e1eb] rounded-[8px] animate-pulse" />
+            <div className="h-48 bg-white border border-[#e6e1eb] rounded-[8px] animate-pulse" />
+            <div className="h-48 bg-white border border-[#e6e1eb] rounded-[8px] animate-pulse" />
+          </div>
+        ) : publicSessions.length === 0 ? (
+          <div className="text-center py-12 text-xs text-[#595562] bg-white border border-[#e6e1eb] rounded-[8px] mt-6">
+            Saat ini belum ada sesi ujian publik yang dibuka. Silakan periksa kembali nanti.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+            {publicSessions.map((sess, idx) => (
+              <article key={sess.id} className="course-exam-card">
+                <div className="course-exam-card__visual">
+                  <span>0{idx + 1}</span>
+                  <FigmaIcon name="book" size={24} />
+                  <small>SESI UJIAN</small>
+                </div>
+
+                <div className="course-exam-card__body">
+                  <div className="mb-2">
+                    <span className={`status-pill ${sess.status === 'active' ? 'passed' : 'waiting'}`}>
+                      {sess.status === 'active' ? 'Sedang Berlangsung' : 'Akan Datang'}
+                    </span>
+                  </div>
+                  <h3>{sess.name}</h3>
+                  <p>{sess.exam_title || 'Uji Kompetensi CAT'}</p>
+
+                  <div className="course-exam-card__facts">
+                    <span>
+                      <Clock className="w-3.5 h-3.5 text-[#583682]" />
+                      <b>{sess.duration_minutes || 90} menit</b>
+                    </span>
+                    <span>
+                      <Shield className="w-3.5 h-3.5 text-[#583682]" />
+                      <b>Batas: {Math.round(sess.passing_score || 70)}</b>
+                    </span>
+                  </div>
+
+                  <div className="course-exam-card__schedule">
+                    <Calendar className="w-4 h-4 text-[#583682]" />
+                    <span>
+                      <small>JADWAL (WIB)</small>
+                      <b>{formatWIBDate(sess.starts_at)}</b>
+                      <em>{formatWIBTimeRange(sess.starts_at, sess.ends_at)}</em>
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  className="course-exam-card__action cursor-pointer"
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      navigate(`/login?redirect=${encodeURIComponent(`/instructions?sessionId=${sess.id}`)}`);
+                    } else {
+                      navigate(`/instructions?sessionId=${sess.id}`);
+                    }
+                  }}
+                >
+                  <span>Ikuti Ujian</span>
+                  <span aria-hidden="true">→</span>
+                </button>
+              </article>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* 3. Panduan Alur Peserta (5 Langkah Terarah) */}
@@ -175,15 +292,15 @@ export const HomePage: React.FC = () => {
           <div className="lp-id-card">
             <div className="lp-id-avatar">
               <div className="lp-id-avatar-circle">WH</div>
-              <small>PESERTA RESMI</small>
+              <small>PESERTA UJIAN</small>
             </div>
             <div className="lp-id-content">
-              <div className="eyebrow">IDENTITAS ASESMEN / CAT RESMI</div>
+              <div className="eyebrow">KARTU PESERTA ASESMEN</div>
               <h3>Wahyu Hidayatullah</h3>
               <dl>
                 <div>
                   <dt>Identitas Peserta</dt>
-                  <dd>202412345 (NIM / ID)</dd>
+                  <dd>202412345 (NIM / No. Peserta)</dd>
                 </div>
                 <div>
                   <dt>Program / Kategori</dt>
@@ -195,8 +312,8 @@ export const HomePage: React.FC = () => {
                 </div>
               </dl>
               <div className="lp-id-footer">
-                <span className="status-active">
-                  <i /> IDENTITAS TERVERIFIKASI RESMI
+                <span className="text-[11px] font-semibold text-[#583682] uppercase tracking-wider">
+                  Status: Aktif
                 </span>
               </div>
             </div>
@@ -211,7 +328,7 @@ export const HomePage: React.FC = () => {
                 alt="CAT Governance"
               />
             </div>
-            <span>UJIAN KOMPETENSI MANDIRI</span>
+            <span>SIMULASI UJIAN CAT</span>
             <strong>01:24:36</strong>
           </div>
           <div className="lp-cat-body">
@@ -309,7 +426,7 @@ export const HomePage: React.FC = () => {
         {[
           [
             'monitor',
-            '100% Berbasis Komputer',
+            'Berbasis Komputer (CAT)',
             'Pelaksanaan terpusat di laboratorium dengan sistem mandiri yang tertata dan terstandarisasi.',
           ],
           [
@@ -319,7 +436,7 @@ export const HomePage: React.FC = () => {
           ],
           [
             'shield',
-            'Verifikasi Publik Terbuka',
+            'Validasi Sertifikat Digital',
             'Keaslian sertifikat dapat diverifikasi kapan saja oleh pihak kampus, sekolah, maupun instansi kerja.',
           ],
         ].map((item) => (
@@ -334,11 +451,11 @@ export const HomePage: React.FC = () => {
       {/* 7. Sertifikat Kompetensi Resmi */}
       <section className="lp-certificate-section lp-section">
         <div className="lp-certificate-copy">
-          <div className="eyebrow">DOKUMEN RESMI AKADEMIK</div>
+          <div className="eyebrow">DOKUMEN KELULUSAN</div>
           <h2>
             Sertifikat Kompetensi
             <br />
-            <em>Terakreditasi Institusi</em>
+            <em>Fakultas Ilmu Administrasi</em>
           </h2>
           <p>
             Bukti kompetensi resmi yang diterbitkan oleh Fakultas Ilmu Administrasi Universitas Madura.
@@ -356,10 +473,10 @@ export const HomePage: React.FC = () => {
         <div className="lp-certificate">
           <div className="lp-certificate-top">
             <span>UNIVERSITAS MADURA · FAKULTAS ILMU ADMINISTRASI</span>
-            <span>PORTAL ASESMEN CAT RESMI</span>
+            <span>FAKULTAS ILMU ADMINISTRASI</span>
           </div>
           <div className="lp-certificate-body">
-            <span className="lp-certificate-badge">SERTIFIKAT KOMPETENSI RESMI</span>
+            <span className="lp-certificate-badge">SERTIFIKAT KOMPETENSI</span>
             <h3 className="lp-certificate-name">WAHYU HIDAYATULLAH</h3>
             <p className="lp-certificate-intro">Diberikan atas pemenuhan standar kompetensi bidang</p>
             <h4 className="lp-certificate-title">TATA KELOLA DAN ADMINISTRASI PUBLIK</h4>
@@ -379,7 +496,7 @@ export const HomePage: React.FC = () => {
                 <br />
                 26
               </div>
-              <small>TERVERIFIKASI</small>
+              <small>VALID</small>
             </div>
           </div>
         </div>
@@ -399,16 +516,20 @@ export const HomePage: React.FC = () => {
           <label>
             <span>Nomor Registrasi Sertifikat</span>
             <input
+              id="verify-cert-input"
+              name="verifyCertNumber"
               value={verifyCertNumber}
               onChange={(e) => setVerifyCertNumber(e.target.value)}
-              placeholder="Contoh: CAT-2026-001245"
+              placeholder="Contoh: CAT-2026-001245…"
+              spellCheck={false}
+              autoComplete="off"
             />
           </label>
           <button type="submit" className="button button--light">
             Periksa Sertifikat
           </button>
           <small>
-            <FigmaIcon name="check" size={14} /> Terhubung langsung dengan pangkalan data resmi fakultas
+            <FigmaIcon name="check" size={14} /> Terhubung langsung dengan pangkalan data sertifikat FIA
           </small>
         </form>
       </section>
@@ -514,9 +635,9 @@ export const HomePage: React.FC = () => {
           <button
             type="button"
             className="button button--light"
-            onClick={() => navigate('/login')}
+            onClick={handlePrimaryCta}
           >
-            Masuk ke Ruang Ujian
+            {primaryCtaLabel}
           </button>
           <button
             type="button"

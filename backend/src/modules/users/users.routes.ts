@@ -35,9 +35,11 @@ const createStudentSchema = z.object({
 
 const updateStudentSchema = z.object({
   full_name: z.string().min(1).optional(),
+  email: z.string().email('Format email tidak valid').optional(),
   institution: z.string().optional().nullable(),
   phone: z.string().optional().nullable(),
   status: z.enum(['active', 'suspended']).optional(),
+  role: z.enum(['mahasiswa', 'umum', 'student']).optional(),
 });
 
 export const userRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
@@ -161,6 +163,9 @@ export const userRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =
 
     if (status === 'suspended') {
       await checkLastAdminGuard(id);
+      if (request.user!.id === id) {
+        throw new AppError('CANNOT_SUSPEND_SELF', 'Anda tidak dapat menonaktifkan akun Anda sendiri saat sedang login.');
+      }
     }
 
     const updates: string[] = ['updated_at = now()'];
@@ -207,6 +212,10 @@ export const userRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =
   fastify.delete('/users/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
 
+    if (request.user!.id === id) {
+      throw new AppError('CANNOT_DELETE_SELF', 'Anda tidak dapat menghapus akun Anda sendiri saat sedang login.');
+    }
+
     await checkLastAdminGuard(id);
 
     const { rows } = await pool.query(
@@ -239,6 +248,9 @@ export const userRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =
   // POST /users/:id/reset-password (FR-A04)
   fastify.post('/users/:id/reset-password', async (request, reply) => {
     const { id } = request.params as { id: string };
+    if (request.user!.id === id) {
+      throw new AppError('CANNOT_RESET_SELF', 'Untuk mengubah kata sandi akun Anda sendiri, gunakan menu Pengaturan Profil.');
+    }
     const actorId = request.user!.id;
     const ipAddress = request.ip;
 
@@ -409,14 +421,40 @@ export const userRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =
       throw new AppError('VALIDATION_FAILED', 'Validasi data pembaruan gagal', parseResult.error.format());
     }
 
-    const { full_name, institution, phone, status } = parseResult.data;
+    const { full_name, email, institution, phone, status, role } = parseResult.data;
 
     const client = await pool.connect();
     try {
       await client.query('BEGIN;');
 
+      const uUpdates: string[] = ['updated_at = now()'];
+      const uParams: any[] = [];
+      let uIdx = 1;
+
       if (status) {
-        await client.query(`UPDATE users SET status = $1, updated_at = now() WHERE id = $2;`, [status, id]);
+        uUpdates.push(`status = $${uIdx++}`);
+        uParams.push(status);
+      }
+      if (email) {
+        // Cek duplikasi email pada user lain
+        const dupCheck = await client.query(
+          `SELECT id FROM users WHERE lower(email) = lower($1) AND id != $2 AND deleted_at IS NULL;`,
+          [email.trim(), id]
+        );
+        if (dupCheck.rows.length > 0) {
+          throw new AppError('DUPLICATE_KEY', 'Email sudah digunakan oleh akun lain.');
+        }
+        uUpdates.push(`email = $${uIdx++}`);
+        uParams.push(email.toLowerCase().trim());
+      }
+      if (role) {
+        uUpdates.push(`role = $${uIdx++}`);
+        uParams.push(role.toLowerCase());
+      }
+
+      if (uUpdates.length > 1) {
+        uParams.push(id);
+        await client.query(`UPDATE users SET ${uUpdates.join(', ')} WHERE id = $${uIdx};`, uParams);
       }
 
       const spUpdates: string[] = ['updated_at = now()'];
@@ -449,6 +487,16 @@ export const userRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =
         throw new AppError('NOT_FOUND');
       }
 
+      const fullStudentRes = await client.query(
+        `SELECT 
+          u.id, u.email, u.role, u.status, u.must_change_password, u.last_login_at,
+          sp.identifier, sp.full_name, sp.institution, sp.phone, sp.created_at, sp.updated_at
+         FROM student_profiles sp
+         JOIN users u ON u.id = sp.user_id
+         WHERE u.id = $1;`,
+        [id]
+      );
+
       await logAudit(
         {
           actorId: request.user!.id,
@@ -456,7 +504,7 @@ export const userRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =
           action: 'students.update',
           entityType: 'users',
           entityId: id,
-          afterData: rows[0],
+          afterData: fullStudentRes.rows[0] || rows[0],
           ipAddress: request.ip,
         },
         client
@@ -464,7 +512,7 @@ export const userRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =
 
       await client.query('COMMIT;');
 
-      return reply.send({ success: true, student: rows[0] });
+      return reply.send({ success: true, student: fullStudentRes.rows[0] || rows[0] });
     } catch (err) {
       await client.query('ROLLBACK;');
       throw err;

@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { userService } from '../../services';
 import { User } from '../../types';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { alert } from '../../utils/alert';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -9,21 +11,30 @@ import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { CardSkeleton } from '../../components/ui/Skeleton';
 import { EmptyState, ErrorAlert } from '../../components/ui/EmptyState';
-import { Users, KeyRound, ShieldAlert, CheckCircle2, Search, UserX, UserCheck, Copy, Check } from 'lucide-react';
+import {
+  Users,
+  KeyRound,
+  Search,
+  UserX,
+  UserCheck,
+  Plus,
+  Trash2,
+} from 'lucide-react';
 
 export const AdminUsersPage: React.FC = () => {
+  const { user: currentUser } = useAuth();
   const { showToast } = useToast();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
 
-  // Reset password modal
-  const [resetModalOpen, setResetModalOpen] = useState(false);
-  const [activeUserForReset, setActiveUserForReset] = useState<User | null>(null);
-  const [newGeneratedPass, setNewGeneratedPass] = useState<string | null>(null);
-  const [resetting, setResetting] = useState(false);
-  const [copied, setCopied] = useState(false);
+  // Add admin modal
+  const [addAdminModalOpen, setAddAdminModalOpen] = useState(false);
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [creatingAdmin, setCreatingAdmin] = useState(false);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -43,81 +54,186 @@ export const AdminUsersPage: React.FC = () => {
   }, []);
 
   const handleToggleStatus = async (u: User) => {
-    const nextStatus = u.status === 'active' ? 'suspended' : 'active';
+    if (currentUser?.id === u.id) {
+      alert.warning('Aksi Ditolak', 'Anda tidak dapat menonaktifkan akun Anda sendiri saat sedang login.');
+      return;
+    }
+    const isSuspending = u.status === 'active';
+    const confirmed = await alert.confirm({
+      title: isSuspending ? 'Tangguhkan Akun Pengguna?' : 'Aktifkan Kembali Akun?',
+      text: isSuspending
+        ? `Pengguna "${u.email}" tidak akan dapat login lagi ke sistem hingga akun diaktifkan kembali.`
+        : `Pengguna "${u.email}" akan diizinkan kembali untuk login dan beraktivitas di sistem.`,
+      confirmButtonText: isSuspending ? 'Ya, Tangguhkan' : 'Ya, Aktifkan',
+      isDangerous: isSuspending,
+    });
+    if (!confirmed) return;
+
+    const nextStatus = isSuspending ? 'suspended' : 'active';
     try {
       await userService.updateUserStatus(u.id, nextStatus);
-      showToast(`Status akun ${u.email} berhasil diubah menjadi ${nextStatus}.`, 'success');
+      alert.toast(`Status akun ${u.email} berhasil diubah menjadi ${nextStatus}.`, 'success');
       fetchUsers();
     } catch (err: any) {
-      showToast(err.message || 'Gagal mengubah status akun.', 'error');
+      alert.error('Gagal Mengubah Status Akun', err?.response?.data?.message || err.message);
     }
   };
 
-  const handleResetPassword = async () => {
-    if (!activeUserForReset) return;
-    setResetting(true);
-    setCopied(false);
+  const handleTriggerResetPassword = async (u: User) => {
+    if (currentUser?.id === u.id) {
+      alert.info('Pengaturan Profil', 'Untuk mengubah kata sandi akun Anda sendiri, silakan gunakan menu Pengaturan Profil.');
+      return;
+    }
+    const confirmed = await alert.confirm({
+      title: 'Reset Kata Sandi Akun?',
+      text: `Apakah Anda yakin ingin mereset kata sandi akun "${u.email}" (${u.role.toUpperCase()}) menjadi 6 angka baru?`,
+      confirmButtonText: 'Ya, Reset Sandi',
+      icon: 'warning',
+    });
+    if (!confirmed) return;
+
     try {
-      const res = await userService.resetPassword(activeUserForReset.id);
-      setNewGeneratedPass(res.new_password);
-      showToast('Kata sandi berhasil direset ke 6 angka baru!', 'success');
+      const res = await userService.resetPassword(u.id);
+      await alert.showCredential({
+        title: 'Kata Sandi Berhasil Direset!',
+        description: `Kata sandi baru untuk akun <strong>${u.email}</strong> telah berhasil dibuat:`,
+        credentialLabel: 'KATA SANDI BARU (6 ANGKA)',
+        credentialValue: res.new_password,
+        extraNote: 'Harap berikan kata sandi baru ini kepada pemilik akun.',
+      });
     } catch (err: any) {
-      showToast(err.message || 'Gagal mereset kata sandi.', 'error');
-    } finally {
-      setResetting(false);
+      alert.error('Gagal Mereset Kata Sandi', err?.response?.data?.message || err.message);
     }
   };
 
-  const handleCopyPassword = async () => {
-    if (!newGeneratedPass) return;
+  const handleCreateAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAdminEmail.trim()) {
+      alert.warning('Data Belum Lengkap', 'Alamat email administrator wajib diisi.');
+      return;
+    }
+    setCreatingAdmin(true);
     try {
-      await navigator.clipboard.writeText(newGeneratedPass);
-      setCopied(true);
-      showToast('Kata sandi berhasil disalin ke clipboard!', 'success');
-      setTimeout(() => setCopied(false), 2500);
-    } catch {
-      const textArea = document.createElement('textarea');
-      textArea.value = newGeneratedPass;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-      setCopied(true);
-      showToast('Kata sandi berhasil disalin ke clipboard!', 'success');
-      setTimeout(() => setCopied(false), 2500);
+      const res = await userService.createAdmin(newAdminEmail.trim());
+      setNewAdminEmail('');
+      setAddAdminModalOpen(false);
+      fetchUsers();
+
+      if (res.initial_password) {
+        await alert.showCredential({
+          title: 'Administrator Berhasil Dibuat!',
+          description: `Akun administrator baru untuk <strong>${res.user.email}</strong> telah terdaftar:`,
+          credentialLabel: 'KATA SANDI AWAL (6 ANGKA)',
+          credentialValue: res.initial_password,
+          extraNote: 'Simpan kredensial ini dan berikan kepada administrator yang bersangkutan untuk login pertama.',
+        });
+      } else {
+        alert.toast('Administrator baru berhasil didaftarkan!', 'success');
+      }
+    } catch (err: any) {
+      alert.error('Gagal Menambahkan Administrator', err?.response?.data?.message || err.message);
+    } finally {
+      setCreatingAdmin(false);
+    }
+  };
+
+  const handleDeleteUser = async (u: User) => {
+    if (currentUser?.id === u.id) {
+      alert.warning('Aksi Ditolak', 'Anda tidak dapat menghapus akun Anda sendiri saat sedang aktif login.');
+      return;
+    }
+    const confirmed = await alert.confirm({
+      title: 'Hapus Akun Pengguna?',
+      text: `Apakah Anda yakin ingin menghapus akun "${u.email}" (${u.role.toUpperCase()})? Seluruh sesi login pengguna akan langsung dicabut.${
+        u.role === 'admin' ? ' (Proteksi INV-21: sistem akan menolak jika ini admin aktif terakhir).' : ''
+      }`,
+      confirmButtonText: 'Ya, Hapus Akun',
+      isDangerous: true,
+    });
+    if (!confirmed) return;
+
+    try {
+      await userService.deleteUser(u.id);
+      alert.toast(`Akun ${u.email} berhasil dihapus.`, 'success');
+      fetchUsers();
+    } catch (err: any) {
+      alert.error('Gagal Menghapus Akun', err?.response?.data?.message || err.message);
     }
   };
 
   const filteredUsers = users.filter((u) => {
-    return (
+    const matchesSearch =
       u.email.toLowerCase().includes(search.toLowerCase()) ||
-      u.role.toLowerCase().includes(search.toLowerCase())
-    );
+      u.role.toLowerCase().includes(search.toLowerCase());
+
+    const matchesRole = roleFilter === 'all' || u.role.toLowerCase() === roleFilter.toLowerCase();
+    const matchesStatus = statusFilter === 'all' || u.status === statusFilter;
+
+    return matchesSearch && matchesRole && matchesStatus;
   });
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-[#e6e1eb]">
         <div>
-          <div className="eyebrow mb-1">AKUN & HAK AKSES</div>
+          <div className="eyebrow mb-1">PENGGUNA SISTEM</div>
           <h1 className="font-display font-bold text-2xl text-[#24212b]">
-            Manajemen Pengguna Sistem
+            Pengguna Sistem
           </h1>
           <p className="text-xs text-[#595562] mt-0.5">
-            Daftar seluruh akun administrator dan peserta, proteksi admin tunggal (INV-21), dan reset kata sandi.
+            Kelola akun administrator dan peserta ujian.
           </p>
         </div>
+
+        <Button
+          variant="primary"
+          onClick={() => setAddAdminModalOpen(true)}
+          leftIcon={<Plus className="w-4 h-4" />}
+          className="text-xs"
+        >
+          Tambah Admin
+        </Button>
       </div>
 
       {error && <ErrorAlert message={error} onRetry={fetchUsers} />}
 
-      <div className="max-w-md">
-        <Input
-          placeholder="Cari email atau role..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          leftIcon={<Search className="w-4 h-4 text-gray-400" />}
-        />
+      {/* Filter Toolbar */}
+      <div className="flex flex-col sm:flex-row items-center gap-4">
+        <div className="w-full sm:w-80">
+          <Input
+            placeholder="Cari email atau peran..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            leftIcon={<Search className="w-4 h-4 text-gray-400" />}
+          />
+        </div>
+
+        <div className="w-full sm:w-48">
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="w-full h-[46px] px-3.5 bg-white border border-[#e6e1eb] rounded-[6px] text-xs text-[#24212b] outline-none"
+            title="Filter peran pengguna"
+          >
+            <option value="all">Semua Peran</option>
+            <option value="admin">Administrator</option>
+            <option value="mahasiswa">Mahasiswa</option>
+            <option value="umum">Umum</option>
+          </select>
+        </div>
+
+        <div className="w-full sm:w-48">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="w-full h-[46px] px-3.5 bg-white border border-[#e6e1eb] rounded-[6px] text-xs text-[#24212b] outline-none"
+            title="Filter status akun"
+          >
+            <option value="all">Semua Status</option>
+            <option value="active">Aktif</option>
+            <option value="suspended">Nonaktif</option>
+          </select>
+        </div>
       </div>
 
       <Card hasShadow className="overflow-hidden p-0">
@@ -139,9 +255,9 @@ export const AdminUsersPage: React.FC = () => {
               <thead className="bg-[#faf9fc] border-b border-[#e6e1eb] text-[#595562] uppercase tracking-wider font-bold">
                 <tr>
                   <th className="px-6 py-3.5">Email Pengguna</th>
-                  <th className="px-6 py-3.5">Peran (Role)</th>
+                  <th className="px-6 py-3.5">Peran</th>
                   <th className="px-6 py-3.5">Status Akun</th>
-                  <th className="px-6 py-3.5">Terdaftar Sejak</th>
+                  <th className="px-6 py-3.5">Terdaftar</th>
                   <th className="px-6 py-3.5 text-right">Aksi</th>
                 </tr>
               </thead>
@@ -156,7 +272,7 @@ export const AdminUsersPage: React.FC = () => {
                     </td>
                     <td className="px-6 py-4">
                       <Badge variant={u.status === 'active' ? 'success' : 'danger'}>
-                        {u.status === 'active' ? 'AKTIF' : 'SUSPENDED'}
+                        {u.status === 'active' ? 'AKTIF' : 'NONAKTIF'}
                       </Badge>
                     </td>
                     <td className="px-6 py-4 text-gray-400">
@@ -165,27 +281,52 @@ export const AdminUsersPage: React.FC = () => {
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
-                          onClick={() => {
-                            setActiveUserForReset(u);
-                            setNewGeneratedPass(null);
-                            setCopied(false);
-                            setResetModalOpen(true);
-                          }}
-                          className="p-1.5 text-gray-500 hover:text-[#583682] hover:bg-[#eae2f5] rounded transition"
-                          title="Reset Password"
+                          onClick={() => handleTriggerResetPassword(u)}
+                          disabled={currentUser?.id === u.id}
+                          className={`p-1.5 rounded transition ${
+                            currentUser?.id === u.id
+                              ? 'text-gray-300 cursor-not-allowed'
+                              : 'text-gray-500 hover:text-[#583682] hover:bg-[#eae2f5] cursor-pointer'
+                          }`}
+                          title={currentUser?.id === u.id ? 'Ubah kata sandi via Pengaturan Profil' : 'Reset Kata Sandi'}
                         >
                           <KeyRound className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleToggleStatus(u)}
+                          disabled={currentUser?.id === u.id}
                           className={`p-1.5 rounded transition ${
-                            u.status === 'active'
-                              ? 'text-[#b63b48] hover:bg-[#fbeeed]'
-                              : 'text-[#287a58] hover:bg-[#eaf4ef]'
+                            currentUser?.id === u.id
+                              ? 'text-gray-300 cursor-not-allowed'
+                              : u.status === 'active'
+                              ? 'text-[#b63b48] hover:bg-[#fbeeed] cursor-pointer'
+                              : 'text-[#287a58] hover:bg-[#eaf4ef] cursor-pointer'
                           }`}
-                          title={u.status === 'active' ? 'Suspend Akun' : 'Aktifkan Akun'}
+                          title={
+                            currentUser?.id === u.id
+                              ? 'Tidak dapat menonaktifkan akun sendiri'
+                              : u.status === 'active'
+                              ? 'Nonaktifkan Akun'
+                              : 'Aktifkan Akun'
+                          }
                         >
                           {u.status === 'active' ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(u)}
+                          disabled={currentUser?.id === u.id}
+                          className={`p-1.5 rounded transition ${
+                            currentUser?.id === u.id
+                              ? 'text-gray-300 cursor-not-allowed'
+                              : 'text-gray-500 hover:text-[#b63b48] hover:bg-[#fbeeed] cursor-pointer'
+                          }`}
+                          title={
+                            currentUser?.id === u.id
+                              ? 'Tidak dapat menghapus akun sendiri'
+                              : 'Hapus Akun'
+                          }
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
@@ -197,91 +338,49 @@ export const AdminUsersPage: React.FC = () => {
         )}
       </Card>
 
-      {/* Reset Password Modal */}
+      {/* Add Admin Modal */}
       <Modal
-        isOpen={resetModalOpen}
+        isOpen={addAdminModalOpen}
         onClose={() => {
-          setResetModalOpen(false);
-          setNewGeneratedPass(null);
-          setCopied(false);
+          setAddAdminModalOpen(false);
+          setNewAdminEmail('');
         }}
-        title="Reset Kata Sandi Akun"
-        description={`Akun: ${activeUserForReset?.email}`}
+        title="Tambah Admin Baru"
+        description="Buat akun administrator baru untuk sistem."
       >
-        <div className="space-y-4">
-          {newGeneratedPass ? (
-            <div className="p-5 bg-[#eaf4ef] border border-[#bce2cf] rounded-lg text-center space-y-3">
-              <CheckCircle2 className="w-9 h-9 text-[#287a58] mx-auto" />
-              <div>
-                <div className="text-xs font-bold text-[#24212b]">Kata Sandi Baru (6 Angka):</div>
-                <p className="text-[11px] text-[#595562] mt-0.5">
-                  Gunakan 6 digit angka berikut untuk diberikan kepada pengguna:
-                </p>
-              </div>
-
-              <div className="flex items-center justify-center gap-2 pt-1 pb-1">
-                <div
-                  onClick={handleCopyPassword}
-                  className="font-mono font-black text-2xl tracking-[0.35em] text-[#287a58] bg-white px-5 py-2.5 rounded-lg border-2 border-[#bce2cf] select-all cursor-pointer shadow-sm hover:border-[#287a58] transition"
-                  title="Klik untuk menyalin"
-                >
-                  {newGeneratedPass}
-                </div>
-                <button
-                  type="button"
-                  onClick={handleCopyPassword}
-                  className={`inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-lg text-xs font-bold transition shadow-sm cursor-pointer ${
-                    copied
-                      ? 'bg-[#287a58] text-white hover:bg-[#1f5e44]'
-                      : 'bg-[#583682] text-white hover:bg-[#352148]'
-                  }`}
-                  title="Salin Kata Sandi"
-                >
-                  {copied ? (
-                    <>
-                      <Check className="w-4 h-4 text-white" />
-                      <span>Tersalin!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-4 h-4 text-white" />
-                      <span>Salin Sandi</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
-              <p className="text-[11px] text-[#595562]">
-                Berikan 6 digit angka ini kepada pemilik akun. Pengguna dapat langsung login menggunakan kata sandi ini.
-              </p>
-            </div>
-          ) : (
-            <div>
-              <p className="text-xs text-[#595562] leading-relaxed">
-                Tindakan ini akan mereset kata sandi akun <strong>{activeUserForReset?.email}</strong> menjadi <strong>format 6 angka acak baru</strong>.
-              </p>
-            </div>
-          )}
+        <form onSubmit={handleCreateAdmin} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-[#24212b] mb-1">
+              Email Administrator <span className="text-[#b63b48]">*</span>
+            </label>
+            <Input
+              type="email"
+              required
+              value={newAdminEmail}
+              onChange={(e) => setNewAdminEmail(e.target.value)}
+              placeholder="admin@example.com"
+            />
+          </div>
 
           <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#e6e1eb]">
             <Button
+              type="button"
               variant="ghost"
               onClick={() => {
-                setResetModalOpen(false);
-                setNewGeneratedPass(null);
-                setCopied(false);
+                setAddAdminModalOpen(false);
+                setNewAdminEmail('');
               }}
             >
-              {newGeneratedPass ? 'Selesai' : 'Batal'}
+              Batal
             </Button>
-            {!newGeneratedPass && (
-              <Button variant="primary" onClick={handleResetPassword} isLoading={resetting}>
-                Reset Sandi Sekarang
-              </Button>
-            )}
+            <Button type="submit" variant="primary" isLoading={creatingAdmin}>
+              Simpan Akun
+            </Button>
           </div>
-        </div>
+        </form>
       </Modal>
+
+
     </div>
   );
 };

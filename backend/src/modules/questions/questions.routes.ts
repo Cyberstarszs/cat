@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { pool } from '../../db/connection.js';
 import { authenticate, requireRoles } from '../../lib/authz.js';
 import { AppError } from '../../lib/errors.js';
+import { logAudit } from '../audit/audit.service.js';
 import {
   createCategory,
   deleteCategory,
@@ -82,17 +83,30 @@ export const questionRoutes: FastifyPluginAsync = async (fastify: FastifyInstanc
   fastify.addHook('preHandler', requireRoles(['admin']));
 
   // --- KATEGORI / SUBTES SOAL (Support both /categories and /question-categories) ---
-  const getCategoriesHandler = async (_request: any, reply: any) => {
+  const getCategoriesHandler = async (request: any, reply: any) => {
+    const rawYear = request.query?.year;
+    const yearParam = rawYear !== undefined && rawYear !== '' && !isNaN(Number(rawYear))
+      ? parseInt(String(rawYear), 10)
+      : null;
+
     const { rows } = await pool.query(
       `SELECT c.id, c.name, c.description, c.created_at,
-              COUNT(q.id) AS question_count
+              COUNT(q.id) FILTER (WHERE q.status = 'active' AND q.deleted_at IS NULL AND ($1::int IS NULL OR q.year = $1::int)) AS question_count,
+              COUNT(q.id) FILTER (WHERE q.status = 'active' AND q.deleted_at IS NULL AND ($1::int IS NULL OR q.year = $1::int)) AS active_question_count,
+              COUNT(q.id) FILTER (WHERE q.deleted_at IS NULL AND ($1::int IS NULL OR q.year = $1::int)) AS total_question_count,
+              COUNT(q.id) FILTER (WHERE q.status = 'active' AND q.deleted_at IS NULL) AS all_years_active_count
        FROM question_categories c
        LEFT JOIN questions q ON q.category_id = c.id AND q.deleted_at IS NULL
        GROUP BY c.id
-       ORDER BY c.name ASC;`
+       ORDER BY c.name ASC;`,
+      [yearParam]
     );
     const data = rows.map((r: any) => ({
       ...r,
+      question_count: parseInt(r.question_count || '0', 10),
+      active_question_count: parseInt(r.active_question_count || '0', 10),
+      total_question_count: parseInt(r.total_question_count || '0', 10),
+      all_years_active_count: parseInt(r.all_years_active_count || '0', 10),
       code: r.name.split(' ').map((w: string) => w[0]).join('').substring(0, 4).toUpperCase() || 'SUB',
     }));
     return reply.send({ data });
@@ -120,8 +134,16 @@ export const questionRoutes: FastifyPluginAsync = async (fastify: FastifyInstanc
     let idx = 1;
 
     if (parse.data.name !== undefined) {
+      const cleanName = parse.data.name.trim();
+      const dup = await pool.query(
+        'SELECT id FROM question_categories WHERE lower(name) = lower($1) AND id != $2;',
+        [cleanName, id]
+      );
+      if (dup.rows.length > 0) {
+        throw new AppError('DUPLICATE_KEY', `Kategori/subtes "${cleanName}" sudah digunakan.`);
+      }
       updates.push(`name = $${idx++}`);
-      params.push(parse.data.name.trim());
+      params.push(cleanName);
     }
     if (parse.data.description !== undefined) {
       updates.push(`description = $${idx++}`);
@@ -131,17 +153,35 @@ export const questionRoutes: FastifyPluginAsync = async (fastify: FastifyInstanc
     if (updates.length === 0) return reply.send({ success: true });
 
     params.push(id);
-    const { rows } = await pool.query(
-      `UPDATE question_categories SET ${updates.join(', ')} WHERE id = $${idx} RETURNING id, name, description, created_at;`,
-      params
-    );
+    try {
+      const { rows } = await pool.query(
+        `UPDATE question_categories SET ${updates.join(', ')} WHERE id = $${idx} RETURNING id, name, description, created_at;`,
+        params
+      );
 
-    if (rows.length === 0) throw new AppError('NOT_FOUND');
-    const cat = {
-      ...rows[0],
-      code: parse.data.code || rows[0].name.split(' ').map((w: string) => w[0]).join('').substring(0, 4).toUpperCase() || 'SUB',
-    };
-    return reply.send({ success: true, category: cat });
+      if (rows.length === 0) throw new AppError('NOT_FOUND');
+
+      await logAudit({
+        actorId: request.user!.id,
+        actorRole: 'admin',
+        action: 'categories.update',
+        entityType: 'question_categories',
+        entityId: id,
+        afterData: rows[0],
+        ipAddress: request.ip,
+      });
+
+      const cat = {
+        ...rows[0],
+        code: parse.data.code || rows[0].name.split(' ').map((w: string) => w[0]).join('').substring(0, 4).toUpperCase() || 'SUB',
+      };
+      return reply.send({ success: true, category: cat });
+    } catch (err: any) {
+      if (err.code === '23505') {
+        throw new AppError('DUPLICATE_KEY', 'Nama kategori/subtes sudah digunakan.');
+      }
+      throw err;
+    }
   };
 
   const deleteCategoryHandler = async (request: any, reply: any) => {
@@ -165,10 +205,22 @@ export const questionRoutes: FastifyPluginAsync = async (fastify: FastifyInstanc
   // --- BANK SOAL ---
   fastify.get('/questions/years', async (_request, reply) => {
     const { rows } = await pool.query(
-      `SELECT DISTINCT year FROM questions WHERE deleted_at IS NULL ORDER BY year DESC;`
+      `SELECT 
+         year,
+         COUNT(DISTINCT id) AS total_count,
+         COUNT(DISTINCT id) FILTER (WHERE status = 'active') AS active_count
+       FROM questions 
+       WHERE deleted_at IS NULL AND year IS NOT NULL
+       GROUP BY year 
+       ORDER BY year DESC;`
     );
-    const years = rows.map((r: any) => r.year).filter((y: any) => y !== null && y !== undefined);
-    return reply.send({ data: years });
+    const years = rows.map((r: any) => parseInt(r.year, 10));
+    const details = rows.map((r: any) => ({
+      year: parseInt(r.year, 10),
+      total_count: parseInt(r.total_count, 10),
+      active_count: parseInt(r.active_count, 10),
+    }));
+    return reply.send({ data: years, details });
   });
 
   fastify.get('/questions', async (request, reply) => {
@@ -329,10 +381,20 @@ export const questionRoutes: FastifyPluginAsync = async (fastify: FastifyInstanc
     const { id } = request.params as { id: string };
 
     const { rows } = await pool.query(
-      `UPDATE questions SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL RETURNING id;`,
+      `UPDATE questions SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL RETURNING id, category_id, year;`,
       [id]
     );
     if (rows.length === 0) throw new AppError('NOT_FOUND');
+
+    await logAudit({
+      actorId: request.user!.id,
+      actorRole: 'admin',
+      action: 'questions.delete',
+      entityType: 'questions',
+      entityId: id,
+      beforeData: rows[0],
+      ipAddress: request.ip,
+    });
 
     return reply.send({ success: true, message: 'Soal berhasil diarsipkan/dihapus.' });
   });

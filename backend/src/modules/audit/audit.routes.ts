@@ -39,13 +39,19 @@ export const auditRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) 
       }
 
       if (query.from) {
-        conditions.push(`a.created_at >= $${paramIndex++}`);
-        params.push(new Date(query.from).toISOString());
+        const fromDate = new Date(query.from);
+        if (!isNaN(fromDate.getTime())) {
+          conditions.push(`a.created_at >= $${paramIndex++}`);
+          params.push(fromDate.toISOString());
+        }
       }
 
       if (query.to) {
-        conditions.push(`a.created_at <= $${paramIndex++}`);
-        params.push(new Date(query.to).toISOString());
+        const toDate = new Date(query.to);
+        if (!isNaN(toDate.getTime())) {
+          conditions.push(`a.created_at <= $${paramIndex++}`);
+          params.push(toDate.toISOString());
+        }
       }
 
       const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';

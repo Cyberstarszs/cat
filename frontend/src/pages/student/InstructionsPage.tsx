@@ -13,15 +13,18 @@ import {
   CheckCircle2,
   AlertTriangle,
   ArrowLeft,
+  KeyRound,
   FileText,
 } from 'lucide-react';
 
 export const InstructionsPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get('sessionId');
+  const examId = searchParams.get('examId');
   const navigate = useNavigate();
 
   const [session, setSession] = useState<ExamSession | null>(null);
+  const [accessCode, setAccessCode] = useState('');
   const [loading, setLoading] = useState(true);
   const [starting, setStarting] = useState(false);
   const [agreed, setAgreed] = useState(false);
@@ -30,18 +33,23 @@ export const InstructionsPage: React.FC = () => {
   useEffect(() => {
     const fetchSession = async () => {
       if (!sessionId) {
-        // Fallback: check my sessions
         try {
           const mySessions = await sessionService.getMySessions();
-          if (mySessions.length > 0) {
-            const first = mySessions[0];
-            const detail = await sessionService.getSessionById(first.id || first.session_id);
+          let matched = null;
+          if (examId) {
+            matched = mySessions.find((s: any) => s.exam_id === examId);
+          }
+          if (!matched && mySessions.length > 0) {
+            matched = mySessions[0];
+          }
+          if (matched) {
+            const detail = await sessionService.getSessionById(matched.id || matched.session_id);
             setSession(detail);
           } else {
-            setError('Sesi ujian tidak ditentukan dan tidak ada sesi aktif ditemukan.');
+            setError('Anda belum terdaftar dalam sesi ujian aktif untuk paket ujian ini.');
           }
         } catch (err: any) {
-          setError(err.message || 'Gagal memuat sesi.');
+          setError(err.message || 'Gagal memuat detail sesi.');
         } finally {
           setLoading(false);
         }
@@ -66,13 +74,18 @@ export const InstructionsPage: React.FC = () => {
   const handleStartExam = async () => {
     if (!session || !agreed) return;
 
+    if (session.has_access_code && !accessCode.trim()) {
+      setError('Kode akses (PIN) sesi ujian wajib diisi dari pengawas ruangan.');
+      return;
+    }
+
     setStarting(true);
     setError(null);
 
     try {
-      const res = await attemptService.startAttempt(session.id);
-      // Navigate to exam room with attemptId
-      navigate(`/assessment-lg/start?attemptId=${res.attempt_id}`);
+      const res = await attemptService.startAttempt(session.id, accessCode.trim());
+      // Navigate to exam room with attemptId directly
+      navigate(`/exam?attemptId=${res.attempt_id}`);
     } catch (err: any) {
       setError(err.message || 'Gagal memulai ujian. Pastikan sesi sudah dibuka oleh pengawas.');
       setStarting(false);
@@ -113,9 +126,9 @@ export const InstructionsPage: React.FC = () => {
       </div>
 
       <div className="text-center space-y-2">
-        <div className="eyebrow">PETUNJUK PENGERJAAN & INTEGRITAS UJIAN</div>
+        <div className="eyebrow">PETUNJUK PENGERJAAN</div>
         <h1 className="font-display font-bold text-2xl md:text-3xl text-[#24212b]">
-          {session?.exam_title || session?.name || 'Uji Kompetensi FIA'}
+          {session?.exam_title || session?.name || 'Uji Kompetensi'}
         </h1>
         <p className="text-xs text-[#595562]">
           Kode Sesi: <span className="font-mono font-bold text-[#583682]">{session?.code}</span> | Durasi:{' '}
@@ -134,56 +147,76 @@ export const InstructionsPage: React.FC = () => {
         <div>
           <h3 className="font-display font-bold text-base text-[#24212b] mb-3 flex items-center gap-2">
             <ShieldAlert className="w-5 h-5 text-[#583682]" />
-            Ketentuan & Tata Tertib CAT
+            Ketentuan & Tata Tertib Ujian
           </h3>
           <ul className="space-y-3 text-xs text-[#595562] leading-relaxed">
             <li className="flex items-start gap-2.5">
               <CheckCircle2 className="w-4 h-4 text-[#287a58] shrink-0 mt-0.5" />
               <span>
-                <strong>Timer Mandiri Terikat Server:</strong> Waktu ujian dihitung secara ketat oleh server sejak Anda mengklik tombol &quot;Mulai Mengerjakan Ujian&quot;. Timer tidak dapat dijeda atau dihentikan sementara.
+                <strong>Waktu Ujian:</strong> Waktu berjalan otomatis sejak tombol &quot;Mulai Ujian&quot; ditekan dan tidak dapat dijeda.
               </span>
             </li>
             <li className="flex items-start gap-2.5">
               <CheckCircle2 className="w-4 h-4 text-[#287a58] shrink-0 mt-0.5" />
               <span>
-                <strong>Autosave Real-Time:</strong> Setiap kali Anda memilih opsi jawaban, sistem secara otomatis menyimpannya ke server. Jika koneksi terputus sejenak, jawaban terakhir Anda tetap tersimpan aman.
+                <strong>Simpan Otomatis:</strong> Jawaban tersimpan otomatis ke server setiap kali Anda memilih opsi jawaban.
               </span>
             </li>
             <li className="flex items-start gap-2.5">
               <AlertTriangle className="w-4 h-4 text-[#a96817] shrink-0 mt-0.5" />
               <span>
-                <strong>Integritas Layar & Anti-Kecurangan:</strong> Berpindah tab peramban, meminimalkan jendela, atau membuka aplikasi lain akan tercatat secara permanen di log audit sistem pengawas.
+                <strong>Integritas Ujian:</strong> Berpindah tab peramban atau membuka jendela lain terekam oleh sistem pengawas.
               </span>
             </li>
             <li className="flex items-start gap-2.5">
               <CheckCircle2 className="w-4 h-4 text-[#287a58] shrink-0 mt-0.5" />
               <span>
-                <strong>Opsi Ragu-ragu:</strong> Gunakan tombol bendera &quot;Ragu-ragu&quot; untuk menandai soal yang ingin Anda tinjau kembali sebelum menekan tombol selesaikan ujian.
+                <strong>Indikator Warna Soal:</strong> Warna ungu menandakan soal sudah dijawab, warna putih menandakan soal belum dijawab/dilewati, dan kotak bergaris tepi aksen menandakan nomor soal yang sedang dibuka.
               </span>
             </li>
           </ul>
         </div>
 
+
+        {/* PIN Akses Sesi jika diatur oleh pengawas/admin */}
+        {session?.has_access_code && (
+          <div className="p-4 bg-[#fbf9fe] border-2 border-[#583682]/25 rounded-[8px] space-y-2">
+            <label className="flex items-center gap-2 text-xs font-bold text-[#24212b]">
+              <KeyRound className="w-4 h-4 text-[#583682]" />
+              <span>Kode Akses (PIN Sesi) <span className="text-red-500">*</span></span>
+            </label>
+            <p className="text-[11px] text-[#595562]">
+              Masukkan PIN sesi yang diberikan oleh pengawas ruangan.
+            </p>
+            <input
+              type="text"
+              value={accessCode}
+              onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
+              placeholder="MASUKKAN PIN SESI"
+              className="w-full sm:w-72 px-3.5 py-2 rounded bg-white border border-[#e6e1eb] font-mono font-bold tracking-widest text-[#583682] uppercase text-sm focus:outline-none focus:ring-2 focus:ring-[#583682]"
+            />
+          </div>
+        )}
         {/* Agreement Checkbox */}
         <div className="pt-4 border-t border-[#e6e1eb]">
-          <label className="flex items-start gap-3 p-3 bg-[#faf9fc] border border-[#e6e1eb] rounded cursor-pointer select-none">
+          <label className="flex items-center gap-3 cursor-pointer select-none py-1 group">
             <input
               type="checkbox"
               checked={agreed}
               onChange={(e) => setAgreed(e.target.checked)}
-              className="w-4 h-4 text-[#583682] rounded mt-0.5 cursor-pointer accent-[#583682]"
+              className="w-4 h-4 text-[#583682] rounded cursor-pointer accent-[#583682]"
             />
-            <span className="text-xs text-[#24212b] font-medium leading-relaxed">
-              Saya telah membaca, memahami, dan menyetujui seluruh tata tertib pelaksanaan uji kompetensi ini secara sadar dan berintegritas.
+            <span className="text-xs text-[#24212b] font-medium group-hover:text-[#583682] transition-colors">
+              Saya telah membaca dan menyetujui seluruh tata tertib pelaksanaan ujian ini.
             </span>
           </label>
         </div>
 
         {/* CTA Buttons */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
-          <Link to="/dashboard" className="w-full sm:w-auto">
-            <Button variant="ghost" fullWidth>
-              Batal & Kembali
+        <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#e6e1eb]">
+          <Link to="/dashboard">
+            <Button variant="ghost" className="h-9 px-4 text-xs font-semibold">
+              Batal
             </Button>
           </Link>
 
@@ -192,9 +225,9 @@ export const InstructionsPage: React.FC = () => {
             disabled={!agreed || starting}
             isLoading={starting}
             onClick={handleStartExam}
-            className="w-full sm:w-auto min-w-[200px]"
+            className="h-9 px-6 text-xs font-semibold"
           >
-            Mulai Mengerjakan Ujian
+            Mulai Ujian
           </Button>
         </div>
       </Card>

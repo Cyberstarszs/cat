@@ -35,9 +35,9 @@ describe('CAT GOVERNANCE Integration Test Suite', () => {
   });
 
   it('2. POST /api/v1/auth/login and change password (FR-A01, FR-A03)', async () => {
-    // Reset failed login count if any
+    // Reset failed login count & status if any
     await pool.query(
-      `UPDATE users SET failed_login_count = 0, locked_until = NULL WHERE lower(email) = 'admin@fia.kampus.ac.id';`
+      `UPDATE users SET status = 'active', failed_login_count = 0, locked_until = NULL WHERE lower(email) = 'admin@fia.kampus.ac.id';`
     );
 
     // Try login with initial seed password, or changed password if already run
@@ -101,6 +101,9 @@ describe('CAT GOVERNANCE Integration Test Suite', () => {
   });
 
   it('3. INV-21: LAST_ADMIN guard should prevent suspending the last active administrator', async () => {
+    // Nonaktifkan sementara admin lain agar adminUserId menjadi satu-satunya admin aktif
+    await pool.query(`UPDATE users SET status = 'suspended' WHERE role = 'admin' AND id <> $1;`, [adminUserId]);
+
     const res = await app.inject({
       method: 'PATCH',
       url: `/api/v1/users/${adminUserId}`,
@@ -115,6 +118,9 @@ describe('CAT GOVERNANCE Integration Test Suite', () => {
     expect(res.statusCode).toBe(409);
     const body = JSON.parse(res.body);
     expect(body.error.code).toBe('LAST_ADMIN');
+
+    // Aktifkan kembali admin lain
+    await pool.query(`UPDATE users SET status = 'active' WHERE role = 'admin';`);
   });
 
   it('4. Full Exam Lifecycle: Category -> Question -> Exam -> Session -> Student Take -> Grade -> Cert -> Verify', async () => {

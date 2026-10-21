@@ -23,7 +23,7 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const baseClasses =
-    'min-h-[44px] px-5 rounded-[6px] font-sans font-bold text-xs tracking-wider uppercase inline-flex items-center justify-center gap-2.5 transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none';
+    'min-h-[38px] px-4 rounded-[6px] font-sans font-semibold text-xs inline-flex items-center justify-center gap-2 transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none';
 
   const variantClasses = {
     primary:

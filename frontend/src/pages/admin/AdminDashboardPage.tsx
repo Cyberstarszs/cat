@@ -60,24 +60,24 @@ export const AdminDashboardPage: React.FC = () => {
       {/* Welcome Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#e6e1eb]">
         <div>
-          <div className="eyebrow mb-1">PUSAT KONTROL ADMINISTRATOR</div>
+          <div className="eyebrow mb-1">PANEL UTAMA</div>
           <h1 className="font-display font-bold text-2xl md:text-3xl text-[#24212b]">
-            Ikhtisar Sistem Uji Kompetensi FIA
+            Dashboard Admin
           </h1>
           <p className="text-xs text-[#595562] mt-0.5">
-            Pantau status pendaftaran peserta, ketersediaan butir soal, sesi ujian aktif, dan log integritas.
+            Ringkasan data ujian, peserta, sesi, dan aktivitas sistem.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <Link to="/admin/schedules">
             <Button variant="primary" className="text-xs" leftIcon={<Plus className="w-3.5 h-3.5" />}>
-              Buka Sesi Ujian Baru
+              Buat Sesi Ujian
             </Button>
           </Link>
           <Link to="/admin/questions/import">
             <Button variant="secondary" className="text-xs" leftIcon={<Upload className="w-3.5 h-3.5" />}>
-              Impor Soal CSV
+              Impor Soal
             </Button>
           </Link>
         </div>
@@ -113,7 +113,7 @@ export const AdminDashboardPage: React.FC = () => {
               <div className="font-display font-extrabold text-2xl text-[#24212b]">
                 {stats.examsCount}
               </div>
-              <div className="text-xs text-[#595562] font-semibold">Ujian Kompetensi</div>
+              <div className="text-xs text-[#595562] font-semibold">Paket Ujian</div>
             </div>
           </Card>
 
@@ -125,7 +125,7 @@ export const AdminDashboardPage: React.FC = () => {
               <div className="font-display font-extrabold text-2xl text-[#24212b]">
                 {stats.questionsCount}
               </div>
-              <div className="text-xs text-[#595562] font-semibold">Butir Soal Aktif</div>
+              <div className="text-xs text-[#595562] font-semibold">Bank Soal</div>
             </div>
           </Card>
 
@@ -137,7 +137,7 @@ export const AdminDashboardPage: React.FC = () => {
               <div className="font-display font-extrabold text-2xl text-[#24212b]">
                 {stats.sessionsCount}
               </div>
-              <div className="text-xs text-[#595562] font-semibold">Total Sesi Ujian</div>
+              <div className="text-xs text-[#595562] font-semibold">Sesi Ujian</div>
             </div>
           </Card>
         </div>
@@ -149,32 +149,32 @@ export const AdminDashboardPage: React.FC = () => {
         <div className="lg:col-span-1 space-y-4">
           <Card hasShadow>
             <h3 className="font-display font-bold text-base text-[#24212b] mb-4 pb-2 border-b border-[#e6e1eb]">
-              Aksi Cepat Administrator
+              Aksi Cepat
             </h3>
             <div className="space-y-2">
               <Link to="/admin/questions" className="block">
                 <Button variant="ghost" fullWidth className="justify-start text-xs text-left" leftIcon={<HelpCircle className="w-4 h-4 text-[#583682]" />}>
-                  Kelola Bank Soal & Versi
+                  Kelola Bank Soal
                 </Button>
               </Link>
               <Link to="/admin/schedules" className="block">
                 <Button variant="ghost" fullWidth className="justify-start text-xs text-left" leftIcon={<Calendar className="w-4 h-4 text-[#583682]" />}>
-                  Jadwalkan Sesi Ujian Baru
+                  Buat Jadwal Sesi
                 </Button>
               </Link>
               <Link to="/admin/participants" className="block">
                 <Button variant="ghost" fullWidth className="justify-start text-xs text-left" leftIcon={<Users className="w-4 h-4 text-[#583682]" />}>
-                  Daftarkan Peserta Ujian
+                  Tambah Peserta
                 </Button>
               </Link>
               <Link to="/admin/results" className="block">
                 <Button variant="ghost" fullWidth className="justify-start text-xs text-left" leftIcon={<FileText className="w-4 h-4 text-[#583682]" />}>
-                  Publikasi Hasil & Rekap Nilai
+                  Lihat Hasil Ujian
                 </Button>
               </Link>
               <Link to="/admin/subtests" className="block">
                 <Button variant="ghost" fullWidth className="justify-start text-xs text-left" leftIcon={<Plus className="w-4 h-4 text-[#583682]" />}>
-                  Atur Subtes & Kategori Soal
+                  Kelola Subtes
                 </Button>
               </Link>
             </div>
@@ -187,7 +187,7 @@ export const AdminDashboardPage: React.FC = () => {
             <div className="flex items-center justify-between pb-3 border-b border-[#e6e1eb] mb-4">
               <h3 className="font-display font-bold text-base text-[#24212b] flex items-center gap-2">
                 <ShieldAlert className="w-4 h-4 text-[#583682]" />
-                Aktivitas & Log Audit Keamanan Terbaru
+                Aktivitas Terbaru
               </h3>
               <Link to="/admin/activity-log" className="text-xs text-[#583682] hover:underline font-semibold">
                 Lihat Semua
@@ -196,7 +196,7 @@ export const AdminDashboardPage: React.FC = () => {
 
             {recentLogs.length === 0 ? (
               <p className="text-xs text-[#595562] py-8 text-center">
-                Belum ada aktivitas audit yang terekam.
+                Belum ada aktivitas.
               </p>
             ) : (
               <div className="divide-y divide-[#e6e1eb]">

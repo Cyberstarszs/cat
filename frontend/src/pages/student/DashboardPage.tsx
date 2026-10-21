@@ -61,10 +61,10 @@ export const DashboardPage: React.FC = () => {
       {/* 1. Portal Topbar */}
       <div className="portal-topbar">
         <div>
-          <span className="status-active text-xs">
-            <i /> TERHUBUNG
+          <span className="text-[11px] font-bold uppercase tracking-wider text-[#583682]">
+            PORTAL PESERTA
           </span>
-          <b>PORTAL PESERTA</b>
+          <b>FIA UNIVERSITAS MADURA</b>
         </div>
         <div>
           <small>SESI AKTIF</small>
@@ -125,17 +125,12 @@ export const DashboardPage: React.FC = () => {
         </div>
 
         <div className="participant-status">
-          <span className="status-active">
-            <i /> PESERTA AKTIF
-          </span>
           <small>NOMOR PESERTA</small>
           <strong>{profile?.identifier ? `CAT-2026-${profile.identifier}` : 'CAT-2026-001'}</strong>
-          <small>PERAN</small>
-          <b>Mahasiswa</b>
-          <small>STATUS</small>
-          <b className="flex items-center gap-1 text-[#287a58]">
-            <Check className="w-3.5 h-3.5" /> Terverifikasi
-          </b>
+          <small>KATEGORI</small>
+          <b>{user?.role === 'umum' ? 'Peserta Umum' : 'Mahasiswa'}</b>
+          <small>STATUS AKUN</small>
+          <b className="text-[#583682]">Aktif</b>
         </div>
       </section>
 
@@ -144,11 +139,11 @@ export const DashboardPage: React.FC = () => {
         <div>
           <div className="eyebrow text-xs">JADWAL UJIAN</div>
           <h2 className="font-display font-bold text-2xl text-[#24212b]">
-            Sesi Ujian Tersedia
+            Sesi Ujian Terdaftar
           </h2>
         </div>
         <span className="text-xs font-bold bg-[#eae2f5] text-[#583682] px-3 py-1 rounded">
-          {sessions.length || 1} UJIAN
+          {sessions.length || 0} Ujian
         </span>
       </div>
 
@@ -194,7 +189,7 @@ export const DashboardPage: React.FC = () => {
                     </span>
                     <span>
                       <Shield className="w-3.5 h-3.5 text-[#583682]" />
-                      <b>Batas: 75</b>
+                      <b>Batas: {sess.passing_score || 75}</b>
                     </span>
                   </div>
 
@@ -221,17 +216,21 @@ export const DashboardPage: React.FC = () => {
                   onClick={() => {
                     if (isCompleted) {
                       navigate('/history');
+                    } else if (sess.attempt_status === 'in_progress' && sess.attempt_id) {
+                      navigate(`/exam?attemptId=${sess.attempt_id}`);
                     } else {
-                      navigate(`/assessment-lg/instructions?sessionId=${sess.id || sess.session_id}`);
+                      navigate(`/instructions?sessionId=${sess.id || sess.session_id}`);
                     }
                   }}
                 >
                   <span>
                     {isCompleted
                       ? 'Lihat Hasil'
-                      : isOngoing
+                      : sess.attempt_status === 'in_progress'
                       ? 'Lanjutkan Ujian'
-                      : 'Lihat Detail'}
+                      : isOngoing
+                      ? 'Mulai Ujian'
+                      : 'Detail Jadwal'}
                   </span>
                 </button>
               </article>

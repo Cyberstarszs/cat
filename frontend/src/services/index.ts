@@ -56,6 +56,14 @@ export const authService = {
     }
   },
 
+  async dismissPasswordChange(): Promise<void> {
+    try {
+      await apiClient.post('/auth/dismiss-password-change');
+    } catch {
+      // Abaikan error agar navigasi user tetap berjalan normal
+    }
+  },
+
   async getMe(): Promise<{ user: User; profile?: StudentProfile | null }> {
     const res = await apiClient.get('/me');
     return res.data;
@@ -69,13 +77,14 @@ export const authService = {
 
 // ==================== EXAMS & CATEGORIES SERVICE ====================
 export const examService = {
-  async getCategories(): Promise<ExamCategory[]> {
+  async getCategories(params?: { year?: number }): Promise<ExamCategory[]> {
+    const query = params?.year ? `?year=${params.year}` : '';
     try {
-      const res = await apiClient.get<{ data: ExamCategory[] }>('/categories');
+      const res = await apiClient.get<{ data: ExamCategory[] }>(`/categories${query}`);
       return res.data.data;
     } catch (err: any) {
       if (err?.status === 404 || err?.response?.status === 404) {
-        const res = await apiClient.get<{ data: ExamCategory[] }>('/question-categories');
+        const res = await apiClient.get<{ data: ExamCategory[] }>(`/question-categories${query}`);
         return res.data.data;
       }
       throw err;
@@ -134,8 +143,9 @@ export const examService = {
     title: string;
     code: string;
     description?: string;
+    year?: number;
     passing_score: number;
-    duration_minutes: number;
+    duration_minutes?: number;
     rules?: { category_id: string; question_count: number }[];
   }): Promise<Exam> {
     const res = await apiClient.post<{ exam: Exam }>('/exams', data);
@@ -149,6 +159,11 @@ export const examService = {
 
   async deleteExam(id: string): Promise<void> {
     await apiClient.delete(`/exams/${id}`);
+  },
+
+  async copyExam(id: string): Promise<Exam> {
+    const res = await apiClient.post<{ exam: Exam }>(`/exams/${id}/copy`);
+    return res.data.exam;
   },
 
   async addRule(examId: string, categoryId: string, count: number): Promise<void> {
@@ -179,6 +194,14 @@ export const questionService = {
   async getQuestionYears(): Promise<number[]> {
     const res = await apiClient.get<{ data: number[] }>('/questions/years');
     return res.data.data;
+  },
+
+  async getQuestionYearsDetailed(): Promise<Array<{ year: number; total_count: number; active_count: number }>> {
+    const res = await apiClient.get<{ data: number[]; details?: Array<{ year: number; total_count: number; active_count: number }> }>('/questions/years');
+    if (res.data.details && res.data.details.length > 0) {
+      return res.data.details;
+    }
+    return (res.data.data || []).map((y) => ({ year: y, total_count: 0, active_count: 0 }));
   },
 
   async getQuestionById(id: string): Promise<Question> {
@@ -287,6 +310,11 @@ export const questionService = {
 
 // ==================== SESSIONS SERVICE ====================
 export const sessionService = {
+  async getPublicSessions(): Promise<any[]> {
+    const res = await apiClient.get<{ data: any[] }>('/sessions/public');
+    return res.data.data;
+  },
+
   async getSessions(): Promise<ExamSession[]> {
     const res = await apiClient.get<{ data: ExamSession[] }>('/sessions');
     return res.data.data;
@@ -324,6 +352,16 @@ export const sessionService = {
     await apiClient.delete(`/sessions/${id}`);
   },
 
+  async cancelSession(id: string): Promise<any> {
+    const res = await apiClient.post(`/sessions/${id}/cancel`);
+    return res.data;
+  },
+
+  async unenrollStudent(sessionId: string, enrollmentId: string): Promise<any> {
+    const res = await apiClient.delete(`/sessions/${sessionId}/enrollments/${enrollmentId}`);
+    return res.data;
+  },
+
   async getCandidates(sessionId: string): Promise<CandidateResponse> {
     const res = await apiClient.get<CandidateResponse>(`/sessions/${sessionId}/candidates`);
     return res.data;
@@ -353,6 +391,27 @@ export const sessionService = {
     return res.data;
   },
 
+  async getSessionMonitor(sessionId: string): Promise<any> {
+    const res = await apiClient.get(`/sessions/${sessionId}/monitor`);
+    return res.data;
+  },
+
+  async generateAccessCode(sessionId: string, code?: string): Promise<any> {
+    const res = await apiClient.post(`/sessions/${sessionId}/access-code`, { access_code: code || null });
+    return res.data;
+  },
+
+  async extendAllSession(sessionId: string, extraMinutes: number): Promise<any> {
+    const res = await apiClient.post(`/sessions/${sessionId}/extend-all`, { extra_minutes: extraMinutes });
+    return res.data;
+  },
+
+  async exportSessionBapPDF(sessionId: string): Promise<Blob> {
+    const res = await apiClient.get(`/sessions/${sessionId}/bap/pdf`, {
+      responseType: 'blob',
+    });
+    return res.data;
+  },
   async exportSessionCredentialsPDF(sessionId: string): Promise<Blob> {
     const res = await apiClient.get(`/sessions/${sessionId}/credentials/pdf`, {
       responseType: 'blob',
@@ -363,8 +422,10 @@ export const sessionService = {
 
 // ==================== ATTEMPTS & CAT EXAM SERVICE ====================
 export const attemptService = {
-  async startAttempt(sessionId: string): Promise<StartAttemptResponse> {
-    const res = await apiClient.post<StartAttemptResponse>(`/sessions/${sessionId}/start-attempt`);
+  async startAttempt(sessionId: string, accessCode?: string): Promise<StartAttemptResponse> {
+    const res = await apiClient.post<StartAttemptResponse>(`/sessions/${sessionId}/start-attempt`, {
+      access_code: accessCode || undefined,
+    });
     return res.data;
   },
 
@@ -378,6 +439,7 @@ export const attemptService = {
     data: {
       attempt_question_id: string;
       selected_option_id: string | null;
+      is_flagged?: boolean;
       client_seq: number;
     }
   ): Promise<any> {
@@ -401,6 +463,23 @@ export const attemptService = {
     return res.data;
   },
 
+  async voidAttempt(attemptId: string, reason: string): Promise<any> {
+    const res = await apiClient.post(`/attempts/${attemptId}/void`, { reason });
+    return res.data;
+  },
+
+  async extendAttempt(attemptId: string, extraMinutes: number, reason: string): Promise<any> {
+    const res = await apiClient.post(`/attempts/${attemptId}/extend`, {
+      extra_minutes: extraMinutes,
+      reason,
+    });
+    return res.data;
+  },
+
+  async getAttemptEvents(attemptId: string): Promise<any[]> {
+    const res = await apiClient.get<{ data: any[] }>(`/attempts/${attemptId}/events`);
+    return res.data.data;
+  },
   async getAttemptResult(attemptId: string): Promise<ExamResult> {
     const res = await apiClient.get<{ result: ExamResult }>(`/attempts/${attemptId}/result`);
     return res.data.result;
@@ -442,6 +521,11 @@ export const resultService = {
 
   async getAppeals(): Promise<Appeal[]> {
     const res = await apiClient.get<{ data: Appeal[] }>('/appeals');
+    return res.data.data;
+  },
+
+  async getMyAppeals(): Promise<Appeal[]> {
+    const res = await apiClient.get<{ data: Appeal[] }>('/me/appeals');
     return res.data.data;
   },
 
@@ -529,7 +613,35 @@ export const userService = {
     return res.data;
   },
 
-  async getUsers(params?: { search?: string; role?: string }): Promise<User[]> {
+  async updateStudent(
+    id: string,
+    data: {
+      full_name?: string;
+      email?: string;
+      institution?: string;
+      phone?: string;
+      status?: 'active' | 'suspended';
+      role?: 'mahasiswa' | 'umum';
+    }
+  ): Promise<{ success: boolean; student: StudentProfile }> {
+    const res = await apiClient.patch<{ success: boolean; student: StudentProfile }>(`/students/${id}`, data);
+    return res.data;
+  },
+
+  async deleteStudent(id: string): Promise<void> {
+    await apiClient.delete(`/users/${id}`);
+  },
+
+  async createAdmin(email: string): Promise<{ success: boolean; user: User; initial_password?: string }> {
+    const res = await apiClient.post<{ success: boolean; user: User; initial_password?: string }>('/users', { email });
+    return res.data;
+  },
+
+  async deleteUser(userId: string): Promise<void> {
+    await apiClient.delete(`/users/${userId}`);
+  },
+
+  async getUsers(params?: { search?: string; role?: string; status?: string }): Promise<User[]> {
     const res = await apiClient.get<{ data: User[] }>('/users', { params });
     return res.data.data;
   },
@@ -552,7 +664,14 @@ export const userService = {
 
 // ==================== AUDIT & NOTIFICATIONS SERVICE ====================
 export const auditService = {
-  async getAuditLogs(params?: { action?: string; limit?: number }): Promise<AuditLog[]> {
+  async getAuditLogs(params?: {
+    action?: string;
+    entity_type?: string;
+    actor_id?: string;
+    from?: string;
+    to?: string;
+    limit?: number;
+  }): Promise<AuditLog[]> {
     const res = await apiClient.get<{ data: AuditLog[] }>('/audit-logs', { params });
     return res.data.data;
   },
@@ -585,11 +704,40 @@ export const reportService = {
     return res.data;
   },
 
+  async getExamItemAnalysis(examId: string): Promise<any> {
+    const res = await apiClient.get(`/reports/exams/${examId}/item-analysis`);
+    return res.data;
+  },
   async exportSessionCSV(sessionId: string): Promise<Blob> {
     const res = await apiClient.get(`/reports/sessions/${sessionId}/export`, {
       responseType: 'blob',
     });
     return res.data;
+  },
+};
+
+
+// ==================== INSTITUTION & SYSTEM SETTINGS ====================
+export interface InstitutionSettings {
+  faculty_name: string;
+  university_name: string;
+  decan_name: string;
+  decan_nip: string;
+  decan_title: string;
+  cert_city: string;
+  cert_validity_years: number;
+  cert_no_prefix: string;
+}
+
+export const settingsService = {
+  async getInstitutionSettings(): Promise<InstitutionSettings> {
+    const res = await apiClient.get<{ settings: InstitutionSettings }>('/settings/institution');
+    return res.data.settings;
+  },
+
+  async updateInstitutionSettings(data: Partial<InstitutionSettings>): Promise<InstitutionSettings> {
+    const res = await apiClient.patch<{ settings: InstitutionSettings }>('/settings/institution', data);
+    return res.data.settings;
   },
 };
 

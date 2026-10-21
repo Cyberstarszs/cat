@@ -7,6 +7,7 @@ import {
   createSession,
   publishSession,
   cancelSession,
+  deleteSession,
   setSessionAccessCode,
   previewEnrollStudents,
   enrollStudents,
@@ -16,8 +17,9 @@ import {
   finalizeSession,
   regradeSession,
 } from './sessions.service.js';
-import { generateSessionCredentialsPDF } from './sessions.pdf.js';
+import { generateSessionCredentialsPDF, generateSessionBapPDFBuffer } from './sessions.pdf.js';
 import { startExamAttempt } from '../attempts/attempts.service.js';
+import { validateQuestionPoolSufficiency } from '../exams/exams.service.js';
 import { logAudit } from '../audit/audit.service.js';
 
 const createSessionSchema = z.object({
@@ -62,7 +64,38 @@ const startAttemptSchema = z.object({
 });
 
 export const sessionRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
-  fastify.addHook('preHandler', authenticate);
+  fastify.addHook('preHandler', async (request, reply) => {
+    if (request.url.includes('/sessions/public')) {
+      return;
+    }
+    await authenticate(request, reply);
+  });
+
+  // GET /sessions/public (Publik, tanpa login - untuk Landing Page)
+  fastify.get('/sessions/public', async (_request, reply) => {
+    const { rows } = await pool.query(`
+      SELECT 
+        s.id, s.exam_id, s.code, s.name, s.starts_at, s.ends_at, s.capacity,
+        CASE 
+          WHEN s.status = 'cancelled' THEN 'cancelled'
+          WHEN now() >= s.ends_at THEN 'completed'
+          WHEN s.status = 'draft' THEN 'draft'
+          WHEN now() < s.starts_at THEN 'scheduled'
+          ELSE 'active'
+        END AS status,
+        (s.access_code_hash IS NOT NULL) AS has_access_code,
+        e.title AS exam_title, e.code AS exam_code, e.duration_minutes, e.passing_score,
+        COUNT(DISTINCT se.id) AS enrolled_count
+      FROM exam_sessions s
+      JOIN exams e ON e.id = s.exam_id
+      LEFT JOIN session_enrollments se ON se.session_id = s.id
+      WHERE s.status <> 'cancelled' AND s.status <> 'draft' AND now() < s.ends_at
+      GROUP BY s.id, e.id
+      ORDER BY s.starts_at ASC
+      LIMIT 12;
+    `);
+    return reply.send({ data: rows });
+  });
 
   // GET /sessions (A)
   fastify.get('/sessions', {
@@ -116,7 +149,7 @@ export const sessionRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
           END AS status,
           s.status AS raw_status,
           s.question_year, (s.access_code_hash IS NOT NULL) AS has_access_code, s.created_at,
-          e.title AS exam_title, e.duration_minutes,
+          e.title AS exam_title, e.code AS exam_code, e.year AS exam_year, e.duration_minutes,
           COUNT(DISTINCT se.id) AS enrolled_count
         FROM exam_sessions s
         JOIN exams e ON e.id = s.exam_id
@@ -169,7 +202,7 @@ export const sessionRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
           s.status AS raw_status,
           s.question_year, (s.access_code_hash IS NOT NULL) AS has_access_code,
           s.created_at, s.updated_at,
-          e.title AS exam_title, e.duration_minutes, e.passing_score, e.question_count,
+          e.title AS exam_title, e.code AS exam_code, e.year AS exam_year, e.duration_minutes, e.passing_score, e.question_count,
           COUNT(DISTINCT se.id) AS enrolled_count
          FROM exam_sessions s
          JOIN exams e ON e.id = s.exam_id
@@ -192,6 +225,23 @@ export const sessionRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
       const parse = updateSessionSchema.safeParse(request.body);
       if (!parse.success) throw new AppError('VALIDATION_FAILED', 'Format pembaruan sesi salah', parse.error.format());
 
+      // Ambil session saat ini beserta durasi ujian dan jumlah peserta terdaftar
+      const { rows: currentSessions } = await pool.query(
+        `SELECT s.*, e.duration_minutes, COUNT(se.id) AS enrolled_count
+         FROM exam_sessions s
+         JOIN exams e ON e.id = s.exam_id
+         LEFT JOIN session_enrollments se ON se.session_id = s.id
+         WHERE s.id = $1
+         GROUP BY s.id, e.duration_minutes;`,
+        [id]
+      );
+      if (currentSessions.length === 0) throw new AppError('NOT_FOUND');
+      const s = currentSessions[0];
+
+      if (s.status === 'cancelled') {
+        throw new AppError('INVALID_TRANSITION', 'Sesi yang telah dibatalkan tidak dapat diubah.');
+      }
+
       // Cek apakah sudah ada attempt (SESSION_LOCKED)
       const { rows: check } = await pool.query(
         `SELECT COUNT(*) AS count FROM attempts a JOIN session_enrollments se ON se.id = a.enrollment_id WHERE se.session_id = $1;`,
@@ -199,6 +249,37 @@ export const sessionRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
       );
       if (parseInt(check[0].count, 10) > 0) {
         throw new AppError('SESSION_LOCKED', 'Jadwal sesi tidak dapat diubah karena sudah memiliki percobaan ujian.');
+      }
+
+      // Validasi waktu jendela mulai dan selesai
+      const newStartsAt = parse.data.starts_at ? new Date(parse.data.starts_at) : new Date(s.starts_at);
+      const newEndsAt = parse.data.ends_at ? new Date(parse.data.ends_at) : new Date(s.ends_at);
+
+      if (newEndsAt.getTime() <= newStartsAt.getTime()) {
+        throw new AppError('VALIDATION_FAILED', 'Waktu selesai harus lebih besar dari waktu mulai sesi.');
+      }
+
+      const sessionDurationMinutes = (newEndsAt.getTime() - newStartsAt.getTime()) / (60 * 1000);
+      if (sessionDurationMinutes < 5) {
+        throw new AppError(
+          'VALIDATION_FAILED',
+          `Rentang waktu sesi (${sessionDurationMinutes} menit) minimal harus 5 menit.`
+        );
+      }
+
+      // Validasi kapasitas tidak boleh di bawah peserta yang sudah terdaftar
+      if (parse.data.capacity !== undefined && parse.data.capacity !== null) {
+        const enrolledCount = parseInt(s.enrolled_count, 10);
+        if (parse.data.capacity < enrolledCount) {
+          throw new AppError(
+            'VALIDATION_FAILED',
+            `Kapasitas baru (${parse.data.capacity}) tidak boleh lebih kecil dari jumlah peserta yang sudah terdaftar (${enrolledCount}).`
+          );
+        }
+      }
+
+      if (parse.data.question_year !== undefined) {
+        await validateQuestionPoolSufficiency(s.exam_id, parse.data.question_year);
       }
 
       const updates: string[] = ['updated_at = now()'];
@@ -211,11 +292,11 @@ export const sessionRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
       }
       if (parse.data.starts_at !== undefined) {
         updates.push(`starts_at = $${idx++}`);
-        params.push(new Date(parse.data.starts_at).toISOString());
+        params.push(newStartsAt.toISOString());
       }
       if (parse.data.ends_at !== undefined) {
         updates.push(`ends_at = $${idx++}`);
-        params.push(new Date(parse.data.ends_at).toISOString());
+        params.push(newEndsAt.toISOString());
       }
       if (parse.data.capacity !== undefined) {
         updates.push(`capacity = $${idx++}`);
@@ -264,6 +345,16 @@ export const sessionRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
       const { id } = request.params as { id: string };
       const result = await cancelSession(id, request.user!.id, request.ip);
       return reply.send({ success: true, session: result });
+    },
+  });
+
+  // DELETE /sessions/:id (A - Hapus Sesi)
+  fastify.delete('/sessions/:id', {
+    preHandler: [requireRoles(['admin'])],
+    handler: async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const result = await deleteSession(id, request.user!.id, request.ip);
+      return reply.send({ success: true, message: 'Sesi ujian berhasil dihapus.', session: result });
     },
   });
 
@@ -323,7 +414,7 @@ export const sessionRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
 
       const { rows } = await pool.query(
         `SELECT 
-          se.id AS enrollment_id, se.status AS enrollment_status, se.registered_at,
+          se.id, se.id AS enrollment_id, se.status AS enrollment_status, se.registered_at,
           sp.identifier, sp.full_name, sp.institution, sp.phone, u.email, u.role,
           a.id AS attempt_id, a.attempt_no, a.status AS attempt_status,
           r.id AS result_id, r.score, r.passed
@@ -382,10 +473,23 @@ export const sessionRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
     preHandler: [requireRoles(['admin'])],
     handler: async (request, reply) => {
       const { id } = request.params as { id: string };
+      const origin = (request.headers.origin as string) || (request.headers.referer as string) || '';
+      let loginUrl = 'http://localhost:5173/login';
+      if (origin) {
+        try {
+          const u = new URL(origin);
+          loginUrl = `${u.protocol}//${u.host}/login`;
+        } catch {}
+      } else if (request.headers.host) {
+        const hostWithoutPort = (request.headers.host as string).split(':')[0];
+        loginUrl = `http://${hostWithoutPort}:5173/login`;
+      }
+
       const { pdfBuffer, sessionCode } = await generateSessionCredentialsPDF(
         id,
         request.user!.id,
-        request.ip
+        request.ip,
+        loginUrl
       );
 
       reply.header('Content-Type', 'application/pdf');
@@ -438,27 +542,31 @@ export const sessionRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
 
       // Detail sesi
       const { rows: sRows } = await pool.query(
-        `SELECT s.id, s.name, s.code, s.starts_at, s.ends_at, s.capacity, s.status, e.title AS exam_title
+        `SELECT s.id, s.name, s.code, s.starts_at, s.ends_at, s.capacity, s.status, 
+                (s.access_code_hash IS NOT NULL) AS has_access_code,
+                e.title AS exam_title, e.duration_minutes, e.question_count, e.passing_score
          FROM exam_sessions s JOIN exams e ON e.id = s.exam_id WHERE s.id = $1;`,
         [id]
       );
       if (sRows.length === 0) throw new AppError('NOT_FOUND');
 
-      // Daftar peserta & status real-time
+      // Daftar peserta & status real-time (termasuk void dan violation events)
       const { rows: participants } = await pool.query(
         `SELECT 
           se.id AS enrollment_id, se.status AS enrollment_status,
           sp.identifier, sp.full_name, sp.institution,
           a.id AS attempt_id, a.status AS attempt_status, a.started_at, a.deadline_at, a.extra_seconds,
-          a.submitted_at, a.submit_reason,
+          a.submitted_at, a.submit_reason, a.void_reason,
           r.score, r.passed,
-          COUNT(ans.selected_option_id) AS answered_count,
-          COUNT(CASE WHEN ans.is_flagged = true THEN 1 END) AS flagged_count
+          COUNT(DISTINCT ans.attempt_question_id) FILTER (WHERE ans.selected_option_id IS NOT NULL) AS answered_count,
+          COUNT(DISTINCT ans.attempt_question_id) FILTER (WHERE ans.is_flagged = true) AS flagged_count,
+          COUNT(DISTINCT ae.id) FILTER (WHERE ae.event_type IN ('tab_switch', 'fullscreen_exit', 'window_blur')) AS violation_count
          FROM session_enrollments se
          JOIN student_profiles sp ON sp.user_id = se.student_id
-         LEFT JOIN attempts a ON a.enrollment_id = se.id AND a.status <> 'void'
+         LEFT JOIN attempts a ON a.enrollment_id = se.id
          LEFT JOIN attempt_questions aq ON aq.attempt_id = a.id
          LEFT JOIN attempt_answers ans ON ans.attempt_question_id = aq.id
+         LEFT JOIN attempt_events ae ON ae.attempt_id = a.id
          LEFT JOIN results r ON r.attempt_id = a.id
          WHERE se.session_id = $1
          GROUP BY se.id, sp.identifier, sp.full_name, sp.institution, a.id, r.id
@@ -566,4 +674,24 @@ export const sessionRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
       return reply.send({ success: true, ...result });
     },
   });
+  // GET /sessions/:id/bap/pdf (Fitur C - Cetak Berita Acara & Presensi Sesi Lab)
+  fastify.get('/sessions/:id/bap/pdf', {
+    preHandler: [requireRoles(['admin'])],
+    handler: async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const { pdfBuffer, sessionCode } = await generateSessionBapPDFBuffer(
+        id,
+        request.user!.id,
+        request.ip
+      );
+
+      reply.header('Content-Type', 'application/pdf');
+      reply.header(
+        'Content-Disposition',
+        `inline; filename="BAP_Presensi_${sessionCode}.pdf"`
+      );
+      return reply.send(pdfBuffer);
+    },
+  });
+
 };

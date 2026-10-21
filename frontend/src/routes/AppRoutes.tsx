@@ -39,15 +39,12 @@ const ProfilePage = lazy(() => import('../pages/student/ProfilePage').then((m) =
 
 // Admin Pages (Lazy Loaded)
 const AdminDashboardPage = lazy(() => import('../pages/admin/AdminDashboardPage').then((m) => ({ default: m.AdminDashboardPage })));
-const AdminSubtestsPage = lazy(() => import('../pages/admin/AdminSubtestsPage').then((m) => ({ default: m.AdminSubtestsPage })));
 const AdminExamsPage = lazy(() => import('../pages/admin/AdminExamsPage').then((m) => ({ default: m.AdminExamsPage })));
 const AdminQuestionsPage = lazy(() => import('../pages/admin/AdminQuestionsPage').then((m) => ({ default: m.AdminQuestionsPage })));
-const AdminImportQuestionsPage = lazy(() => import('../pages/admin/AdminImportQuestionsPage').then((m) => ({ default: m.AdminImportQuestionsPage })));
 const AdminSchedulesPage = lazy(() => import('../pages/admin/AdminSchedulesPage').then((m) => ({ default: m.AdminSchedulesPage })));
 const AdminParticipantsPage = lazy(() => import('../pages/admin/AdminParticipantsPage').then((m) => ({ default: m.AdminParticipantsPage })));
 const AdminResultsPage = lazy(() => import('../pages/admin/AdminResultsPage').then((m) => ({ default: m.AdminResultsPage })));
 const AdminAuditLogsPage = lazy(() => import('../pages/admin/AdminAuditLogsPage').then((m) => ({ default: m.AdminAuditLogsPage })));
-const AdminNotificationsPage = lazy(() => import('../pages/admin/AdminNotificationsPage').then((m) => ({ default: m.AdminNotificationsPage })));
 const AdminUsersPage = lazy(() => import('../pages/admin/AdminUsersPage').then((m) => ({ default: m.AdminUsersPage })));
 const AdminSettingsPage = lazy(() => import('../pages/admin/AdminSettingsPage').then((m) => ({ default: m.AdminSettingsPage })));
 
@@ -72,19 +69,24 @@ export const AppRoutes: React.FC = () => {
           {/* Public */}
           <Route path="/" element={<HomePage />} />
           <Route path="/explore" element={<ExplorePage />} />
-          <Route path="/assessment-lg" element={<ExplorePage />} />
+          <Route path="/assessment-lg" element={<Navigate to="/explore" replace />} />
           <Route path="/assessment-lg/detail" element={<DetailPage />} />
+          <Route path="/detail" element={<DetailPage />} />
           <Route path="/verify" element={<VerifyPage />} />
           <Route path="/verify/:code" element={<VerifyPage />} />
 
           {/* Student Protected Routes */}
           <Route element={<ProtectedRoute requiredRole="student" />}>
             <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/instructions" element={<InstructionsPage />} />
             <Route path="/assessment-lg/instructions" element={<InstructionsPage />} />
             <Route path="/results/latest" element={<ResultPage />} />
             <Route path="/results" element={<ResultPage />} />
             <Route path="/history" element={<HistoryPage />} />
             <Route path="/certificates/latest" element={<CertificatePage />} />
+            <Route path="/certificates" element={<CertificatePage />} />
+            <Route path="/certificate" element={<CertificatePage />} />
+            <Route path="/certificates/:id" element={<CertificatePage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/settings" element={<ProfilePage />} />
           </Route>
@@ -98,21 +100,37 @@ export const AppRoutes: React.FC = () => {
           <Route element={<AdminLayout />}>
             <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
-            <Route path="/admin/subtests" element={<AdminSubtestsPage />} />
-            <Route path="/admin/categories" element={<AdminSubtestsPage />} />
+
+            {/* Menu Terpadu: Kategori & Paket Ujian */}
             <Route path="/admin/exams" element={<AdminExamsPage />} />
             <Route path="/admin/assessment-lg" element={<AdminExamsPage />} />
+            {/* Backward-compatible redirects ke Tab Subtes */}
+            <Route path="/admin/subtests" element={<Navigate to="/admin/exams?tab=subtests" replace />} />
+            <Route path="/admin/categories" element={<Navigate to="/admin/exams?tab=subtests" replace />} />
+
+            {/* Menu Terpadu: Bank & Fitur Impor Soal */}
             <Route path="/admin/questions" element={<AdminQuestionsPage />} />
             <Route path="/admin/questions/library" element={<AdminQuestionsPage />} />
-            <Route path="/admin/questions/import" element={<AdminImportQuestionsPage />} />
+            {/* Backward-compatible redirect ke Tab Impor Soal */}
+            <Route path="/admin/questions/import" element={<Navigate to="/admin/questions?tab=import" replace />} />
+
+            {/* Pelaksanaan Ujian: Jadwal & Peserta */}
             <Route path="/admin/schedules" element={<AdminSchedulesPage />} />
             <Route path="/admin/assessment-lg/schedule" element={<AdminSchedulesPage />} />
             <Route path="/admin/participants" element={<AdminParticipantsPage />} />
+
+            {/* Hasil Ujian & Penilaian */}
             <Route path="/admin/results" element={<AdminResultsPage />} />
+
+            {/* Menu Terpadu: Audit Trail & Pusat Notifikasi */}
             <Route path="/admin/activity-log" element={<AdminAuditLogsPage />} />
-            <Route path="/admin/notifications" element={<AdminNotificationsPage />} />
+            {/* Backward-compatible redirect ke Tab Notifikasi */}
+            <Route path="/admin/notifications" element={<Navigate to="/admin/activity-log?tab=notifications" replace />} />
+
+            {/* Sistem: Pengguna & Pengaturan */}
             <Route path="/admin/users" element={<AdminUsersPage />} />
             <Route path="/admin/settings" element={<AdminSettingsPage />} />
+
             <Route path="/admin/*" element={<NotFoundPage />} />
           </Route>
         </Route>

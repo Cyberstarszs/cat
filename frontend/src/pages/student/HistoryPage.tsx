@@ -35,7 +35,11 @@ export const HistoryPage: React.FC = () => {
 
   const filteredResults = results.filter((item) => {
     const matchName = (item.exam_title || item.session_name || '').toLowerCase().includes(search.toLowerCase());
-    const itemStatus = item.passed ? 'Lulus' : 'Tidak Lulus';
+    const itemStatus = item.status === 'pending_publication'
+      ? 'Menunggu Publikasi'
+      : item.passed
+      ? 'Lulus'
+      : 'Tidak Lulus';
     const matchStatus = statusFilter === 'Semua status' || itemStatus === statusFilter;
     return matchName && matchStatus;
   });
@@ -45,11 +49,11 @@ export const HistoryPage: React.FC = () => {
       {/* 1. History Head */}
       <div className="history-head">
         <div>
-          <div className="eyebrow text-xs mb-1">PORTAL PESERTA / HASIL DAN RIWAYAT</div>
-          <h1>Hasil dan Riwayat</h1>
-          <p>Catatan hasil ujian kompetensi yang pernah Anda ikuti.</p>
+          <div className="eyebrow text-xs mb-1">RIWAYAT UJIAN</div>
+          <h1>Riwayat Ujian</h1>
+          <p>Daftar ujian kompetensi yang telah Anda ikuti.</p>
         </div>
-        <span>{String(filteredResults.length).padStart(2, '0')} ASESMEN</span>
+        <span>{filteredResults.length} Ujian</span>
       </div>
 
       {/* 2. Tabs */}
@@ -67,7 +71,7 @@ export const HistoryPage: React.FC = () => {
             }
           }}
         >
-          Hasil Terbaru
+          Hasil Terakhir
         </button>
         <button
           role="tab"
@@ -87,14 +91,15 @@ export const HistoryPage: React.FC = () => {
       {/* 3. Filters */}
       <div className="history-filters">
         <label>
-          <span className="text-xs font-bold text-[#24212b] block mb-1">Cari ujian</span>
-          <div className="relative">
+          <span className="text-xs font-bold text-[#24212b] block mb-1">Cari Ujian</span>
+          <div className="relative flex items-center">
+            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Nama ujian..."
-              className="w-full bg-white border border-[#e6e1eb] rounded-[6px] px-3 py-2 text-xs text-[#24212b] outline-none focus:border-[#583682]"
+              placeholder="Cari nama ujian..."
+              className="w-full bg-white border border-[#e6e1eb] rounded-[6px] !pl-10 pr-3 py-2 text-xs text-[#24212b] outline-none focus:border-[#583682]"
             />
           </div>
         </label>
@@ -106,6 +111,7 @@ export const HistoryPage: React.FC = () => {
             className="w-full bg-white border border-[#e6e1eb] rounded-[6px] px-3 py-2 text-xs text-[#24212b] outline-none focus:border-[#583682]"
           >
             <option>Semua status</option>
+            <option>Menunggu Publikasi</option>
             <option>Lulus</option>
             <option>Tidak Lulus</option>
           </select>
@@ -124,10 +130,10 @@ export const HistoryPage: React.FC = () => {
         <div className="empty-state p-12 text-center bg-white border border-[#e6e1eb] rounded-[8px]">
           <HistoryIcon className="w-10 h-10 text-[#583682] mx-auto mb-3" />
           <h2 className="font-display font-bold text-lg text-[#24212b] mb-1">
-            Riwayat tidak ditemukan
+            Belum Ada Riwayat Ujian
           </h2>
           <p className="text-xs text-[#595562] mb-4">
-            Belum ada ujian yang dikumpulkan atau data tidak sesuai dengan filter pencarian Anda.
+            Anda belum memiliki riwayat pengerjaan ujian atau tidak cocok dengan filter.
           </p>
           <Button
             variant="secondary"
@@ -137,13 +143,13 @@ export const HistoryPage: React.FC = () => {
             }}
             className="text-xs"
           >
-            Atur Ulang Filter
+            Reset Filter
           </Button>
         </div>
       ) : (
         <div className="history-table rounded-[8px] overflow-hidden border border-[#e6e1eb]">
           <div className="history-table__head">
-            <span>Nama ujian</span>
+            <span>Nama Ujian</span>
             <span>Tanggal</span>
             <span>Nilai</span>
             <span>Status</span>
@@ -160,16 +166,24 @@ export const HistoryPage: React.FC = () => {
               <b className="text-sm text-[#24212b]">{row.score}</b>
               <i
                 className={`not-italic text-xs font-bold px-2 py-0.5 rounded ${
-                  row.passed ? 'passed bg-[#e8f3ed] text-[#287a58]' : 'failed bg-[#f8e9eb] text-[#b63b48]'
+                  row.status === 'pending_publication'
+                    ? 'bg-[#fef3c7] text-[#92400e]'
+                    : row.passed
+                    ? 'passed bg-[#e8f3ed] text-[#287a58]'
+                    : 'failed bg-[#f8e9eb] text-[#b63b48]'
                 }`}
               >
-                {row.passed ? 'Lulus' : 'Tidak Lulus'}
+                {row.status === 'pending_publication'
+                  ? 'Menunggu Publikasi'
+                  : row.passed
+                  ? 'Lulus'
+                  : 'Tidak Lulus'}
               </i>
               <button
                 onClick={() => navigate(`/results/latest?resultId=${row.id}`)}
                 className="text-xs font-bold text-[#583682] hover:underline cursor-pointer"
               >
-                Lihat hasil
+                Lihat Hasil
               </button>
             </div>
           ))}

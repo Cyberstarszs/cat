@@ -5,6 +5,7 @@ import { pool } from '../../db/connection.js';
 import { AppError } from '../../lib/errors.js';
 import { generateVerificationCode } from '../../lib/hash.js';
 import { logAudit } from '../audit/audit.service.js';
+import { getInstitutionSettings } from '../settings/settings.service.js';
 
 export async function generateCertificateNumber(client: PoolClient, year: number): Promise<string> {
   const { rows } = await client.query(
@@ -28,9 +29,21 @@ export async function issueCertificateForResult(
 ): Promise<any> {
   const executor = client || pool;
 
-  // Cek apakah sertifikat sudah ada
+  // Verifikasi apakah hasil benar-benar ada dan lulus (passed = true, INV-09)
+  const { rows: resRows } = await executor.query(
+    `SELECT passed, status FROM results WHERE id = $1;`,
+    [resultId]
+  );
+  if (resRows.length === 0) {
+    throw new AppError('NOT_FOUND', 'Hasil ujian tidak ditemukan.');
+  }
+  if (!resRows[0].passed) {
+    throw new AppError('FORBIDDEN', 'Sertifikat hanya dapat diterbitkan untuk peserta yang lulus.');
+  }
+
+  // Cek apakah sertifikat valid sudah ada (idempoten)
   const { rows: existing } = await executor.query(
-    `SELECT * FROM certificates WHERE result_id = $1;`,
+    `SELECT * FROM certificates WHERE result_id = $1 AND status = 'valid';`,
     [resultId]
   );
   if (existing.length > 0) {
@@ -49,6 +62,9 @@ export async function issueCertificateForResult(
       await c.query('BEGIN;');
       certNo = await generateCertificateNumber(c, year);
       await c.query('COMMIT;');
+    } catch (err) {
+      await c.query('ROLLBACK;');
+      throw err;
     } finally {
       c.release();
     }
@@ -134,7 +150,7 @@ export async function verifyCertificatePublic(code: string) {
     JOIN student_profiles sp ON sp.user_id = se.student_id
     JOIN exam_sessions s ON s.id = se.session_id
     JOIN exams e ON e.id = s.exam_id
-    WHERE c.verification_code = $1;
+    WHERE c.verification_code = $1 OR c.certificate_no = $1;
   `;
 
   const { rows } = await pool.query(query, [code.trim()]);
@@ -188,7 +204,9 @@ export async function generateCertificatePDFBuffer(
   if (rows.length === 0) throw new AppError('NOT_FOUND');
 
   const cert = rows[0];
-  const verifyUrl = `${baseUrl}/api/v1/verify/${cert.verification_code}`;
+  const settings = await getInstitutionSettings();
+  const cleanBase = baseUrl.replace(/\/api\/v1\/?$/, '').replace(/\/+$/, '');
+  const verifyUrl = `${cleanBase}/verify/${cert.verification_code}`;
 
   const qrBuffer = await QRCode.toBuffer(verifyUrl, { width: 120, margin: 1 });
 
@@ -209,31 +227,31 @@ export async function generateCertificatePDFBuffer(
     doc.rect(25, 25, doc.page.width - 50, doc.page.height - 50).lineWidth(1).stroke('#3b82f6');
 
     // Header
-    doc.fontSize(24).font('Helvetica-Bold').fillColor('#1e3a8a').text('SERTIFIKAT KELULUSAN UJI KOMPETENSI', {
+    doc.fontSize(22).font('Helvetica-Bold').fillColor('#1e3a8a').text('SERTIFIKAT KELULUSAN UJI KOMPETENSI', {
       align: 'center',
     });
-    doc.moveDown(0.3);
-    doc.fontSize(14).font('Helvetica').fillColor('#475569').text('FAKULTAS ILMU ADMINISTRASI (FIA)', {
+    doc.moveDown(0.2);
+    doc.fontSize(13).font('Helvetica-Bold').fillColor('#475569').text(`${settings.faculty_name.toUpperCase()} - ${settings.university_name.toUpperCase()}`, {
       align: 'center',
     });
 
-    doc.moveDown(1);
-    doc.fontSize(12).font('Helvetica').fillColor('#334155').text('Diberikan kepada:', { align: 'center' });
-    doc.moveDown(0.5);
+    doc.moveDown(0.8);
+    doc.fontSize(11).font('Helvetica').fillColor('#334155').text('Diberikan kepada:', { align: 'center' });
+    doc.moveDown(0.4);
 
     // Student Name
     doc.fontSize(22).font('Helvetica-Bold').fillColor('#0f172a').text(cert.student_name, { align: 'center' });
-    doc.fontSize(12).font('Helvetica').fillColor('#64748b').text(`Nomor Identitas: ${cert.identifier} | Instansi: ${cert.institution || 'Umum'}`, {
+    doc.fontSize(11).font('Helvetica').fillColor('#64748b').text(`Nomor Identitas: ${cert.identifier} | Instansi: ${cert.institution || 'Umum'}`, {
       align: 'center',
     });
 
-    doc.moveDown(1);
-    doc.fontSize(12).font('Helvetica').fillColor('#334155').text('Telah dinyatakan LULUS pada ujian kompetensi:', { align: 'center' });
-    doc.moveDown(0.4);
+    doc.moveDown(0.8);
+    doc.fontSize(11).font('Helvetica').fillColor('#334155').text('Telah dinyatakan LULUS pada ujian kompetensi:', { align: 'center' });
+    doc.moveDown(0.3);
 
     // Exam Title & Score
-    doc.fontSize(18).font('Helvetica-Bold').fillColor('#1e3a8a').text(cert.exam_title, { align: 'center' });
-    doc.fontSize(12).font('Helvetica').fillColor('#0f172a').text(`Dengan Skor: ${cert.score} / 100`, { align: 'center' });
+    doc.fontSize(17).font('Helvetica-Bold').fillColor('#1e3a8a').text(cert.exam_title, { align: 'center' });
+    doc.fontSize(12).font('Helvetica-Bold').fillColor('#059669').text(`Nilai Akhir: ${cert.score} / 100`, { align: 'center' });
 
     // Watermark if revoked
     if (cert.status === 'revoked') {
@@ -243,14 +261,33 @@ export async function generateCertificatePDFBuffer(
       doc.restore();
     }
 
-    // Bottom section: No Certificate, Date, and QR Code
-    const bottomY = doc.page.height - 150;
-    doc.image(qrBuffer, 60, bottomY, { width: 85, height: 85 });
-    doc.fontSize(9).font('Helvetica').fillColor('#64748b').text('Scan untuk memverifikasi keaslian sertifikat', 45, bottomY + 90);
+    // Bottom section: No Certificate, Date, Signatory, and QR Code
+    const bottomY = doc.page.height - 165;
+    doc.image(qrBuffer, 55, bottomY, { width: 80, height: 80 });
+    doc.fontSize(8).font('Helvetica').fillColor('#64748b').text('Scan QR untuk verifikasi keabsahan', 45, bottomY + 84);
+    doc.fontSize(8).font('Helvetica').fillColor('#94a3b8').text(`Kode: ${cert.verification_code}`, 45, bottomY + 95);
 
-    doc.fontSize(11).font('Helvetica').fillColor('#334155').text(`Nomor Sertifikat: ${cert.certificate_no}`, doc.page.width - 320, bottomY + 15, { align: 'right' });
-    doc.fontSize(11).font('Helvetica').fillColor('#334155').text(`Tanggal Terbit: ${new Date(cert.issued_at).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}`, doc.page.width - 320, bottomY + 35, { align: 'right' });
-    doc.fontSize(11).font('Helvetica-Bold').fillColor('#1e3a8a').text('Panitia Uji Kompetensi FIA', doc.page.width - 320, bottomY + 70, { align: 'right' });
+    // Validity Info
+    const issuedDate = new Date(cert.issued_at);
+    const validUntilDate = new Date(issuedDate);
+    validUntilDate.setFullYear(validUntilDate.getFullYear() + (settings.cert_validity_years || 2));
+    const validUntilStr = validUntilDate.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    doc.fontSize(9).font('Helvetica').fillColor('#475569')
+      .text(`Nomor Sertifikat: ${cert.certificate_no}`, 150, bottomY + 15)
+      .text(`Masa Berlaku: s/d ${validUntilStr} (${settings.cert_validity_years} Tahun)`, 150, bottomY + 30);
+
+    // Tanda Tangan Dekan / Pejabat Resmi
+    const rightMargin = doc.page.width - 280;
+    const dateFormatted = issuedDate.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+    doc.fontSize(10).font('Helvetica').fillColor('#334155').text(`${settings.cert_city}, ${dateFormatted}`, rightMargin, bottomY, { width: 240, align: 'center' });
+    doc.fontSize(10).font('Helvetica-Bold').fillColor('#1e3a8a').text(settings.decan_title, rightMargin, bottomY + 14, { width: 240, align: 'center' });
+    
+    // Space for signature
+    doc.fontSize(10).font('Helvetica-Bold').fillColor('#0f172a').text(settings.decan_name, rightMargin, bottomY + 70, { width: 240, align: 'center', underline: true });
+    if (settings.decan_nip) {
+      doc.fontSize(9).font('Helvetica').fillColor('#475569').text(`NIP. ${settings.decan_nip}`, rightMargin, bottomY + 85, { width: 240, align: 'center' });
+    }
 
     doc.end();
   });
