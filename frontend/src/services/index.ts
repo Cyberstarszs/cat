@@ -20,6 +20,9 @@ import {
   CandidateResponse,
   CandidateStudent,
   PaginatedResponse,
+  SmtpSettings,
+  EmailOutboxItem,
+  EmailOutboxStats,
 } from '../types';
 
 // ==================== AUTH SERVICE ====================
@@ -602,6 +605,7 @@ export const userService = {
     formData.append('file', file);
     const res = await apiClient.post('/students/import', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 120000,
     });
     return res.data;
   },
@@ -718,6 +722,8 @@ export const reportService = {
 
 
 // ==================== INSTITUTION & SYSTEM SETTINGS ====================
+export type { SmtpSettings, EmailOutboxItem, EmailOutboxStats } from '../types';
+
 export interface InstitutionSettings {
   faculty_name: string;
   university_name: string;
@@ -738,6 +744,31 @@ export const settingsService = {
   async updateInstitutionSettings(data: Partial<InstitutionSettings>): Promise<InstitutionSettings> {
     const res = await apiClient.patch<{ settings: InstitutionSettings }>('/settings/institution', data);
     return res.data.settings;
+  },
+
+  async getSmtpSettings(): Promise<SmtpSettings> {
+    const res = await apiClient.get<{ smtp: SmtpSettings }>('/settings/smtp');
+    return res.data.smtp;
+  },
+
+  async updateSmtpSettings(data: Partial<SmtpSettings>): Promise<SmtpSettings> {
+    const res = await apiClient.patch<{ success: boolean; smtp: SmtpSettings }>('/settings/smtp', data);
+    return res.data.smtp;
+  },
+
+  async testSmtpConnection(data: { test_email: string; pass?: string; host?: string; port?: number; user?: string; from_email?: string }): Promise<{ success: boolean; message: string }> {
+    const res = await apiClient.post<{ success: boolean; message: string }>('/settings/smtp/test', data);
+    return res.data;
+  },
+
+  async getEmailOutbox(params?: { limit?: number; offset?: number; status?: string }): Promise<{ items: EmailOutboxItem[]; stats: EmailOutboxStats; meta: { total: number; limit: number; offset: number } }> {
+    const res = await apiClient.get<{ items: EmailOutboxItem[]; stats: EmailOutboxStats; meta: { total: number; limit: number; offset: number } }>('/settings/email-outbox', { params });
+    return res.data;
+  },
+
+  async retryEmailOutbox(id: string): Promise<{ success: boolean; message: string }> {
+    const res = await apiClient.post<{ success: boolean; message: string }>(`/settings/email-outbox/${id}/retry`);
+    return res.data;
   },
 };
 

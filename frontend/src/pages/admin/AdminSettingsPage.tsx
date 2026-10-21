@@ -18,14 +18,16 @@ import {
   Activity,
   AlertTriangle,
   Building2,
+  Mail,
 } from 'lucide-react';
 import { InstitutionSettingsTab } from '../../components/settings/InstitutionSettingsTab';
+import { EmailSettingsTab } from '../../components/settings/EmailSettingsTab';
 
 export const AdminSettingsPage: React.FC = () => {
   const { user, changePassword } = useAuth();
   const { showToast } = useToast();
 
-  const [activeTab, setActiveTab] = useState<'institution' | 'system'>('institution');
+  const [activeTab, setActiveTab] = useState<'institution' | 'email' | 'system'>('institution');
   const [healthStatus, setHealthStatus] = useState<any>(null);
   const [checkingHealth, setCheckingHealth] = useState(false);
 
@@ -123,6 +125,18 @@ export const AdminSettingsPage: React.FC = () => {
         </button>
 
         <button
+          onClick={() => setActiveTab('email')}
+          className={`pb-3 text-xs font-bold uppercase tracking-wider transition border-b-2 flex items-center gap-1.5 ${
+            activeTab === 'email'
+              ? 'border-[#583682] text-[#583682]'
+              : 'border-transparent text-[#595562] hover:text-[#583682]'
+          }`}
+        >
+          <Mail className="w-4 h-4" />
+          <span>Email & SMTP Kampus</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('system')}
           className={`pb-3 text-xs font-bold uppercase tracking-wider transition border-b-2 flex items-center gap-1.5 ${
             activeTab === 'system'
@@ -136,6 +150,8 @@ export const AdminSettingsPage: React.FC = () => {
       </div>
 
       {activeTab === 'institution' && <InstitutionSettingsTab />}
+
+      {activeTab === 'email' && <EmailSettingsTab />}
 
       {activeTab === 'system' && (
         <div className="space-y-8">

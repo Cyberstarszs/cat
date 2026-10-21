@@ -790,6 +790,16 @@ export async function submitExamAttempt(
       client
     );
 
+    // Jika peserta dinyatakan LULUS, terbitkan sertifikat dan antrekan email sertifikat ke email kampus
+    if (evaluated.passed && resRows[0]?.id) {
+      try {
+        const { issueCertificateForResult } = await import('../certificates/certificates.service.js');
+        await issueCertificateForResult(resRows[0].id, studentUserId || 'system', client);
+      } catch (certErr) {
+        console.error('[ATTEMPT_SUBMIT] Gagal menerbitkan sertifikat otomatis saat submit:', certErr);
+      }
+    }
+
     await client.query('COMMIT;');
 
     return {

@@ -92,6 +92,14 @@ export async function issueCertificateForResult(
     client
   );
 
+  // Otomatis masukkan pengiriman sertifikat ke email kampus mahasiswa (Asinkron & Idempoten)
+  try {
+    const { queueCertificateEmail } = await import('../email/email.service.js');
+    await queueCertificateEmail(rows[0].id, client);
+  } catch (emailErr) {
+    console.error('[CERTIFICATE] Gagal mengantrekan pengiriman email sertifikat:', emailErr);
+  }
+
   return rows[0];
 }
 

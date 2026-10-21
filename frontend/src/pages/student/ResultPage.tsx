@@ -19,6 +19,7 @@ import {
   ArrowLeft,
   Calendar,
   FileCheck,
+  Mail,
 } from 'lucide-react';
 
 export const ResultPage: React.FC = () => {
@@ -228,6 +229,13 @@ export const ResultPage: React.FC = () => {
               <Button variant="ghost">Riwayat Ujian</Button>
             </Link>
           </div>
+
+          {passed && result.certificate_id && (
+            <div className="flex items-center justify-center gap-2 text-xs text-[#287a58] bg-[#eaf4ef] border border-[#bce2cf] py-2 px-4 rounded-[6px] max-w-lg mx-auto">
+              <Mail className="w-4 h-4 shrink-0 text-[#287a58]" />
+              <span>Sertifikat kelulusan resmi dengan lampiran PDF juga dikirimkan secara otomatis ke email Anda.</span>
+            </div>
+          )}
 
           {passed && !result.certificate_id && isPending && (
             <div className="text-[11px] text-[#595562] italic flex items-center gap-1.5 mt-2">

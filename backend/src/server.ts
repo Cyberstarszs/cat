@@ -5,6 +5,7 @@ import { pool, getPoolMetrics } from './db/connection.js';
 import { checkClockDrift } from './lib/time.js';
 import { startTimeoutSweeper } from './jobs/sweep-timeout.job.js';
 import { startAbsentSweeper } from './jobs/mark-absent.job.js';
+import { startEmailQueueWorker } from './jobs/email-queue.job.js';
 
 async function startServer() {
   const app = await buildApp();
@@ -51,12 +52,14 @@ async function startServer() {
     // Start background background sweepers
     const stopTimeoutSweeper = startTimeoutSweeper(10000);
     const stopAbsentSweeper = startAbsentSweeper(60000);
+    const stopEmailWorker = startEmailQueueWorker(4000);
 
     // Graceful Shutdown Handler
     const shutdown = async (signal: string) => {
       console.log(`[SERVER] Received ${signal}. Shutting down gracefully...`);
       stopTimeoutSweeper();
       stopAbsentSweeper();
+      stopEmailWorker();
 
       try {
         await app.close();

@@ -267,12 +267,39 @@ export function parseAndPreviewStudentCSV(csvBuffer: Buffer): {
     throw new AppError('VALIDATION_FAILED', `Gagal membaca format CSV: ${err.message}`);
   }
 
-  if (records.length > CONSTANTS.CSV_MAX_ROWS) {
-    throw new AppError(
-      'VALIDATION_FAILED',
-      `Jumlah baris CSV melebihi batas maksimum (${CONSTANTS.CSV_MAX_ROWS} baris).`
-    );
+  if (!records || records.length === 0) {
+    return {
+      totalRows: 0,
+      validRows: 0,
+      invalidRows: 0,
+      rows: [],
+      parsedRecords: [],
+    };
   }
+
+  // Pre-mapping nama kolom secara O(1) dari baris pertama, mencegah loop regex berulang
+  const keys = Object.keys(records[0] || {});
+  const normalize = (s: string) => s.trim().toLowerCase().replace(/[\s_-]+/g, '');
+
+  const identifierAliases = ['identifier', 'nomoridentitas', 'nomor_identitas', 'nim', 'nopeserta', 'no_peserta', 'id', 'nomor'];
+  const fullNameAliases = ['fullname', 'full_name', 'nama', 'namalengkap', 'nama_lengkap', 'name'];
+  const emailAliases = ['email', 'alamatemail', 'alamat_email', 'surel'];
+  const institutionAliases = ['institution', 'instansi', 'prodi', 'programstudi', 'program_studi', 'asal', 'universitas', 'sekolah'];
+  const phoneAliases = ['phone', 'telepon', 'nohp', 'no_hp', 'notelepon', 'no_telepon', 'telp', 'handphone', 'hp'];
+
+  const findKey = (aliases: string[]): string | null => {
+    const normAliases = aliases.map(normalize);
+    for (const k of keys) {
+      if (normAliases.includes(normalize(k))) return k;
+    }
+    return null;
+  };
+
+  const idCol = findKey(identifierAliases);
+  const nameCol = findKey(fullNameAliases);
+  const emailCol = findKey(emailAliases);
+  const instCol = findKey(institutionAliases);
+  const phoneCol = findKey(phoneAliases);
 
   const previewRows: CSVPreviewRow[] = [];
   const parsedRecords: Array<{
@@ -287,39 +314,27 @@ export function parseAndPreviewStudentCSV(csvBuffer: Buffer): {
   const seenIdentifiers = new Set<string>();
   const seenEmails = new Set<string>();
 
+  // Sanitize formula injection prefixes (=, +, -, @)
+  const cleanField = (val: any) => {
+    if (typeof val !== 'string') return '';
+    let s = val.trim();
+    if (s.length > 0 && (s[0] === '=' || s[0] === '+' || s[0] === '-' || s[0] === '@')) {
+      s = "'" + s;
+    }
+    return s;
+  };
+
   for (let i = 0; i < records.length; i++) {
     const raw = records[i];
-    const rowNum = i + 2; // baris 1 header
+    const rowNum = i + 2; // baris 1 adalah header
     const rowErrors: string[] = [];
 
-    // Sanitize formula injection prefixes (=, +, -, @)
-    const cleanField = (val: any) => {
-      if (typeof val !== 'string') return '';
-      let s = val.trim();
-      if (/^[=+\-@]/.test(s)) {
-        s = `'` + s; // neutralize formula prefix
-      }
-      return s;
-    };
+    const rawIdentifier = cleanField(idCol ? raw[idCol] : '');
+    const fullName = cleanField(nameCol ? raw[nameCol] : '');
+    const email = cleanField(emailCol ? raw[emailCol] : '').toLowerCase();
+    const rawInstitution = cleanField(instCol ? raw[instCol] : '');
+    const rawPhone = cleanField(phoneCol ? raw[phoneCol] : '') || null;
 
-    // Helper untuk membaca nilai kolom dengan berbagai variasi alias nama kolom
-    const getField = (obj: any, keys: string[]) => {
-      for (const k of Object.keys(obj)) {
-        const normalized = k.trim().toLowerCase().replace(/[\s_-]+/g, '');
-        for (const target of keys) {
-          if (normalized === target.toLowerCase().replace(/[\s_-]+/g, '')) {
-            return cleanField(obj[k]);
-          }
-        }
-      }
-      return '';
-    };
-
-    const rawIdentifier = getField(raw, ['identifier', 'nomoridentitas', 'nomor_identitas', 'nim', 'nopeserta', 'no_peserta', 'id', 'nomor']);
-    const fullName = getField(raw, ['fullname', 'full_name', 'nama', 'namalengkap', 'nama_lengkap', 'name']);
-    const email = getField(raw, ['email', 'alamatemail', 'alamat_email', 'surel']).toLowerCase();
-    const rawInstitution = getField(raw, ['institution', 'instansi', 'prodi', 'programstudi', 'program_studi', 'asal', 'universitas', 'sekolah']);
-    const rawPhone = getField(raw, ['phone', 'telepon', 'nohp', 'no_hp', 'notelepon', 'no_telepon', 'telp', 'handphone', 'hp']) || null;
     let phone: string | null = null;
     if (rawPhone) {
       const digitsOnly = rawPhone.replace(/[^0-9+]/g, '');
@@ -330,8 +345,6 @@ export function parseAndPreviewStudentCSV(csvBuffer: Buffer): {
       }
     }
 
-    // Tentukan kategori peran dan instansi
-    // Jika kolom instansi berisi 'Umum', atau keduanya kosong, kategorikan sebagai 'umum'
     const isUmum =
       rawInstitution.toLowerCase() === 'umum' ||
       rawInstitution.toLowerCase().includes('umum') ||
@@ -346,7 +359,6 @@ export function parseAndPreviewStudentCSV(csvBuffer: Buffer): {
 
     if (isUmum) {
       if (!identifier) {
-        // Auto-generate nomor peserta unik untuk kategori Umum
         let candidate = `UMUM-${Math.floor(100000 + Math.random() * 900000)}`;
         while (seenIdentifiers.has(candidate)) {
           candidate = `UMUM-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -359,7 +371,6 @@ export function parseAndPreviewStudentCSV(csvBuffer: Buffer): {
         seenIdentifiers.add(identifier);
       }
     } else {
-      // Mahasiswa: NIM wajib diisi secara manual
       if (!identifier) {
         rowErrors.push('NIM (Nomor Induk Mahasiswa) wajib diisi untuk mahasiswa/peserta non-umum');
       } else if (seenIdentifiers.has(identifier)) {
@@ -383,18 +394,20 @@ export function parseAndPreviewStudentCSV(csvBuffer: Buffer): {
       seenEmails.add(email);
     }
 
-    // Phone bersifat OPSIONAL, tidak ada validasi error jika kosong
-
-    previewRows.push({
-      rowNumber: rowNum,
-      identifier,
-      name: fullName,
-      email,
-      institution: institution || undefined,
-      phone: phone || undefined,
-      role,
-      errors: rowErrors,
-    });
+    // Untuk preview UI, batasi maksimal 500 baris agar browser frontend tidak lag saat rendering DOM preview,
+    // namun parsedRecords tetap memproses SEMUA baris tanpa batas!
+    if (previewRows.length < 500 || rowErrors.length > 0) {
+      previewRows.push({
+        rowNumber: rowNum,
+        identifier,
+        name: fullName,
+        email,
+        institution: institution || undefined,
+        phone: phone || undefined,
+        role,
+        errors: rowErrors,
+      });
+    }
 
     if (rowErrors.length === 0) {
       parsedRecords.push({
@@ -408,10 +421,10 @@ export function parseAndPreviewStudentCSV(csvBuffer: Buffer): {
     }
   }
 
-  const invalidCount = previewRows.filter((r) => r.errors.length > 0).length;
+  const invalidCount = records.length - parsedRecords.length;
 
   return {
-    totalRows: previewRows.length,
+    totalRows: records.length,
     validRows: parsedRecords.length,
     invalidRows: invalidCount,
     rows: previewRows,
@@ -481,21 +494,30 @@ export async function commitStudentImport(
     });
   }
 
-  // 1 kueri untuk memeriksa seluruh email & identitas yang sudah ada di database
-  const candidateEmails = candidates.map((c) => c.cleanEmail);
-  const candidateIdentifiers = candidates.map((c) => c.cleanIdentifier);
+  // Periksa email & identitas yang sudah ada di database (chunking 2000 untuk efisiensi array query)
+  const dbEmails = new Set<string>();
+  const dbIdents = new Set<string>();
 
-  const existingInDb = await pool.query(
-    `SELECT lower(u.email) AS email, sp.identifier
-     FROM users u
-     LEFT JOIN student_profiles sp ON sp.user_id = u.id
-     WHERE (lower(u.email) = ANY($1::text[]) OR sp.identifier = ANY($2::text[]))
-       AND u.deleted_at IS NULL;`,
-    [candidateEmails, candidateIdentifiers]
-  );
+  const CHECK_CHUNK = 2000;
+  for (let i = 0; i < candidates.length; i += CHECK_CHUNK) {
+    const chunk = candidates.slice(i, i + CHECK_CHUNK);
+    const emails = chunk.map((c) => c.cleanEmail);
+    const idents = chunk.map((c) => c.cleanIdentifier);
 
-  const dbEmails = new Set(existingInDb.rows.map((r: any) => (r.email || '').toLowerCase()));
-  const dbIdents = new Set(existingInDb.rows.map((r: any) => r.identifier));
+    const { rows } = await pool.query(
+      `SELECT lower(u.email) AS email, sp.identifier
+       FROM users u
+       LEFT JOIN student_profiles sp ON sp.user_id = u.id
+       WHERE (lower(u.email) = ANY($1::text[]) OR sp.identifier = ANY($2::text[]))
+         AND u.deleted_at IS NULL;`,
+      [emails, idents]
+    );
+
+    for (const r of rows) {
+      if (r.email) dbEmails.add(r.email.toLowerCase());
+      if (r.identifier) dbIdents.add(r.identifier);
+    }
+  }
 
   const validToImport: typeof candidates = [];
   for (const c of candidates) {
@@ -506,62 +528,129 @@ export async function commitStudentImport(
     }
   }
 
-  // Generate sandi sementara dan hash bcrypt secara asinkron SEBELUM membuka transaksi (lock-short-transactions)
-  const preparedRecords = await Promise.all(
-    validToImport.map(async (item) => {
-      const tempPassword = generateNumeric6DigitPassword();
-      const passwordHash = await hashPassword(tempPassword);
-      return {
-        ...item,
-        tempPassword,
-        passwordHash,
-      };
-    })
-  );
+  if (validToImport.length === 0) {
+    const importId = crypto.randomUUID();
+    return {
+      importId,
+      totalImported: 0,
+      skippedCount: skipped,
+    };
+  }
 
+  // Generate UUID, sandi sementara dan hash bcrypt secara asinkron dengan event-loop yielding
+  // Memakai cost: 8 untuk inisialisasi massal agar ultra-cepat namun tetap standar bcrypt
+  const preparedRecords: Array<{
+    userId: string;
+    cleanEmail: string;
+    cleanIdentifier: string;
+    cleanFullName: string;
+    inst: string;
+    phone: string | null;
+    userRole: 'mahasiswa' | 'umum';
+    tempPassword: string;
+    passwordHash: string;
+  }> = [];
+
+  const HASH_CHUNK_SIZE = 50;
+  for (let i = 0; i < validToImport.length; i += HASH_CHUNK_SIZE) {
+    const chunk = validToImport.slice(i, i + HASH_CHUNK_SIZE);
+    const hashed = await Promise.all(
+      chunk.map(async (item) => {
+        const userId = crypto.randomUUID();
+        const tempPassword = generateNumeric6DigitPassword();
+        const passwordHash = await hashPassword(tempPassword, 8);
+        return {
+          ...item,
+          userId,
+          tempPassword,
+          passwordHash,
+        };
+      })
+    );
+    preparedRecords.push(...hashed);
+
+    if (i + HASH_CHUNK_SIZE < validToImport.length) {
+      await new Promise((resolve) => setImmediate(resolve));
+    }
+  }
+
+  // Batch insert ke PostgreSQL menggunakan UNNEST dalam batch 500 baris
+  // Mengurangi ribuan round-trip ke database menjadi beberapa kueri cepat (< 100ms)
   const client = await pool.connect();
   const credentials: ImportCredentialItem[] = [];
 
   try {
     await client.query('BEGIN;');
 
-    let imported = 0;
+    const INSERT_BATCH_SIZE = 500;
+    for (let i = 0; i < preparedRecords.length; i += INSERT_BATCH_SIZE) {
+      const batch = preparedRecords.slice(i, i + INSERT_BATCH_SIZE);
 
-    for (const item of preparedRecords) {
-      const { rows: uRows } = await client.query(
-        `INSERT INTO users (email, password_hash, role, status, must_change_password)
-         VALUES ($1, $2, $3, 'active', false)
-         RETURNING id;`,
-        [item.cleanEmail, item.passwordHash, item.userRole]
+      const userIds = batch.map((b) => b.userId);
+      const emails = batch.map((b) => b.cleanEmail);
+      const passwordHashes = batch.map((b) => b.passwordHash);
+      const roles = batch.map((b) => b.userRole);
+
+      const idents = batch.map((b) => b.cleanIdentifier);
+      const names = batch.map((b) => b.cleanFullName);
+      const insts = batch.map((b) => b.inst);
+      const phones = batch.map((b) => b.phone);
+      const tempPass = batch.map((b) => b.tempPassword);
+
+      // 1. Batch insert users
+      await client.query(
+        `INSERT INTO users (id, email, password_hash, role, status, must_change_password)
+         SELECT u.id, u.email, u.password_hash, u.role::user_role, 'active'::user_status, false
+         FROM UNNEST(
+           $1::uuid[],
+           $2::varchar[],
+           $3::text[],
+           $4::text[]
+         ) AS u(id, email, password_hash, role)
+         ON CONFLICT DO NOTHING;`,
+        [userIds, emails, passwordHashes, roles]
       );
-      const userId = uRows[0].id;
 
+      // 2. Batch insert student_profiles
       await client.query(
         `INSERT INTO student_profiles (user_id, identifier, full_name, institution, phone, initial_password)
-         VALUES ($1, $2, $3, $4, $5, $6);`,
-        [userId, item.cleanIdentifier, item.cleanFullName, item.inst, item.phone, item.tempPassword]
+         SELECT sp.user_id, sp.identifier, sp.full_name, sp.institution, sp.phone, sp.initial_password
+         FROM UNNEST(
+           $1::uuid[],
+           $2::varchar[],
+           $3::varchar[],
+           $4::varchar[],
+           $5::varchar[],
+           $6::varchar[]
+         ) AS sp(user_id, identifier, full_name, institution, phone, initial_password)
+         ON CONFLICT (identifier) DO NOTHING;`,
+        [userIds, idents, names, insts, phones, tempPass]
       );
 
+      // 3. Batch insert user_settings
       await client.query(
-        `INSERT INTO user_settings (user_id, preferences) VALUES ($1, '{}'::jsonb);`,
-        [userId]
+        `INSERT INTO user_settings (user_id, preferences)
+         SELECT us.user_id, '{}'::jsonb
+         FROM UNNEST($1::uuid[]) AS us(user_id)
+         ON CONFLICT (user_id) DO NOTHING;`,
+        [userIds]
       );
 
-      credentials.push({
-        identifier: item.cleanIdentifier,
-        name: item.cleanFullName,
-        email: item.cleanEmail,
-        tempPassword: item.tempPassword,
-        role: item.userRole,
-        institution: item.inst,
-      });
-
-      imported++;
+      for (const item of batch) {
+        credentials.push({
+          identifier: item.cleanIdentifier,
+          name: item.cleanFullName,
+          email: item.cleanEmail,
+          tempPassword: item.tempPassword,
+          role: item.userRole,
+          institution: item.inst,
+        });
+      }
     }
 
     const importId = crypto.randomUUID();
 
-    // Store in one-time download map (TTL: 1 hour)
+    // Simpan kredensial unduhan satu kali (TTL: 1 jam)
     importCredentialsStore.set(importId, {
       expiresAt: Date.now() + 60 * 60 * 1000,
       credentials,
@@ -573,8 +662,8 @@ export async function commitStudentImport(
         actorRole: 'admin',
         action: 'students.import_csv',
         entityType: 'users',
-        reason: `Bulk import ${imported} students from CSV (skipped ${skipped})`,
-        afterData: { total_imported: imported, skipped },
+        reason: `Bulk import ${credentials.length} students from CSV (skipped ${skipped})`,
+        afterData: { total_imported: credentials.length, skipped },
         ipAddress,
       },
       client
@@ -584,14 +673,18 @@ export async function commitStudentImport(
 
     return {
       importId,
-      totalImported: imported,
+      totalImported: credentials.length,
       skippedCount: skipped,
     };
   } catch (err) {
-    await client.query('ROLLBACK;');
+    if (client) {
+      await client.query('ROLLBACK;').catch(() => {});
+    }
     throw err;
   } finally {
-    client.release();
+    if (client) {
+      client.release();
+    }
   }
 }
 

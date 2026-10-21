@@ -7,8 +7,9 @@ import { CONSTANTS } from '../config/constants.js';
  * Menjamin zero-trust timer tetap berlaku meskipun browser peserta ditutup atau koneksi terputus.
  */
 export async function sweepTimeoutAttempts(): Promise<number> {
-  const client = await pool.connect();
+  let client: any;
   try {
+    client = await pool.connect();
     await client.query('BEGIN;');
 
     const graceSeconds = CONSTANTS.ANSWER_GRACE_SECONDS;
@@ -40,11 +41,15 @@ export async function sweepTimeoutAttempts(): Promise<number> {
 
     return autoSubmittedCount;
   } catch (err) {
-    await client.query('ROLLBACK;');
+    if (client) {
+      await client.query('ROLLBACK;').catch(() => {});
+    }
     console.error('[SWEEPER] Error during timeout sweep:', err);
     return 0;
   } finally {
-    client.release();
+    if (client) {
+      client.release();
+    }
   }
 }
 
@@ -59,6 +64,8 @@ export function startTimeoutSweeper(intervalMs: number = 10000): () => void {
       if (count > 0) {
         console.log(`[SWEEPER] Auto-submitted ${count} expired exam attempt(s).`);
       }
+    } catch (err) {
+      console.error('[SWEEPER] Unexpected error in sweeper loop:', err);
     } finally {
       isRunning = false;
     }

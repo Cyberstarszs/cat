@@ -1,14 +1,30 @@
 import crypto from 'crypto';
-import bcrypt from 'bcryptjs';
+import * as nodeBcrypt from '@node-rs/bcrypt';
+import bcryptjs from 'bcryptjs';
 
-const SALT_ROUNDS = 12;
+const DEFAULT_COST = 10;
 
-export async function hashPassword(password: string): Promise<string> {
-  return bcrypt.hash(password, SALT_ROUNDS);
+/**
+ * Hash password menggunakan native binding Rust (@node-rs/bcrypt) untuk performa
+ * tinggi tanpa memblokir event loop Node.js. Otomatis fallback ke bcryptjs jika native binding gagal.
+ */
+export async function hashPassword(password: string, cost: number = DEFAULT_COST): Promise<string> {
+  try {
+    return await nodeBcrypt.hash(password, { cost });
+  } catch {
+    return bcryptjs.hash(password, cost);
+  }
 }
 
+/**
+ * Verifikasi password terhadap hash bcrypt ($2a, $2b, $2y didukung secara native)
+ */
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  return bcrypt.compare(password, hash);
+  try {
+    return await nodeBcrypt.compare(password, hash);
+  } catch {
+    return bcryptjs.compare(password, hash);
+  }
 }
 
 export function hashToken(token: string): string {
@@ -52,4 +68,3 @@ export function generateNumeric6DigitPassword(): string {
 
 export const comparePassword = verifyPassword;
 export const generateSecureTempPassword = generateTempPassword;
-

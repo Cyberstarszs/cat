@@ -389,3 +389,43 @@ export interface PaginatedResponse<T> {
   data: T[];
   meta: PaginationMeta;
 }
+
+export interface SmtpSettings {
+  enabled: boolean;
+  host: string;
+  port: number;
+  secure: boolean;
+  user: string;
+  pass?: string;
+  from_name: string;
+  from_email: string;
+  reply_to?: string;
+  rate_limit_per_minute: number;
+  delay_between_emails_ms: number;
+  is_configured?: boolean;
+}
+
+export interface EmailOutboxItem {
+  id: string;
+  certificate_id: string;
+  recipient_email: string;
+  recipient_name: string;
+  subject: string;
+  status: 'pending' | 'sending' | 'sent' | 'failed';
+  attempts: number;
+  max_attempts: number;
+  last_error?: string | null;
+  next_retry_at: string;
+  sent_at?: string | null;
+  created_at: string;
+  certificate_no?: string;
+  identifier?: string;
+}
+
+export interface EmailOutboxStats {
+  pending_count: string | number;
+  sending_count: string | number;
+  sent_count: string | number;
+  failed_count: string | number;
+  total_count: string | number;
+}

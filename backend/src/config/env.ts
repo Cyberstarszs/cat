@@ -18,7 +18,7 @@ const envSchema = z.object({
   DB_POOL_MAX: z.coerce.number().default(50),
   DB_POOL_MIN: z.coerce.number().default(5),
   DB_IDLE_TIMEOUT_MS: z.coerce.number().default(30000),
-  DB_CONNECTION_TIMEOUT_MS: z.coerce.number().default(5000),
+  DB_CONNECTION_TIMEOUT_MS: z.coerce.number().default(20000),
   APP_SECRET: z.string().min(32, 'APP_SECRET must be at least 32 characters long'),
   BASE_URL: z.string().default('http://localhost:3000'),
   ADMIN_EMAIL: z.string().email().optional().default('admin@fia.kampus.ac.id'),

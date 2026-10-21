@@ -76,3 +76,84 @@ export async function updateInstitutionSettings(
 
   return updated;
 }
+
+export interface SmtpSettings {
+  enabled: boolean;
+  host: string;
+  port: number;
+  secure: boolean;
+  user: string;
+  pass: string;
+  from_name: string;
+  from_email: string;
+  rate_limit_per_minute: number;
+  delay_between_emails_ms: number;
+}
+
+const DEFAULT_SMTP: SmtpSettings = {
+  enabled: true,
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  port: Number(process.env.SMTP_PORT) || 587,
+  secure: process.env.SMTP_SECURE === 'true',
+  user: process.env.SMTP_USER || '',
+  pass: process.env.SMTP_PASS || '',
+  from_name: process.env.SMTP_FROM_NAME || 'CAT FIA Universitas Madura',
+  from_email: process.env.SMTP_FROM_EMAIL || 'cat-noreply@unira.ac.id',
+  rate_limit_per_minute: Number(process.env.EMAIL_RATE_LIMIT_PER_MINUTE) || 20,
+  delay_between_emails_ms: Number(process.env.EMAIL_DELAY_BETWEEN_MS) || 2000,
+};
+
+export async function getSmtpSettings(): Promise<SmtpSettings> {
+  const { rows } = await pool.query(
+    `SELECT value FROM system_settings WHERE key = 'smtp';`
+  );
+
+  if (rows.length === 0 || !rows[0].value) {
+    return { ...DEFAULT_SMTP };
+  }
+
+  return {
+    ...DEFAULT_SMTP,
+    ...rows[0].value,
+  };
+}
+
+export async function updateSmtpSettings(
+  data: Partial<SmtpSettings>,
+  actorId: string,
+  ipAddress?: string
+): Promise<SmtpSettings> {
+  const current = await getSmtpSettings();
+  const updated: SmtpSettings = {
+    enabled: data.enabled !== undefined ? Boolean(data.enabled) : current.enabled,
+    host: data.host?.trim() || current.host,
+    port: data.port !== undefined ? Number(data.port) : current.port,
+    secure: data.secure !== undefined ? Boolean(data.secure) : current.secure,
+    user: data.user !== undefined ? data.user.trim() : current.user,
+    pass: data.pass !== undefined && data.pass !== '' ? data.pass : current.pass,
+    from_name: data.from_name?.trim() || current.from_name,
+    from_email: data.from_email?.trim() || current.from_email,
+    rate_limit_per_minute: data.rate_limit_per_minute !== undefined ? Number(data.rate_limit_per_minute) : current.rate_limit_per_minute,
+    delay_between_emails_ms: data.delay_between_emails_ms !== undefined ? Number(data.delay_between_emails_ms) : current.delay_between_emails_ms,
+  };
+
+  await pool.query(
+    `INSERT INTO system_settings (key, value, updated_at)
+     VALUES ('smtp', $1::jsonb, now())
+     ON CONFLICT (key) DO UPDATE
+     SET value = EXCLUDED.value, updated_at = now();`,
+    [JSON.stringify(updated)]
+  );
+
+  await logAudit({
+    actorId,
+    actorRole: 'admin',
+    action: 'settings.update_smtp',
+    entityType: 'system_settings',
+    entityId: null,
+    afterData: { ...updated, pass: updated.pass ? '******' : '' },
+    ipAddress,
+  });
+
+  return updated;
+}
