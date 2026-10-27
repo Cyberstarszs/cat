@@ -111,6 +111,73 @@ export const resultRoutes: FastifyPluginAsync = async (fastify: FastifyInstance)
   },
 });
 
+  // GET /results/latest (A, M)
+  fastify.get('/results/latest', {
+    preHandler: [requireRoles(['admin', 'student'])],
+    handler: async (request, reply) => {
+      const user = request.user!;
+
+      // Ambil hasil ujian terakhir milik pengguna yang sedang login
+      const { rows } = await pool.query(
+        `SELECT r.id 
+         FROM results r
+         JOIN attempts a ON a.id = r.attempt_id
+         JOIN session_enrollments se ON se.id = a.enrollment_id
+         WHERE se.student_id = $1 AND r.status IN ('published', 'pending_publication')
+         ORDER BY COALESCE(r.published_at, r.graded_at) DESC
+         LIMIT 1;`,
+        [user.id]
+      );
+
+      if (rows.length === 0) {
+        throw new AppError('NOT_FOUND', 'Belum ada hasil ujian yang tersedia untuk akun ini.');
+      }
+
+      // Ambil detail lengkap hasil ujian tersebut
+      const latestId = rows[0].id;
+      const { rows: detailRows } = await pool.query(
+        `SELECT 
+          r.*,
+          a.id AS attempt_id, a.attempt_no, a.started_at, a.submitted_at, a.submit_reason, a.extra_seconds,
+          sp.identifier, sp.full_name, sp.full_name AS student_name, sp.institution, sp.phone, u.email,
+          s.id AS session_id, s.name AS session_name, s.code AS session_code, s.status AS session_status, s.ends_at AS session_ends_at,
+          e.id AS exam_id, e.title AS exam_title, e.allow_review,
+          c.id AS certificate_id, c.certificate_no, c.verification_code, c.status AS cert_status,
+          se.student_id,
+          (ap.id IS NOT NULL) AS has_appeal,
+          ap.id AS appeal_id,
+          ap.status AS appeal_status,
+          ap.message AS appeal_message,
+          ap.response AS appeal_response,
+          ap.created_at AS appeal_created_at,
+          ap.responded_at AS appeal_responded_at
+         FROM results r
+         JOIN attempts a ON a.id = r.attempt_id
+         JOIN session_enrollments se ON se.id = a.enrollment_id
+         JOIN users u ON u.id = se.student_id
+         JOIN student_profiles sp ON sp.user_id = u.id
+         JOIN exam_sessions s ON s.id = se.session_id
+         JOIN exams e ON e.id = s.exam_id
+         LEFT JOIN certificates c ON c.result_id = r.id AND c.status = 'valid'
+         LEFT JOIN LATERAL (
+           SELECT id, status, message, response, created_at, responded_at
+           FROM appeals
+           WHERE result_id = r.id
+           ORDER BY created_at DESC
+           LIMIT 1
+         ) ap ON true
+         WHERE r.id = $1;`,
+        [latestId]
+      );
+
+      if (detailRows.length === 0) {
+        throw new AppError('NOT_FOUND', 'Hasil ujian belum tersedia.');
+      }
+
+      return reply.send({ result: detailRows[0] });
+    },
+  });
+
   // GET /results/:id (A, M)
   fastify.get('/results/:id', {
     preHandler: [requireRoles(['admin', 'student'])],
@@ -149,7 +216,7 @@ export const resultRoutes: FastifyPluginAsync = async (fastify: FastifyInstance)
            ORDER BY created_at DESC
            LIMIT 1
          ) ap ON true
-         WHERE r.id = $1;`,
+         WHERE (r.id::text = $1 OR r.attempt_id::text = $1);`,
         [id]
       );
 

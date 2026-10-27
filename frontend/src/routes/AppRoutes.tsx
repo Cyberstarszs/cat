@@ -22,7 +22,6 @@ const PageLoadingFallback: React.FC = () => (
 const HomePage = lazy(() => import('../pages/public/HomePage').then((m) => ({ default: m.HomePage })));
 const ExplorePage = lazy(() => import('../pages/public/ExplorePage').then((m) => ({ default: m.ExplorePage })));
 const DetailPage = lazy(() => import('../pages/public/DetailPage').then((m) => ({ default: m.DetailPage })));
-const VerifyPage = lazy(() => import('../pages/public/VerifyPage').then((m) => ({ default: m.VerifyPage })));
 const NotFoundPage = lazy(() => import('../pages/public/NotFoundPage').then((m) => ({ default: m.NotFoundPage })));
 
 // Auth Pages (Lazy Loaded)
@@ -72,8 +71,6 @@ export const AppRoutes: React.FC = () => {
           <Route path="/assessment-lg" element={<Navigate to="/explore" replace />} />
           <Route path="/assessment-lg/detail" element={<DetailPage />} />
           <Route path="/detail" element={<DetailPage />} />
-          <Route path="/verify" element={<VerifyPage />} />
-          <Route path="/verify/:code" element={<VerifyPage />} />
 
           {/* Student Protected Routes */}
           <Route element={<ProtectedRoute requiredRole="student" />}>

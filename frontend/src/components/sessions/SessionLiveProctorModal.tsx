@@ -95,7 +95,7 @@ export const SessionLiveProctorModal: React.FC<SessionLiveProctorModalProps> = (
 
   // Void State
   const [voidModalOpen, setVoidModalOpen] = useState(false);
-  const [voidReason, setVoidReason] = useState('Terbukti membuka materi di luar ujian berulang kali.');
+  const [voidReason, setVoidReason] = useState('Pembatalan sesi ujian oleh pengawas karena kendala tata tertib atau teknis.');
   const [voiding, setVoiding] = useState(false);
 
   // Event Log State
@@ -226,25 +226,25 @@ export const SessionLiveProctorModal: React.FC<SessionLiveProctorModalProps> = (
 
   const handleOpenVoidModal = (p: ParticipantMonitor) => {
     setSelectedParticipant(p);
-    setVoidReason('Terbukti membuka tab lain / kecurangan berulang di lab.');
+    setVoidReason('Pembatalan sesi ujian oleh pengawas karena kendala tata tertib atau teknis.');
     setVoidModalOpen(true);
   };
 
   const handleVoidSubmit = async () => {
     if (!selectedParticipant || !selectedParticipant.attempt_id) return;
     if (!voidReason.trim()) {
-      showToast('Alasan diskualifikasi wajib diisi', 'error');
+      showToast('Alasan pembatalan ujian wajib diisi.', 'error');
       return;
     }
 
     setVoiding(true);
     try {
       await attemptService.voidAttempt(selectedParticipant.attempt_id, voidReason.trim());
-      showToast(`Percobaan ujian ${selectedParticipant.full_name} telah DIBATALKAN (VOID).`, 'warning');
+      showToast(`Percobaan ujian ${selectedParticipant.full_name} telah dibatalkan (void).`, 'info');
       setVoidModalOpen(false);
       fetchMonitorData(true);
     } catch (err: any) {
-      showToast(err?.response?.data?.message || 'Gagal membatalkan ujian peserta', 'error');
+      showToast(err?.response?.data?.message || 'Gagal membatalkan ujian peserta.', 'error');
     } finally {
       setVoiding(false);
     }
@@ -259,7 +259,7 @@ export const SessionLiveProctorModal: React.FC<SessionLiveProctorModalProps> = (
       const logs = await attemptService.getAttemptEvents(p.attempt_id);
       setParticipantEvents(logs || []);
     } catch (err: any) {
-      showToast(err?.response?.data?.message || 'Gagal memuat log pelanggaran', 'error');
+      showToast(err?.response?.data?.message || 'Gagal memuat log aktivitas layar.', 'error');
     } finally {
       setLoadingEvents(false);
     }
@@ -291,8 +291,19 @@ export const SessionLiveProctorModal: React.FC<SessionLiveProctorModalProps> = (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="🚨 Ruang Pengawas Lab (Live Proctoring & Monitoring)"
-      maxWidth="3xl"
+      title="Ruang Pengawas Lab (Live Monitoring)"
+      description="Pemantauan aktivitas peserta ujian, alokasi komputer, dan intervensi pengawas secara real-time."
+      maxWidth="4xl"
+      footer={
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs text-gray-500 gap-2 w-full">
+          <div>
+            Terakhir diperbarui: <span className="font-medium text-gray-700">{lastRefreshedAt.toLocaleTimeString('id-ID')} WIB</span>
+          </div>
+          <Button variant="secondary" className="min-h-[34px] px-4 text-xs" onClick={onClose}>
+            Tutup Ruang Pengawas
+          </Button>
+        </div>
+      }
     >
       <div className="space-y-5">
         {/* Header Information & Live Status Banner */}
@@ -383,7 +394,7 @@ export const SessionLiveProctorModal: React.FC<SessionLiveProctorModalProps> = (
             <Input
               value={customToken}
               onChange={(e) => setCustomToken(e.target.value.toUpperCase())}
-              placeholder="Ketik / Kode 6-Digit"
+              placeholder="Kode akses"
               className="w-36 text-center font-mono font-bold tracking-widest uppercase text-sm"
               maxLength={12}
             />
@@ -443,24 +454,24 @@ export const SessionLiveProctorModal: React.FC<SessionLiveProctorModalProps> = (
 
           <div className="bg-red-50/60 border border-red-200 p-3 rounded-xl shadow-xs">
             <div className="text-xs text-red-700 font-medium flex items-center justify-between">
-              <span>Pelanggaran Tab</span>
+              <span>Aktivitas Layar</span>
               <AlertTriangle className="w-4 h-4 text-red-500" />
             </div>
             <div className="text-xl font-bold text-red-700 mt-1">
               {totalViolations}
             </div>
-            <div className="text-[10px] text-red-600 mt-0.5">Keluar jendela ujian</div>
+            <div className="text-[10px] text-red-600 mt-0.5">Peralihan jendela</div>
           </div>
 
           <div className="bg-gray-50 border border-gray-200 p-3 rounded-xl shadow-xs">
             <div className="text-xs text-gray-700 font-medium flex items-center justify-between">
-              <span>Mangkir / Void</span>
+              <span>Dibatalkan / Void</span>
               <Ban className="w-4 h-4 text-gray-500" />
             </div>
             <div className="text-xl font-bold text-gray-900 mt-1">
               {totalVoidCount} <span className="text-xs font-normal text-gray-500">/ {data?.summary.absent || 0} abs</span>
             </div>
-            <div className="text-[10px] text-gray-500 mt-0.5">Gugur / Didiskualifikasi</div>
+            <div className="text-[10px] text-gray-500 mt-0.5">Sesi dibatalkan</div>
           </div>
         </div>
 
@@ -472,7 +483,7 @@ export const SessionLiveProctorModal: React.FC<SessionLiveProctorModalProps> = (
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cari NIM, Nama Peserta, atau Instansi..."
+              placeholder="Cari peserta..."
               className="w-full !pl-10 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:border-[#583682]"
             />
           </div>
@@ -516,7 +527,7 @@ export const SessionLiveProctorModal: React.FC<SessionLiveProctorModalProps> = (
                   : 'bg-red-50 text-red-700 hover:bg-red-100'
               }`}
             >
-              Ada Pelanggaran
+              Ada Catatan Layar
             </button>
             <button
               onClick={() => setStatusFilter('void')}
@@ -541,7 +552,7 @@ export const SessionLiveProctorModal: React.FC<SessionLiveProctorModalProps> = (
                   <th className="py-2.5 px-4">Peserta & NIM</th>
                   <th className="py-2.5 px-4">Status Ujian</th>
                   <th className="py-2.5 px-4">Kemajuan Soal</th>
-                  <th className="py-2.5 px-4">Pelanggaran</th>
+                  <th className="py-2.5 px-4">Catatan Layar</th>
                   <th className="py-2.5 px-4">Nilai / Hasil</th>
                   <th className="py-2.5 px-4 text-right">Aksi Pengawas</th>
                 </tr>
@@ -576,7 +587,7 @@ export const SessionLiveProctorModal: React.FC<SessionLiveProctorModalProps> = (
                         <td className="py-3 px-4">
                           {isVoid ? (
                             <div>
-                              <Badge variant="danger">DISKUALIFIKASI (VOID)</Badge>
+                              <Badge variant="danger">Dibatalkan (Void)</Badge>
                               {p.void_reason && (
                                 <div className="text-[10px] text-red-600 mt-0.5 max-w-[150px] truncate" title={p.void_reason}>
                                   {p.void_reason}
@@ -615,14 +626,14 @@ export const SessionLiveProctorModal: React.FC<SessionLiveProctorModalProps> = (
                             <button
                               onClick={() => handleViewEvents(p)}
                               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-bold text-[11px] hover:bg-red-200 transition"
-                              title="Klik untuk melihat detail kejadian pelanggaran"
+                              title="Klik untuk melihat catatan aktivitas layar"
                             >
                               <AlertTriangle className="w-3 h-3 text-red-600" />
-                              <span>{violationNum}x Peringatan</span>
+                              <span>{violationNum}x Peralihan</span>
                             </button>
                           ) : (
                             <span className="text-emerald-600 text-[11px] font-medium flex items-center gap-1">
-                              <CheckCircle2 className="w-3 h-3" /> Bersih
+                              <CheckCircle2 className="w-3 h-3" /> Tertib
                             </span>
                           )}
                         </td>
@@ -645,12 +656,12 @@ export const SessionLiveProctorModal: React.FC<SessionLiveProctorModalProps> = (
                         </td>
                         <td className="py-3 px-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
-                            {/* Tombol Lihat Log Pelanggaran */}
+                            {/* Tombol Lihat Log Aktivitas Layar */}
                             {p.attempt_id && (
                               <button
                                 onClick={() => handleViewEvents(p)}
                                 className="p-1.5 text-gray-500 hover:text-[#583682] hover:bg-[#eae2f5] rounded transition"
-                                title="Lihat Log Event / Pelanggaran Peserta"
+                                title="Lihat riwayat aktivitas layar peserta"
                               >
                                 <Eye className="w-3.5 h-3.5" />
                               </button>
@@ -668,12 +679,12 @@ export const SessionLiveProctorModal: React.FC<SessionLiveProctorModalProps> = (
                               </button>
                             )}
 
-                            {/* Tombol Diskualifikasi Void */}
+                            {/* Tombol Batalkan Percobaan Void */}
                             {p.attempt_id && !isVoid && (
                               <button
                                 onClick={() => handleOpenVoidModal(p)}
                                 className="p-1.5 text-red-500 hover:bg-red-50 rounded transition"
-                                title="Diskualifikasi / Void Ujian Peserta"
+                                title="Batalkan percobaan ujian peserta (void)"
                               >
                                 <Ban className="w-3.5 h-3.5" />
                               </button>
@@ -688,16 +699,6 @@ export const SessionLiveProctorModal: React.FC<SessionLiveProctorModalProps> = (
             </table>
           </div>
         </div>
-
-        {/* Footer info & close */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs text-gray-500 gap-2 border-t border-gray-100 pt-3">
-          <div>
-            Terakhir diperbarui: <span className="font-medium text-gray-700">{lastRefreshedAt.toLocaleTimeString('id-ID')} WIB</span>
-          </div>
-          <Button variant="secondary" className="min-h-[36px] px-4" onClick={onClose}>
-            Tutup Ruang Pengawas
-          </Button>
-        </div>
       </div>
 
       {/* MODAL 1: PERPANJANG WAKTU MASSAL SATU LAB */}
@@ -705,7 +706,22 @@ export const SessionLiveProctorModal: React.FC<SessionLiveProctorModalProps> = (
         isOpen={extendAllOpen}
         onClose={() => setExtendAllOpen(false)}
         title="⚡ Tambah Waktu Darurat Sesi (Massal Satu Lab)"
+        description="Aksi ini akan menambahkan durasi waktu pengerjaan untuk seluruh peserta yang saat ini sedang aktif (in_progress)."
         maxWidth="md"
+        footer={
+          <div className="flex justify-end gap-2 w-full">
+            <Button variant="ghost" className="text-xs" onClick={() => setExtendAllOpen(false)}>
+              Batal
+            </Button>
+            <Button
+              onClick={handleExtendAll}
+              disabled={extendingAll}
+              className="bg-amber-500 hover:bg-amber-600 text-gray-900 font-bold text-xs min-h-[36px] px-4"
+            >
+              {extendingAll ? 'Memproses...' : 'Terapkan ke Seluruh Lab'}
+            </Button>
+          </div>
+        }
       >
         <div className="space-y-4 text-xs">
           <p className="text-gray-600">
@@ -736,23 +752,10 @@ export const SessionLiveProctorModal: React.FC<SessionLiveProctorModalProps> = (
               type="number"
               value={extendAllMinutes}
               onChange={(e) => setExtendAllMinutes(e.target.value)}
-              placeholder="Jumlah menit (1-60)"
+              placeholder="Menit"
               min={1}
               max={60}
             />
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2 border-t">
-            <Button variant="secondary" className="min-h-[36px] px-4" onClick={() => setExtendAllOpen(false)}>
-              Batal
-            </Button>
-            <Button
-              onClick={handleExtendAll}
-              disabled={extendingAll}
-              className="bg-amber-500 hover:bg-amber-600 text-gray-900 font-bold min-h-[36px] px-4"
-            >
-              {extendingAll ? 'Memproses...' : 'Terapkan ke Seluruh Lab'}
-            </Button>
           </div>
         </div>
       </Modal>
@@ -762,7 +765,22 @@ export const SessionLiveProctorModal: React.FC<SessionLiveProctorModalProps> = (
         isOpen={extendIndivOpen}
         onClose={() => setExtendIndivOpen(false)}
         title="⏱️ Tambah Waktu Khusus Peserta"
+        description="Berikan tambahan waktu untuk peserta yang mengalami kendala teknis."
         maxWidth="md"
+        footer={
+          <div className="flex justify-end gap-2 w-full">
+            <Button variant="ghost" className="text-xs" onClick={() => setExtendIndivOpen(false)}>
+              Batal
+            </Button>
+            <Button
+              onClick={handleExtendIndivSubmit}
+              disabled={extendingIndiv}
+              className="bg-[#583682] hover:bg-[#43236e] text-white font-bold text-xs min-h-[36px] px-4"
+            >
+              {extendingIndiv ? 'Menyimpan...' : 'Tambah Waktu'}
+            </Button>
+          </div>
+        }
       >
         <div className="space-y-4 text-xs">
           <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
@@ -785,82 +803,79 @@ export const SessionLiveProctorModal: React.FC<SessionLiveProctorModalProps> = (
 
           <div>
             <label className="block font-bold text-gray-700 mb-1">
-              Alasan Penambahan Waktu (Wajib untuk Audit):
+              Alasan Penambahan Waktu:
             </label>
             <textarea
               value={extendIndivReason}
               onChange={(e) => setExtendIndivReason(e.target.value)}
               rows={3}
-              placeholder="Contoh: Komputer lab sempat restart selama 5 menit karena kendala listrik..."
+              placeholder="Alasan penambahan waktu..."
               className="w-full text-xs p-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#583682]"
             />
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2 border-t">
-            <Button variant="secondary" className="min-h-[36px] px-4" onClick={() => setExtendIndivOpen(false)}>
-              Batal
-            </Button>
-            <Button
-              onClick={handleExtendIndivSubmit}
-              disabled={extendingIndiv}
-              className="bg-[#583682] hover:bg-[#43236e] text-white font-bold min-h-[36px] px-4"
-            >
-              {extendingIndiv ? 'Menyimpan...' : 'Tambah Waktu'}
-            </Button>
           </div>
         </div>
       </Modal>
 
-      {/* MODAL 3: VOID / DISKUALIFIKASI KECURANGAN */}
+      {/* MODAL 3: PEMBATALAN PERCOBAAN UJIAN (VOID) */}
       <Modal
         isOpen={voidModalOpen}
         onClose={() => setVoidModalOpen(false)}
-        title="🚫 Diskualifikasi Peserta (Void Ujian)"
+        title="Pembatalan Percobaan Ujian (Void)"
+        description="Batalkan sesi percobaan ujian peserta yang bersangkutan."
         maxWidth="md"
-      >
-        <div className="space-y-4 text-xs">
-          <div className="bg-red-50 p-3 rounded-lg border border-red-200 text-red-900">
-            <p className="font-bold">PERINGATAN: Tindakan ini permanen.</p>
-            <p className="mt-1">
-              Hasil pengerjaan <strong>{selectedParticipant?.full_name} ({selectedParticipant?.identifier})</strong> akan dibatalkan, status dinyatakan VOID, dan peserta tidak akan menerima nilai.
-            </p>
-          </div>
-
-          <div>
-            <label className="block font-bold text-gray-700 mb-1">
-              Alasan Diskualifikasi (Tercatat di Berita Acara & Audit):
-            </label>
-            <textarea
-              value={voidReason}
-              onChange={(e) => setVoidReason(e.target.value)}
-              rows={3}
-              placeholder="Contoh: Terbukti berulang kali membuka catatan dan tidak mengindahkan teguran pengawas..."
-              className="w-full text-xs p-2 border border-red-200 rounded-lg focus:outline-none focus:border-red-500"
-            />
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2 border-t">
-            <Button variant="secondary" className="min-h-[36px] px-4" onClick={() => setVoidModalOpen(false)}>
+        footer={
+          <div className="flex justify-end gap-2 w-full">
+            <Button variant="ghost" className="text-xs" onClick={() => setVoidModalOpen(false)}>
               Batal
             </Button>
             <Button
               variant="danger"
               onClick={handleVoidSubmit}
               disabled={voiding}
-              className="min-h-[36px] px-4"
+              className="text-xs min-h-[36px] px-4"
             >
-              {voiding ? 'Memproses Diskualifikasi...' : 'Diskualifikasi Sekarang'}
+              {voiding ? 'Memproses...' : 'Batalkan Percobaan'}
             </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4 text-xs">
+          <div className="bg-amber-50 p-3 rounded-lg border border-amber-200 text-amber-900">
+            <p className="font-bold">Konfirmasi Pembatalan Ujian</p>
+            <p className="mt-1">
+              Percobaan pengerjaan <strong>{selectedParticipant?.full_name} ({selectedParticipant?.identifier})</strong> pada sesi ini akan dibatalkan (status Void). Kuota percobaan peserta dapat dijadwalkan ulang bila diperlukan.
+            </p>
+          </div>
+
+          <div>
+            <label className="block font-bold text-gray-700 mb-1">
+              Alasan Pembatalan (Tercatat di Berita Acara):
+            </label>
+            <textarea
+              value={voidReason}
+              onChange={(e) => setVoidReason(e.target.value)}
+              rows={3}
+              placeholder="Alasan pembatalan..."
+              className="w-full text-xs p-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#583682]"
+            />
           </div>
         </div>
       </Modal>
 
-      {/* MODAL 4: LOG PELANGGARAN & EVENT PESERTA */}
+      {/* MODAL 4: LOG AKTIVITAS JENDELA & LAYAR */}
       <Modal
         isOpen={eventsModalOpen}
         onClose={() => setEventsModalOpen(false)}
-        title="📋 Rekaman Log Pelanggaran & Aktivitas Layar"
+        title="Rekaman Aktivitas Jendela & Layar"
+        description="Log deteksi perpindahan tab, jendela, dan aktivitas peserta."
         maxWidth="lg"
+        footer={
+          <div className="flex justify-end w-full">
+            <Button variant="secondary" className="text-xs min-h-[36px] px-4" onClick={() => setEventsModalOpen(false)}>
+              Tutup
+            </Button>
+          </div>
+        }
       >
         <div className="space-y-4 text-xs">
           <div className="bg-gray-50 p-2.5 rounded-lg border border-gray-200 flex justify-between items-center">
@@ -906,12 +921,6 @@ export const SessionLiveProctorModal: React.FC<SessionLiveProctorModalProps> = (
                 </tbody>
               </table>
             )}
-          </div>
-
-          <div className="flex justify-end pt-2 border-t">
-            <Button variant="secondary" className="min-h-[36px] px-4" onClick={() => setEventsModalOpen(false)}>
-              Tutup
-            </Button>
           </div>
         </div>
       </Modal>

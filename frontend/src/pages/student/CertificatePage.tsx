@@ -1,13 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { resultService } from '../../services';
-import { Certificate } from '../../types';
+import { Certificate, ExamResult } from '../../types';
 import { formatWIBDate } from '../../utils/date';
 import { Button } from '../../components/ui/Button';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { ErrorAlert } from '../../components/ui/EmptyState';
 import { useToast } from '../../context/ToastContext';
-import { Download, ShieldCheck, Printer } from 'lucide-react';
+import { Download, ShieldCheck, Printer, Award } from 'lucide-react';
 
 export const CertificatePage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -17,44 +17,54 @@ export const CertificatePage: React.FC = () => {
   const navigate = useNavigate();
 
   const [cert, setCert] = useState<Certificate | null>(null);
+  const [availableCerts, setAvailableCerts] = useState<ExamResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [hasNoCertificate, setHasNoCertificate] = useState(false);
 
-  useEffect(() => {
-    const fetchCert = async () => {
-      if (!certId) {
-        try {
-          const results = await resultService.getMyResults();
-          const passed = results.find((r) => r.passed && r.certificate_id);
-          if (passed?.certificate_id) {
-            const data = await resultService.getCertificate(passed.certificate_id);
-            setCert(data);
-          } else {
-            setError('Sertifikat belum tersedia. Sertifikat diterbitkan otomatis bagi peserta yang memenuhi batas kelulusan.');
-          }
-        } catch (err: any) {
-          setError(err.message || 'Gagal memuat sertifikat.');
-        } finally {
-          setLoading(false);
-        }
-        return;
-      }
+  const fetchCert = useCallback(async () => {
+    setLoading(true);
+    setApiError(null);
+    setHasNoCertificate(false);
 
-      setLoading(true);
-      setError(null);
+    if (!certId) {
       try {
-        const data = await resultService.getCertificate(certId);
-        setCert(data);
+        const results = await resultService.getMyResults();
+        const passedList = (results || []).filter((r) => r.passed && r.certificate_id);
+        setAvailableCerts(passedList);
+
+        if (passedList.length > 0 && passedList[0].certificate_id) {
+          const data = await resultService.getCertificate(passedList[0].certificate_id);
+          setCert(data);
+        } else {
+          setHasNoCertificate(true);
+        }
       } catch (err: any) {
-        setError(err.message || 'Gagal memuat data sertifikat.');
+        setApiError(err.message || 'Gagal memuat sertifikat.');
       } finally {
         setLoading(false);
       }
-    };
+      return;
+    }
 
-    fetchCert();
+    try {
+      const data = await resultService.getCertificate(certId);
+      setCert(data);
+    } catch (err: any) {
+      if (err?.response?.status === 404 || err?.status === 404) {
+        setHasNoCertificate(true);
+      } else {
+        setApiError(err.message || 'Gagal memuat data sertifikat.');
+      }
+    } finally {
+      setLoading(false);
+    }
   }, [certId]);
+
+  useEffect(() => {
+    fetchCert();
+  }, [fetchCert]);
 
   const handlePrintPDF = () => {
     showToast('Membuka dialog cetak PDF...', 'info');
@@ -74,8 +84,8 @@ export const CertificatePage: React.FC = () => {
       a.download = `Sertifikat_${cert.certificate_no}.pdf`;
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      setTimeout(() => window.URL.revokeObjectURL(url), 1000);
       showToast('Sertifikat PDF berhasil diunduh!', 'success');
     } catch (err: any) {
       showToast(err.message || 'Gagal mengunduh sertifikat.', 'error');
@@ -93,14 +103,57 @@ export const CertificatePage: React.FC = () => {
     );
   }
 
-  if (error || !cert) {
+  if (apiError) {
     return (
-      <div className="max-w-[800px] mx-auto px-6 py-12 w-full">
-        <ErrorAlert message={error || 'Sertifikat tidak ditemukan.'} />
-        <div className="mt-4">
+      <div className="max-w-[800px] mx-auto px-6 py-12 w-full space-y-4">
+        <ErrorAlert
+          title="Kendala Koneksi Server"
+          message={apiError}
+          onRetry={fetchCert}
+        />
+        <div>
           <Button variant="secondary" onClick={() => navigate('/history')}>
             Lihat Riwayat Hasil
           </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (hasNoCertificate || !cert) {
+    return (
+      <div className="max-w-[720px] mx-auto px-6 py-14 w-full">
+        <div className="bg-white border border-[#e6e1eb] rounded-[10px] p-8 md:p-12 text-center shadow-sm space-y-5">
+          <div className="w-16 h-16 bg-[#eae2f5] text-[#583682] rounded-full flex items-center justify-center mx-auto shadow-xs">
+            <Award className="w-8 h-8" />
+          </div>
+
+          <div className="space-y-2">
+            <div className="eyebrow text-xs">DOKUMEN KELULUSAN</div>
+            <h2 className="font-display font-bold text-2xl text-[#24212b]">
+              Sertifikat Belum Tersedia
+            </h2>
+            <p className="text-xs text-[#595562] max-w-md mx-auto leading-relaxed">
+              Sertifikat digital resmi berstempel Dekan FIA UNIRA diterbitkan secara otomatis setelah Anda menyelesaikan sesi ujian dan memenuhi batas kelulusan.
+            </p>
+          </div>
+
+          <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+            <Button
+              variant="primary"
+              onClick={() => navigate('/explore')}
+              className="text-xs h-9 px-5"
+            >
+              Periksa Jadwal Ujian
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => navigate('/history')}
+              className="text-xs h-9 px-5"
+            >
+              Lihat Riwayat Asesmen
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -117,6 +170,22 @@ export const CertificatePage: React.FC = () => {
           <h1 className="font-display font-bold text-2xl md:text-3xl text-[#24212b]">
             Sertifikat Kelulusan
           </h1>
+          {availableCerts.length > 1 && (
+            <div className="mt-2 flex items-center gap-2">
+              <span className="text-xs text-[#595562]">Pilih Sertifikat:</span>
+              <select
+                value={cert.id}
+                onChange={(e) => navigate(`/certificates?id=${e.target.value}`)}
+                className="text-xs border border-[#e6e1eb] rounded px-2.5 py-1 bg-white text-[#24212b] font-medium"
+              >
+                {availableCerts.map((ac) => (
+                  <option key={ac.certificate_id} value={ac.certificate_id}>
+                    {ac.exam_title || 'Uji Kompetensi'} ({ac.certificate_no || 'Resmi'})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-3">
           <Button
@@ -129,10 +198,12 @@ export const CertificatePage: React.FC = () => {
           </Button>
           <Button
             variant="primary"
-            onClick={() => navigate(`/verify?number=${cert.certificate_no}`)}
+            onClick={handleDownloadPDF}
+            isLoading={downloading}
+            leftIcon={<Download className="w-4 h-4" />}
             className="text-xs"
           >
-            Verifikasi Keaslian
+            Unduh Dokumen PDF
           </Button>
         </div>
       </div>

@@ -135,8 +135,8 @@ export const AdminParticipantsPage: React.FC = () => {
       a.download = `Kredensial_Peserta_${importId.slice(0, 8)}.csv`;
       document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
       showToast('Berkas kredensial berhasil diunduh.', 'success');
     } catch (err: any) {
       showToast(err.message || 'Gagal mengunduh berkas kredensial.', 'error');
@@ -333,8 +333,8 @@ export const AdminParticipantsPage: React.FC = () => {
     a.download = 'Template_Peserta_Ujian.csv';
     document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
     document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   const handleTriggerResetPassword = async (st: StudentProfile) => {
@@ -353,7 +353,7 @@ export const AdminParticipantsPage: React.FC = () => {
         description: `Kata sandi baru untuk peserta <strong>${st.full_name}</strong> (${st.identifier}) telah digenerate:`,
         credentialLabel: 'KATA SANDI BARU (6 ANGKA)',
         credentialValue: res.new_password,
-        extraNote: 'Harap berikan kata sandi ini kepada peserta untuk login ke portal ujian.',
+        extraNote: 'Harap berikan kata sandi ini kepada peserta untuk login ke ruang ujian.',
       });
     } catch (err: any) {
       alert.error('Gagal Mereset Kata Sandi', err?.response?.data?.message || err.message || 'Terjadi kesalahan sistem.');
@@ -444,8 +444,12 @@ export const AdminParticipantsPage: React.FC = () => {
 
     try {
       await userService.deleteStudent(st.id);
-      setStudents((prev) => prev.filter((s) => s.id !== st.id));
       setTotalStudents((prev) => Math.max(0, prev - 1));
+      if (students.length === 1 && page > 1) {
+        setPage((p) => p - 1);
+      } else {
+        setStudents((prev) => prev.filter((s) => s.id !== st.id));
+      }
       alert.toast(`Peserta ${st.full_name} berhasil dihapus.`, 'success');
     } catch (err: any) {
       alert.error('Gagal Menghapus Peserta', err?.response?.data?.message || err.message || 'Terjadi kesalahan sistem.');
@@ -569,7 +573,7 @@ export const AdminParticipantsPage: React.FC = () => {
           {/* Main search input */}
           <div className="lg:col-span-5 relative">
             <Input
-              placeholder="Cari NIM, nama lengkap, atau email..."
+              placeholder="Cari peserta"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               leftIcon={<Search className="w-4 h-4 text-gray-400" />}
@@ -861,8 +865,34 @@ export const AdminParticipantsPage: React.FC = () => {
         onClose={() => setAddModalOpen(false)}
         title="Tambah Peserta Baru"
         description="Pilih kategori peserta dan isi data pendaftaran."
+        maxWidth="xl"
+        footer={
+          <div className="flex items-center justify-end gap-2 w-full">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setAddModalOpen(false);
+                resetAddForm('mahasiswa');
+              }}
+              className="text-xs"
+            >
+              Batal
+            </Button>
+            <Button
+              type="submit"
+              form="add-student-form"
+              variant="primary"
+              isLoading={savingStudent}
+              leftIcon={<Plus className="w-4 h-4" />}
+              className="text-xs"
+            >
+              Simpan Akun
+            </Button>
+          </div>
+        }
       >
-        <form onSubmit={handleAddStudent} className="space-y-4">
+        <form id="add-student-form" onSubmit={handleAddStudent} className="space-y-4">
           {/* Role selector */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-[#24212b]">
@@ -919,7 +949,7 @@ export const AdminParticipantsPage: React.FC = () => {
                 required
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
-                placeholder="Contoh: 20261001"
+                placeholder="NIM peserta"
                 className="font-mono"
               />
             </div>
@@ -931,7 +961,7 @@ export const AdminParticipantsPage: React.FC = () => {
                     label="Nomor Peserta (Opsional)"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder="Otomatis jika dikosongkan (cth: UMUM-123456)"
+                    placeholder="Nomor peserta (opsional)"
                     className="font-mono bg-[#faf9fc]"
                   />
                 </div>
@@ -954,7 +984,7 @@ export const AdminParticipantsPage: React.FC = () => {
             required
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
-            placeholder="Contoh: Budi Santoso"
+            placeholder="Nama lengkap"
           />
 
           <Input
@@ -963,7 +993,7 @@ export const AdminParticipantsPage: React.FC = () => {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="budi@example.com"
+            placeholder="Email"
           />
 
           <div className="grid grid-cols-2 gap-4">
@@ -973,7 +1003,7 @@ export const AdminParticipantsPage: React.FC = () => {
                 required
                 value={institution}
                 onChange={(e) => setInstitution(e.target.value)}
-                placeholder={role === 'mahasiswa' ? 'ADMINISTRASI PUBLIK' : 'Umum'}
+                placeholder="Prodi atau instansi"
               />
             </div>
             <div>
@@ -981,25 +1011,9 @@ export const AdminParticipantsPage: React.FC = () => {
                 label="Nomor Telepon (Opsional)"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="08123456789"
+                placeholder="Nomor telepon"
               />
             </div>
-          </div>
-
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#e6e1eb]">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => {
-                setAddModalOpen(false);
-                resetAddForm('mahasiswa');
-              }}
-            >
-              Batal
-            </Button>
-            <Button type="submit" variant="primary" isLoading={savingStudent}>
-              Simpan Akun
-            </Button>
           </div>
         </form>
       </Modal>
@@ -1013,8 +1027,35 @@ export const AdminParticipantsPage: React.FC = () => {
         }}
         title="Impor Peserta CSV"
         description="Unggah berkas CSV untuk mendaftarkan peserta secara massal."
+        maxWidth="xl"
+        footer={
+          <div className="flex items-center justify-end gap-2 w-full">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setImportModalOpen(false);
+                setCsvFile(null);
+              }}
+              className="text-xs"
+            >
+              Batal
+            </Button>
+            <Button
+              type="submit"
+              form="import-csv-form"
+              variant="primary"
+              isLoading={importing}
+              disabled={!csvFile}
+              leftIcon={<Upload className="w-4 h-4" />}
+              className="text-xs"
+            >
+              Impor Sekarang
+            </Button>
+          </div>
+        }
       >
-        <form onSubmit={handleImportCSV} className="space-y-4">
+        <form id="import-csv-form" onSubmit={handleImportCSV} className="space-y-4">
           {/* Rules / guidance box */}
           <div className="p-3 bg-[#f6f2fa] border border-[#cfc2df] rounded text-xs space-y-1.5">
             <div className="font-bold text-[#583682] flex items-center gap-1.5">
@@ -1067,22 +1108,6 @@ export const AdminParticipantsPage: React.FC = () => {
               )}
             </label>
           </div>
-
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#e6e1eb]">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => {
-                setImportModalOpen(false);
-                setCsvFile(null);
-              }}
-            >
-              Batal
-            </Button>
-            <Button type="submit" variant="primary" isLoading={importing} disabled={!csvFile}>
-              Impor Sekarang
-            </Button>
-          </div>
         </form>
       </Modal>
 
@@ -1092,8 +1117,25 @@ export const AdminParticipantsPage: React.FC = () => {
         onClose={() => setEditModalOpen(false)}
         title="Ubah Data Peserta"
         description={`Mengubah data peserta: ${activeStudentForEdit?.full_name} (${activeStudentForEdit?.identifier})`}
+        maxWidth="xl"
+        footer={
+          <div className="flex items-center justify-end gap-2 w-full">
+            <Button type="button" variant="ghost" onClick={() => setEditModalOpen(false)} className="text-xs">
+              Batal
+            </Button>
+            <Button
+              type="submit"
+              form="edit-student-form"
+              variant="primary"
+              isLoading={savingEdit}
+              className="text-xs"
+            >
+              Simpan Perubahan
+            </Button>
+          </div>
+        }
       >
-        <form onSubmit={handleSaveEditStudent} className="space-y-4">
+        <form id="edit-student-form" onSubmit={handleSaveEditStudent} className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-[#24212b] mb-1">
               Nomor Identitas / NIM
@@ -1143,7 +1185,7 @@ export const AdminParticipantsPage: React.FC = () => {
               required
               value={editFullName}
               onChange={(e) => setEditFullName(e.target.value)}
-              placeholder="Contoh: Budi Santoso"
+              placeholder="Nama lengkap"
             />
           </div>
 
@@ -1155,7 +1197,7 @@ export const AdminParticipantsPage: React.FC = () => {
               type="email"
               value={editEmail}
               onChange={(e) => setEditEmail(e.target.value)}
-              placeholder="peserta@example.com"
+              placeholder="Email"
             />
           </div>
 
@@ -1167,7 +1209,7 @@ export const AdminParticipantsPage: React.FC = () => {
               <Input
                 value={editInstitution}
                 onChange={(e) => setEditInstitution(e.target.value)}
-                placeholder="ADMINISTRASI PUBLIK"
+                placeholder="Prodi atau instansi"
               />
             </div>
 
@@ -1178,7 +1220,7 @@ export const AdminParticipantsPage: React.FC = () => {
               <Input
                 value={editPhone}
                 onChange={(e) => setEditPhone(e.target.value)}
-                placeholder="08123456789"
+                placeholder="Nomor telepon"
               />
             </div>
           </div>
@@ -1213,15 +1255,6 @@ export const AdminParticipantsPage: React.FC = () => {
                 <span>Nonaktif</span>
               </button>
             </div>
-          </div>
-
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#e6e1eb]">
-            <Button type="button" variant="ghost" onClick={() => setEditModalOpen(false)}>
-              Batal
-            </Button>
-            <Button type="submit" variant="primary" isLoading={savingEdit}>
-              Simpan Perubahan
-            </Button>
           </div>
         </form>
       </Modal>

@@ -155,15 +155,13 @@ export const DetailPage: React.FC = () => {
 
             {exam.rules && exam.rules.length > 0 ? (
               <div className="divide-y divide-[#e6e1eb]">
-                {exam.rules.map((rule, idx) => (
+                {exam.rules.map((rule) => (
                   <div key={rule.id} className="py-3 flex items-center justify-between text-xs">
                     <div className="flex items-center gap-3">
-                      <span className="font-bold text-[#583682] bg-[#eae2f5] px-2 py-0.5 rounded">
-                        0{idx + 1}
-                      </span>
+                      <span className="w-2 h-2 rounded-full bg-[#583682]" />
                       <span className="font-semibold text-[#24212b]">{rule.category_name || rule.category_id}</span>
                     </div>
-                    <span className="font-bold text-[#583682]">{rule.question_count} Soal</span>
+                    <span className="font-bold text-[#583682] bg-[#eae2f5] px-2.5 py-1 rounded">{rule.question_count} Soal</span>
                   </div>
                 ))}
               </div>
@@ -215,7 +213,7 @@ export const DetailPage: React.FC = () => {
                 fullWidth
                 onClick={() => navigate(user?.role === 'admin' ? '/admin/dashboard' : '/dashboard')}
               >
-                {user?.role === 'admin' ? 'Buka Portal Admin' : 'Buka Dashboard Ujian'}
+                {user?.role === 'admin' ? 'Buka Panel Admin' : 'Buka Dashboard Ujian'}
               </Button>
             ) : (
               <Button

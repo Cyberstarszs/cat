@@ -115,7 +115,7 @@ export const QuestionImportView: React.FC<QuestionImportViewProps> = ({
       const res = await questionService.commitImportQuestions(previewData.valid_payload, importYear);
       const totalImported = res.total_imported || res.imported_count || previewData.valid_payload.length;
       setCommittedCount(totalImported);
-      showToast(`Sukses menyimpan ${totalImported} butir soal ke bank soal aktif tahun ${importYear}!`, 'success');
+      showToast(`Berhasil menyimpan ${totalImported} butir soal ke bank soal aktif tahun ${importYear}.`, 'success');
       setPreviewData(null);
       setFile(null);
     } catch (err: any) {
@@ -503,7 +503,7 @@ export const QuestionImportView: React.FC<QuestionImportViewProps> = ({
               <Search className="w-4 h-4 text-[#754ead] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
-                placeholder="Cari kata kunci pertanyaan..."
+                placeholder="Cari pertanyaan"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full !pl-10 pr-3 py-1.5 text-xs bg-white border border-[#cfc2df] rounded-[6px] focus:outline-none focus:border-[#583682] text-[#24212b]"

@@ -69,6 +69,10 @@ export const SubtestsManagerView: React.FC<SubtestsManagerViewProps> = ({
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!name.trim() || !code.trim()) {
+      showToast('Nama dan kode subtes wajib diisi.', 'warning');
+      return;
+    }
     setSaving(true);
     try {
       if (editingCategory) {
@@ -162,7 +166,7 @@ export const SubtestsManagerView: React.FC<SubtestsManagerViewProps> = ({
       {/* Filter / Search Bar */}
       <div className="max-w-md">
         <Input
-          placeholder="Cari kode atau nama subtes..."
+          placeholder="Cari subtes"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           leftIcon={<Search className="w-4 h-4 text-gray-400" />}
@@ -236,15 +240,28 @@ export const SubtestsManagerView: React.FC<SubtestsManagerViewProps> = ({
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         title={editingCategory ? 'Ubah Subtes' : 'Tambah Subtes Baru'}
+        description={editingCategory ? 'Perbarui informasi dan kode kategori subtes.' : 'Tambahkan kategori soal baru untuk pembagian bank soal.'}
+        maxWidth="lg"
+        footer={
+          <div className="flex items-center justify-end gap-2 w-full">
+            <Button type="button" variant="ghost" onClick={() => setModalOpen(false)} className="text-xs">
+              Batal
+            </Button>
+            <Button type="submit" form="subtest-form" variant="primary" isLoading={saving} className="text-xs">
+              {editingCategory ? 'Simpan Perubahan' : 'Simpan Subtes'}
+            </Button>
+          </div>
+        }
       >
-        <form onSubmit={handleSave} className="space-y-4">
+        <form id="subtest-form" onSubmit={handleSave} className="space-y-4">
           <Input
             label="Kode Subtes"
             required
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
-            placeholder="Contoh: TWK"
+            placeholder="Kode subtes (cth: TIU, TWK, TKP)"
             className="uppercase font-mono"
+            helperText="Gunakan singkatan ringkas huruf kapital."
           />
 
           <Input
@@ -252,7 +269,7 @@ export const SubtestsManagerView: React.FC<SubtestsManagerViewProps> = ({
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Contoh: Tes Wawasan Kebangsaan"
+            placeholder="cth: Tes Inteligensi Umum"
           />
 
           <div>
@@ -263,18 +280,9 @@ export const SubtestsManagerView: React.FC<SubtestsManagerViewProps> = ({
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Deskripsi materi subtes..."
+              placeholder="Deskripsi materi atau cakupan subtes"
               className="w-full p-3 bg-white border border-[#e6e1eb] rounded text-xs text-[#24212b] outline-none focus:border-[#583682]"
             />
-          </div>
-
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#e6e1eb]">
-            <Button type="button" variant="ghost" onClick={() => setModalOpen(false)}>
-              Batal
-            </Button>
-            <Button type="submit" variant="primary" isLoading={saving}>
-              {editingCategory ? 'Simpan Perubahan' : 'Simpan Subtes'}
-            </Button>
           </div>
         </form>
       </Modal>

@@ -98,7 +98,7 @@ export const HistoryPage: React.FC = () => {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cari nama ujian..."
+              placeholder="Cari ujian"
               className="w-full bg-white border border-[#e6e1eb] rounded-[6px] !pl-10 pr-3 py-2 text-xs text-[#24212b] outline-none focus:border-[#583682]"
             />
           </div>
@@ -161,7 +161,7 @@ export const HistoryPage: React.FC = () => {
                 {row.exam_title || row.session_name}
               </strong>
               <span className="text-xs text-[#595562]">
-                {formatWIBDate(row.created_at, { weekday: undefined })}
+                {formatWIBDate(row.submitted_at || row.created_at, { weekday: undefined })}
               </span>
               <b className="text-sm text-[#24212b]">{row.score}</b>
               <i

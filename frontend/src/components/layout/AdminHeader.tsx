@@ -1,22 +1,23 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { alert } from '../../utils/alert';
-import { Menu, LogOut, ShieldCheck } from 'lucide-react';
+import { LogOut, ShieldCheck, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface AdminHeaderProps {
   onToggleSidebar: () => void;
+  sidebarOpen: boolean;
   title: string;
 }
 
-export const AdminHeader: React.FC<AdminHeaderProps> = ({ onToggleSidebar, title }) => {
+export const AdminHeader: React.FC<AdminHeaderProps> = ({ onToggleSidebar, sidebarOpen, title }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
     const confirmed = await alert.confirm({
       title: 'Keluar dari Sesi Administrator?',
-      text: 'Pastikan seluruh perubahan data telah tersimpan sebelum keluar dari portal manajemen CAT.',
+      text: 'Pastikan seluruh perubahan data telah tersimpan sebelum keluar dari panel manajemen CAT.',
       confirmButtonText: 'Ya, Keluar',
       cancelButtonText: 'Batal',
       icon: 'question',
@@ -28,17 +29,18 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onToggleSidebar, title
   };
 
   return (
-    <header className="sticky top-0 z-30 h-[80px] bg-white border-b border-[#e6e1eb] px-6 flex items-center justify-between">
-      <div className="flex items-center gap-4">
+    <header className="sticky top-0 z-30 h-[80px] bg-white border-b border-[#e6e1eb] px-4 sm:px-6 flex items-center justify-between">
+      <div className="flex items-center gap-3 sm:gap-4">
         <button
           onClick={onToggleSidebar}
-          className="p-2 text-[#583682] border border-[#e6e1eb] rounded lg:hidden hover:bg-[#faf9fc]"
-          aria-label="Toggle sidebar menu"
+          className="p-2 text-[#583682] border border-[#e6e1eb] rounded-lg hover:bg-[#eae2f5] hover:border-[#583682] transition cursor-pointer flex items-center justify-center shrink-0"
+          title={sidebarOpen ? 'Tutup Sidebar' : 'Buka Sidebar'}
+          aria-label={sidebarOpen ? 'Tutup sidebar' : 'Buka sidebar'}
         >
-          <Menu className="w-5 h-5" />
+          {sidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeftOpen className="w-5 h-5" />}
         </button>
         <div>
-          <h1 className="font-display font-bold text-xl text-[#24212b] tracking-tight">{title}</h1>
+          <h1 className="font-display font-bold text-lg sm:text-xl text-[#24212b] tracking-tight">{title}</h1>
         </div>
       </div>
 

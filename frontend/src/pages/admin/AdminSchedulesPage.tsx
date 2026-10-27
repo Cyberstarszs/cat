@@ -121,8 +121,8 @@ export const AdminSchedulesPage: React.FC = () => {
       a.download = `BAP_Presensi_${sess.code}.pdf`;
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      setTimeout(() => window.URL.revokeObjectURL(url), 1000);
       showToast(`Berita Acara & Daftar Presensi Sesi "${sess.name}" berhasil diunduh (PDF)!`, 'success');
     } catch (err: any) {
       showToast(err?.response?.data?.message || err.message || 'Gagal mengunduh Berita Acara PDF.', 'error');
@@ -170,12 +170,20 @@ export const AdminSchedulesPage: React.FC = () => {
     return exams.find((x) => x.id === selectedExamId) || exams[0];
   }, [exams, selectedExamId]);
 
+  const generateNewSessionCode = () => {
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    setSessionCode(`SES-${randomSuffix}`);
+  };
+
   const openCreateModal = () => {
-    setSessionCode(`SES-${Date.now().toString().slice(-4)}`);
+    generateNewSessionCode();
     setSessionName('');
     setSessionCapacity('27');
 
     const exam = exams.find((e) => e.id === selectedExamId) || exams[0];
+    if (exam && (!selectedExamId || !exams.some((e) => e.id === selectedExamId))) {
+      setSelectedExamId(exam.id);
+    }
     const duration = exam?.duration_minutes || 90;
     const today = getWIBDateString(0);
     const startStr = `${today}T08:00`;
@@ -188,12 +196,12 @@ export const AdminSchedulesPage: React.FC = () => {
   const handleSaveSession = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedExamId) {
-      showToast('Pilih ujian terlebih dahulu.', 'error');
+      showToast('Pilih ujian terlebih dahulu.', 'warning');
       return;
     }
     const duration = calculateMinutesDuration(startsAt, endsAt);
     if (duration <= 0) {
-      showToast('Waktu selesai harus lebih lambat dari waktu mulai.', 'error');
+      showToast('Waktu selesai harus lebih lambat dari waktu mulai.', 'warning');
       return;
     }
     setSavingSession(true);
@@ -232,7 +240,7 @@ export const AdminSchedulesPage: React.FC = () => {
     if (!editingSession) return;
     const duration = calculateMinutesDuration(editStartsAt, editEndsAt);
     if (duration <= 0) {
-      showToast('Waktu selesai harus lebih lambat dari waktu mulai.', 'error');
+      showToast('Waktu selesai harus lebih lambat dari waktu mulai.', 'warning');
       return;
     }
     setSavingEditSession(true);
@@ -372,7 +380,7 @@ export const AdminSchedulesPage: React.FC = () => {
     }
     const remainingSlots = candidateData?.session?.remaining_slots ?? (activeSessionForEnroll?.capacity || 27);
     if (list.length > remainingSlots) {
-      showToast(`Jumlah peserta (${list.length}) melebihi sisa kapasitas sesi (${remainingSlots} peserta)!`, 'error');
+      showToast(`Jumlah peserta (${list.length}) melebihi sisa kapasitas sesi (${remainingSlots} peserta).`, 'warning');
       return;
     }
 
@@ -430,7 +438,7 @@ export const AdminSchedulesPage: React.FC = () => {
   const handleCancelSession = async (sess: ExamSession) => {
     const confirmed = await alert.confirm({
       title: 'Batalkan Sesi Ujian?',
-      text: `Apakah Anda yakin ingin MEMBATALKAN sesi "${sess.name}" (${sess.code})? Sesi yang dibatalkan tidak dapat diakses lagi oleh mahasiswa.`,
+      text: `Sesi "${sess.name}" (${sess.code}) akan dinonaktifkan dan mahasiswa tidak dapat lagi mengakses sesi ini.`,
       confirmButtonText: 'Ya, Batalkan Sesi',
       isDangerous: true,
     });
@@ -442,28 +450,38 @@ export const AdminSchedulesPage: React.FC = () => {
       alert.toast(`Sesi "${sess.name}" berhasil dibatalkan.`, 'warning');
       fetchSessionsAndExams();
     } catch (err: any) {
-      alert.error('Gagal Membatalkan Sesi', err?.response?.data?.message || err.message || 'Terjadi kesalahan sistem.');
+      alert.error('Gagal Membatalkan Sesi', err?.response?.data?.message || err.message || 'Terjadi kendala sistem.');
     } finally {
       setCancellingSessionId(null);
     }
   };
 
   const handleDeleteSession = async (sess: ExamSession) => {
+    const enrolledNotice =
+      sess.enrolled_count && sess.enrolled_count > 0
+        ? `Terdapat ${sess.enrolled_count} peserta terdaftar pada sesi ini yang akan dikembalikan ke status belum terjadwal.`
+        : 'Sesi ini belum memiliki peserta.';
+
     const confirmed = await alert.confirm({
-      title: 'Hapus Sesi Ujian Permanen?',
-      text: `PERINGATAN: Sesi "${sess.name}" (${sess.code}) beserta seluruh data pendaftarannya akan dihapus permanen dari sistem. Tindakan ini tidak dapat dibatalkan.`,
-      confirmButtonText: 'Ya, Hapus Permanen',
+      title: 'Hapus Sesi Ujian?',
+      text: `Sesi "${sess.name}" (${sess.code}) akan dihapus permanen dari sistem. ${enrolledNotice}`,
+      confirmButtonText: 'Ya, Hapus Sesi',
+      cancelButtonText: 'Batal',
       isDangerous: true,
+      icon: 'warning',
     });
     if (!confirmed) return;
 
     setDeletingSessionId(sess.id);
     try {
       await sessionService.deleteSession(sess.id);
-      alert.toast(`Sesi "${sess.name}" berhasil dihapus permanen!`, 'success');
+      alert.toast(`Sesi "${sess.name}" berhasil dihapus.`, 'success');
       fetchSessionsAndExams();
     } catch (err: any) {
-      alert.error('Gagal Menghapus Sesi', err?.response?.data?.message || err.message || 'Sesi dengan percobaan ujian tidak dapat dihapus.');
+      alert.error(
+        'Gagal Menghapus Sesi',
+        err?.response?.data?.message || err.message || 'Sesi dengan riwayat pengerjaan ujian tidak dapat dihapus.'
+      );
     } finally {
       setDeletingSessionId(null);
     }
@@ -503,8 +521,8 @@ export const AdminSchedulesPage: React.FC = () => {
       a.download = `Laporan_Sesi_${sess.code}.csv`;
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      setTimeout(() => window.URL.revokeObjectURL(url), 1000);
       showToast('Laporan CSV sesi berhasil diunduh!', 'success');
     } catch (err: any) {
       showToast(err.message || 'Gagal mengekspor laporan CSV.', 'error');
@@ -525,8 +543,8 @@ export const AdminSchedulesPage: React.FC = () => {
       a.download = `Kredensial_Peserta_${sess.code}.pdf`;
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      setTimeout(() => window.URL.revokeObjectURL(url), 1000);
       showToast(`Kartu kredensial sesi "${sess.name}" berhasil diunduh dalam format PDF!`, 'success');
     } catch (err: any) {
       showToast(err.message || 'Gagal mengunduh kartu kredensial PDF.', 'error');
@@ -583,7 +601,7 @@ export const AdminSchedulesPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="w-full sm:max-w-md">
           <Input
-            placeholder="Cari kode atau nama sesi..."
+            placeholder="Cari sesi"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             leftIcon={<Search className="w-4 h-4 text-gray-400" />}
@@ -791,16 +809,27 @@ export const AdminSchedulesPage: React.FC = () => {
                             </button>
                           )}
 
-                          {/* Hapus Sesi Permanen */}
-                          {(sess.status === 'scheduled' || sess.status === 'cancelled' || !sess.status) && (
+                          {/* Hapus Sesi */}
+                          {(sess.status === 'scheduled' || sess.status === 'cancelled' || !sess.status) ? (
                             <button
                               onClick={() => handleDeleteSession(sess)}
                               disabled={deletingSessionId === sess.id}
-                              className="p-1.5 text-red-600 hover:bg-white rounded-md transition shadow-2xs"
-                              title="Hapus Sesi Ujian Permanen"
+                              className="p-1.5 text-red-600 hover:bg-white rounded-md transition shadow-2xs cursor-pointer"
+                              title="Hapus Sesi Ujian"
                             >
                               <Trash2 className={`w-4 h-4 ${deletingSessionId === sess.id ? 'animate-spin' : ''}`} />
                             </button>
+                          ) : (
+                            <span
+                              className="p-1.5 text-gray-300 rounded-md cursor-not-allowed inline-flex items-center"
+                              title={
+                                sess.status === 'completed'
+                                  ? 'Sesi tidak dapat dihapus karena sudah selesai dan memiliki riwayat nilai peserta.'
+                                  : 'Sesi sedang berjalan. Batalkan atau selesaikan sesi terlebih dahulu sebelum menghapus.'
+                              }
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </span>
                           )}
                         </div>
                       </div>
@@ -817,17 +846,48 @@ export const AdminSchedulesPage: React.FC = () => {
       <Modal
         isOpen={createModalOpen}
         onClose={() => setCreateModalOpen(false)}
-        title="Buat Sesi Ujian"
-        description="Atur paket ujian, waktu mulai, dan kapasitas peserta."
+        title="Buat Sesi"
+        description="Atur paket, kapasitas, dan waktu ujian."
+        maxWidth="2xl"
+        footer={
+          exams.length > 0 ? (
+            <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 w-full">
+              <div className="text-[11px] text-[#595562] flex items-center gap-1.5 self-start sm:self-auto">
+                <Info className="w-3.5 h-3.5 text-[#583682] shrink-0" />
+                <span>Lab Komputer FIA: <strong className="text-[#24212b]">27 PC</strong></span>
+              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setCreateModalOpen(false)}
+                  className="text-xs w-full sm:w-auto"
+                >
+                  Batal
+                </Button>
+                <Button
+                  type="submit"
+                  form="create-session-form"
+                  variant="primary"
+                  isLoading={savingSession}
+                  leftIcon={<Plus className="w-4 h-4" />}
+                  className="text-xs w-full sm:w-auto shadow-xs"
+                >
+                  Simpan
+                </Button>
+              </div>
+            </div>
+          ) : undefined
+        }
       >
         {exams.length === 0 ? (
           <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg space-y-3">
             <div className="flex items-start gap-2.5">
               <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
               <div>
-                <h4 className="text-xs font-bold text-amber-900">Belum Ada Paket Ujian</h4>
+                <h4 className="text-xs font-bold text-amber-900">Belum Ada Paket</h4>
                 <p className="text-xs text-amber-800 mt-1 leading-relaxed">
-                  Buat paket ujian terlebih dahulu sebelum membuka sesi.
+                  Buat paket ujian terlebih dahulu.
                 </p>
               </div>
             </div>
@@ -839,98 +899,158 @@ export const AdminSchedulesPage: React.FC = () => {
                 href="/admin/exams"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#583682] text-white text-xs font-bold rounded hover:bg-[#432963] transition"
               >
-                Buat Paket Ujian &rarr;
+                Buat Paket &rarr;
               </a>
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSaveSession} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-[#24212b] mb-1">
-                Pilih Paket Ujian <span className="text-[#b63b48]">*</span>
-              </label>
-              <select
-                value={selectedExamId}
-                onChange={(e) => {
-                  const newId = e.target.value;
-                  setSelectedExamId(newId);
-                  const ex = exams.find((x) => x.id === newId);
-                  if (ex?.duration_minutes && startsAt) {
-                    setEndsAt(addMinutesToWIBDateTime(startsAt, ex.duration_minutes));
-                  }
-                }}
-                className="w-full h-10 px-3 bg-white border border-[#e6e1eb] rounded text-xs text-[#24212b]"
-                required
-              >
-                {exams.map((ex) => (
-                  <option key={ex.id} value={ex.id}>
-                    {ex.title} ({ex.code}) — Th. {ex.year || '2026'}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <form id="create-session-form" onSubmit={handleSaveSession} className="space-y-5">
+            {/* 1. KARTU PAKET UJIAN */}
+            <div className="bg-[#faf9fc] border border-[#e6e1eb] rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-[#24212b] flex items-center gap-1.5">
+                  <FileText className="w-4 h-4 text-[#583682]" />
+                  <span>Paket</span>
+                  <span className="text-[#b63b48]">*</span>
+                </label>
+                <span className="text-[11px] text-[#595562]">
+                  {exams.length} Paket
+                </span>
+              </div>
 
-            {/* Ringkasan Konfigurasi Paket Ujian Terpilih */}
-            {selectedExam && (
-              <div className="p-3 bg-[#f8f6fc] rounded-[8px] border border-[#cfc2df] space-y-2">
-                <div className="flex items-center justify-between text-xs flex-wrap gap-2">
-                  <div className="flex items-center gap-1.5 font-bold text-[#583682]">
-                    <FileText className="w-4 h-4 text-[#583682]" />
-                    <span>{selectedExam.title} ({selectedExam.code})</span>
-                  </div>
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#583682] bg-white px-2 py-0.5 rounded border border-[#cfc2df]">
-                    <Calendar className="w-3.5 h-3.5 text-[#583682]" /> Th. {selectedExam.year || '2026'}
-                  </span>
-                </div>
-                <div className="grid grid-cols-3 gap-2 text-xs bg-white p-2 rounded-[6px] border border-[#e6e1eb] text-center">
-                  <div>
-                    <span className="text-[10px] text-[#595562] block">Jumlah Soal</span>
-                    <strong className="text-[#24212b]">{Number(selectedExam.total_rules_count) || selectedExam.question_count || 100} Soal</strong>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-[#595562] block">Passing Score</span>
-                    <strong className="text-[#24212b]">{selectedExam.passing_score}</strong>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-[#595562] block">Sumber Soal</span>
-                    <strong className="text-[#287a58]">Paket Terpilih</strong>
-                  </div>
+              <div className="relative">
+                <select
+                  value={selectedExamId}
+                  onChange={(e) => {
+                    const newId = e.target.value;
+                    setSelectedExamId(newId);
+                    const ex = exams.find((x) => x.id === newId);
+                    if (ex?.duration_minutes && startsAt) {
+                      setEndsAt(addMinutesToWIBDateTime(startsAt, ex.duration_minutes));
+                    }
+                  }}
+                  className="w-full h-10 px-3 pr-8 bg-white border border-[#cfc9d6] focus:border-[#583682] focus:ring-1 focus:ring-[#583682] rounded-[6px] text-xs font-bold text-[#24212b] appearance-none outline-none transition cursor-pointer"
+                  required
+                >
+                  {exams.map((ex) => (
+                    <option key={ex.id} value={ex.id}>
+                      {ex.title} ({ex.code}) — {ex.duration_minutes || 90} Menit · Th. {ex.year || '2026'}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
+                  <Filter className="w-3.5 h-3.5 rotate-90" />
                 </div>
               </div>
-            )}
 
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                label="Kode Sesi"
-                required
-                value={sessionCode}
-                onChange={(e) => setSessionCode(e.target.value.toUpperCase())}
-                placeholder="Contoh: SES-01"
-                className="font-mono uppercase"
-              />
-              <Input
-                label="Nama Sesi"
-                required
-                value={sessionName}
-                onChange={(e) => setSessionName(e.target.value)}
-                placeholder="Contoh: Sesi 1 Pagi"
-              />
+              {/* Ringkasan Konfigurasi Paket Ujian Terpilih */}
+              {selectedExam && (
+                <div className="p-3 bg-white rounded-[6px] border border-[#e6e1eb] space-y-2.5 shadow-xs">
+                  <div className="flex items-center justify-between text-xs flex-wrap gap-2 border-b border-[#f0ebf5] pb-2">
+                    <div className="flex items-center gap-1.5 font-bold text-[#583682]">
+                      <Sparkles className="w-4 h-4 text-[#583682]" />
+                      <span>{selectedExam.title}</span>
+                      <span className="font-mono text-[11px] text-[#595562] bg-[#faf9fc] px-1.5 py-0.5 rounded border border-[#e6e1eb]">
+                        {selectedExam.code}
+                      </span>
+                    </div>
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#583682] bg-[#eae2f5] px-2 py-0.5 rounded">
+                      <Calendar className="w-3 h-3 text-[#583682]" /> {selectedExam.year || '2026'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+                    <div className="p-2 rounded bg-[#faf9fc] border border-[#e6e1eb]/80">
+                      <span className="text-[10px] text-[#595562] block mb-0.5 font-medium">Durasi</span>
+                      <strong className="text-[#583682] flex items-center justify-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {selectedExam.duration_minutes || 90} Menit
+                      </strong>
+                    </div>
+                    <div className="p-2 rounded bg-[#faf9fc] border border-[#e6e1eb]/80">
+                      <span className="text-[10px] text-[#595562] block mb-0.5 font-medium">Soal</span>
+                      <strong className="text-[#24212b]">
+                        {Number(selectedExam.total_rules_count) || selectedExam.question_count || 100} Butir
+                      </strong>
+                    </div>
+                    <div className="p-2 rounded bg-[#faf9fc] border border-[#e6e1eb]/80">
+                      <span className="text-[10px] text-[#595562] block mb-0.5 font-medium">Ambang</span>
+                      <strong className="text-[#287a58]">
+                        {selectedExam.passing_score} / 100
+                      </strong>
+                    </div>
+                    <div className="p-2 rounded bg-[#faf9fc] border border-[#e6e1eb]/80">
+                      <span className="text-[10px] text-[#595562] block mb-0.5 font-medium">Distribusi</span>
+                      <strong className="text-[#24212b]">
+                        Acak Subtes
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div>
-              <Input
-                type="number"
-                label="Kapasitas PC Lab"
-                required
-                min={1}
-                max={100}
-                value={sessionCapacity}
-                onChange={(e) => setSessionCapacity(e.target.value)}
-                placeholder="27"
-                helperText="Maksimal 27 PC per sesi."
-              />
+            {/* 2. IDENTITAS & KAPASITAS SESI */}
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5">
+              <div className="sm:col-span-4">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-[#24212b]">
+                    Kode <span className="text-[#b63b48]">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={generateNewSessionCode}
+                    className="text-[10px] text-[#583682] hover:underline flex items-center gap-1 font-semibold cursor-pointer"
+                    title="Buat kode acak baru"
+                  >
+                    <RefreshCw className="w-2.5 h-2.5" /> Acak
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  required
+                  value={sessionCode}
+                  onChange={(e) => setSessionCode(e.target.value.toUpperCase())}
+                  placeholder="SES-XXXX"
+                  className="w-full h-10 px-3 bg-white border border-[#e6e1eb] focus:border-[#583682] focus:ring-1 focus:ring-[#583682] rounded-[6px] text-xs font-mono font-bold text-[#583682] uppercase outline-none"
+                />
+              </div>
+
+              <div className="sm:col-span-5">
+                <label className="block text-xs font-bold text-[#24212b] mb-1">
+                  Nama <span className="text-[#b63b48]">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={sessionName}
+                  onChange={(e) => setSessionName(e.target.value)}
+                  placeholder="Sesi 1"
+                  className="w-full h-10 px-3 bg-white border border-[#e6e1eb] focus:border-[#583682] focus:ring-1 focus:ring-[#583682] rounded-[6px] text-xs text-[#24212b] outline-none"
+                />
+              </div>
+
+              <div className="sm:col-span-3">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-[#24212b]">
+                    Kapasitas <span className="text-[#b63b48]">*</span>
+                  </label>
+                  <span className="text-[10px] text-[#583682] font-semibold">Maks. 27</span>
+                </div>
+                <input
+                  type="number"
+                  required
+                  min={1}
+                  max={27}
+                  value={sessionCapacity}
+                  onChange={(e) => setSessionCapacity(e.target.value)}
+                  placeholder="27"
+                  className="w-full h-10 px-3 bg-white border border-[#e6e1eb] focus:border-[#583682] focus:ring-1 focus:ring-[#583682] rounded-[6px] text-xs font-bold text-[#24212b] outline-none"
+                />
+              </div>
             </div>
 
+            {/* 3. WAKTU & JADWAL PELAKSANAAN */}
             <SessionSchedulePicker
               startsAt={startsAt}
               endsAt={endsAt}
@@ -940,15 +1060,6 @@ export const AdminSchedulesPage: React.FC = () => {
               }}
               examDurationMinutes={exams.find((e) => e.id === selectedExamId)?.duration_minutes}
             />
-
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#e6e1eb]">
-              <Button type="button" variant="ghost" onClick={() => setCreateModalOpen(false)}>
-                Batal
-              </Button>
-              <Button type="submit" variant="primary" isLoading={savingSession}>
-                Simpan Sesi
-              </Button>
-            </div>
           </form>
         )}
       </Modal>
@@ -960,6 +1071,44 @@ export const AdminSchedulesPage: React.FC = () => {
         title={`Daftarkan Peserta: ${activeSessionForEnroll?.name}`}
         description="Pilih peserta untuk dialokasikan ke sesi ini."
         maxWidth="3xl"
+        footer={
+          <div className="flex items-center justify-between gap-2 w-full">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handlePreviewEnrollment}
+              isLoading={previewingEnroll}
+              className="text-xs min-h-[34px] px-3"
+            >
+              Cek Bentrok Jadwal
+            </Button>
+
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setEnrollModalOpen(false)}
+                className="text-xs min-h-[34px] px-3"
+              >
+                Batal
+              </Button>
+
+              <Button
+                type="button"
+                variant="primary"
+                onClick={handleCommitEnrollment}
+                isLoading={enrolling}
+                className="text-xs min-h-[34px] px-4 font-bold"
+              >
+                Simpan Peserta (
+                {enrollMode === 'candidate_list'
+                  ? selectedIdentifiers.length
+                  : identifiersText.split(/[\n,;]/).map((s) => s.trim()).filter(Boolean).length}
+                )
+              </Button>
+            </div>
+          </div>
+        }
       >
         <div className="space-y-4">
           {/* Sesi & Kuota Header Metric */}
@@ -1072,7 +1221,7 @@ export const AdminSchedulesPage: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <div className="w-52">
                     <Input
-                      placeholder="Cari NIM, nama, email..."
+                      placeholder="Cari peserta"
                       value={candidateSearch}
                       onChange={(e) => setCandidateSearch(e.target.value)}
                       className="text-xs h-8"
@@ -1314,44 +1463,6 @@ export const AdminSchedulesPage: React.FC = () => {
             </div>
           )}
 
-          {/* Action Buttons */}
-          <div className="flex items-center justify-between pt-2 border-t border-[#e6e1eb]">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={handlePreviewEnrollment}
-              isLoading={previewingEnroll}
-              className="text-xs min-h-[34px] px-3"
-            >
-              Cek Bentrok Jadwal
-            </Button>
-
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => setEnrollModalOpen(false)}
-                className="text-xs min-h-[34px] px-3"
-              >
-                Batal
-              </Button>
-
-              <Button
-                type="button"
-                variant="primary"
-                onClick={handleCommitEnrollment}
-                isLoading={enrolling}
-                className="text-xs min-h-[34px] px-4 font-bold"
-              >
-                Simpan Peserta (
-                {enrollMode === 'candidate_list'
-                  ? selectedIdentifiers.length
-                  : identifiersText.split(/[\n,;]/).map((s) => s.trim()).filter(Boolean).length}
-                )
-              </Button>
-            </div>
-          </div>
-
           {/* Collision Preview Results */}
           {enrollPreview && (
             <div className="p-3 bg-[#faf9fc] rounded border border-[#e6e1eb] text-xs space-y-2">
@@ -1385,7 +1496,27 @@ export const AdminSchedulesPage: React.FC = () => {
         isOpen={viewEnrollmentsModalOpen}
         onClose={() => setViewEnrollmentsModalOpen(false)}
         title={`Daftar Peserta: ${activeSessionForEnroll?.name}`}
-        maxWidth="xl"
+        description="Peserta yang telah terdaftar dalam sesi ujian ini."
+        maxWidth="3xl"
+        footer={
+          <div className="flex items-center justify-between w-full">
+            {activeSessionForEnroll && enrolledStudents.length > 0 ? (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => handleExportCredentialsPDF(activeSessionForEnroll)}
+                isLoading={downloadingPdfId === activeSessionForEnroll.id}
+                leftIcon={<Printer className="w-3.5 h-3.5 text-amber-600" />}
+                className="text-xs"
+              >
+                Cetak Kartu Login ({enrolledStudents.length} Peserta)
+              </Button>
+            ) : <div />}
+            <Button variant="ghost" onClick={() => setViewEnrollmentsModalOpen(false)} className="text-xs">
+              Tutup
+            </Button>
+          </div>
+        }
       >
         <div className="space-y-4">
           {loadingEnrollments ? (
@@ -1463,24 +1594,6 @@ export const AdminSchedulesPage: React.FC = () => {
               </table>
             </div>
           )}
-
-          <div className="flex items-center justify-between pt-2 border-t border-[#e6e1eb]">
-            {activeSessionForEnroll && enrolledStudents.length > 0 ? (
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => handleExportCredentialsPDF(activeSessionForEnroll)}
-                isLoading={downloadingPdfId === activeSessionForEnroll.id}
-                leftIcon={<Printer className="w-3.5 h-3.5 text-amber-600" />}
-                className="text-xs"
-              >
-                Cetak Kartu Login ({enrolledStudents.length} Peserta)
-              </Button>
-            ) : <div />}
-            <Button variant="ghost" onClick={() => setViewEnrollmentsModalOpen(false)}>
-              Tutup
-            </Button>
-          </div>
         </div>
       </Modal>
 
@@ -1488,45 +1601,75 @@ export const AdminSchedulesPage: React.FC = () => {
       <Modal
         isOpen={editModalOpen}
         onClose={() => setEditModalOpen(false)}
-        title="Ubah Sesi Ujian"
-        description="Perbarui informasi sesi dan waktu pelaksanaan."
-        maxWidth="lg"
-      >
-        <form onSubmit={handleUpdateSession} className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-[#24212b] mb-1">
-              Kode Sesi
-            </label>
-            <div className="font-mono text-xs px-3 py-2 bg-[#eae2f5] rounded text-[#583682] font-bold">
-              {editingSession?.code}
-            </div>
+        title="Ubah Sesi"
+        description="Perbarui data sesi dan waktu."
+        maxWidth="2xl"
+        footer={
+          <div className="flex items-center justify-end gap-2 w-full">
+            <Button type="button" variant="ghost" onClick={() => setEditModalOpen(false)} className="text-xs">
+              Batal
+            </Button>
+            <Button
+              type="submit"
+              form="edit-session-form"
+              variant="primary"
+              isLoading={savingEditSession}
+              leftIcon={<Edit2 className="w-4 h-4" />}
+              className="text-xs"
+            >
+              Simpan
+            </Button>
           </div>
+        }
+      >
+        <form id="edit-session-form" onSubmit={handleUpdateSession} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5">
+            <div className="sm:col-span-4">
+              <label className="block text-xs font-bold text-[#24212b] mb-1">
+                Kode
+              </label>
+              <div className="font-mono text-xs px-3 py-2 bg-[#eae2f5] rounded-[6px] text-[#583682] font-bold">
+                {editingSession?.code}
+              </div>
+            </div>
 
-          <Input
-            label="Nama Sesi"
-            required
-            value={editSessionName}
-            onChange={(e) => setEditSessionName(e.target.value)}
-            placeholder="Contoh: Sesi 1 Pagi"
-          />
+            <div className="sm:col-span-5">
+              <label className="block text-xs font-bold text-[#24212b] mb-1">
+                Nama <span className="text-[#b63b48]">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={editSessionName}
+                onChange={(e) => setEditSessionName(e.target.value)}
+                placeholder="Sesi 1"
+                className="w-full h-10 px-3 bg-white border border-[#e6e1eb] focus:border-[#583682] focus:ring-1 focus:ring-[#583682] rounded-[6px] text-xs text-[#24212b] outline-none"
+              />
+            </div>
 
-          <div>
-            <Input
-              type="number"
-              label="Kapasitas Ruangan (PC)"
-              required
-              min={1}
-              max={100}
-              value={editSessionCapacity}
-              onChange={(e) => setEditSessionCapacity(e.target.value)}
-              placeholder="27"
-              helperText="Maksimal peserta lab komputer."
-            />
+            <div className="sm:col-span-3">
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-bold text-[#24212b]">
+                  Kapasitas <span className="text-[#b63b48]">*</span>
+                </label>
+                <span className="text-[10px] text-[#583682] font-semibold">Maks. 27</span>
+              </div>
+              <input
+                type="number"
+                required
+                min={1}
+                max={27}
+                value={editSessionCapacity}
+                onChange={(e) => setEditSessionCapacity(e.target.value)}
+                placeholder="27"
+                className="w-full h-10 px-3 bg-white border border-[#e6e1eb] focus:border-[#583682] focus:ring-1 focus:ring-[#583682] rounded-[6px] text-xs font-bold text-[#24212b] outline-none"
+              />
+            </div>
           </div>
 
           {/* Paket Ujian Terpilih Info */}
           {editingSession && (
-            <div className="p-3 bg-[#f8f6fc] rounded border border-[#cfc2df] space-y-1 text-xs">
+            <div className="p-3 bg-[#f8f6fc] rounded-[6px] border border-[#cfc2df] space-y-1 text-xs">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <span className="font-bold text-[#583682] flex items-center gap-1.5">
                   <FileText className="w-4 h-4 text-[#583682]" />
@@ -1554,15 +1697,6 @@ export const AdminSchedulesPage: React.FC = () => {
               editingSession?.duration_minutes
             }
           />
-
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#e6e1eb]">
-            <Button type="button" variant="ghost" onClick={() => setEditModalOpen(false)}>
-              Batal
-            </Button>
-            <Button type="submit" variant="primary" isLoading={savingEditSession}>
-              Simpan Perubahan
-            </Button>
-          </div>
         </form>
       </Modal>
       {/* Fitur A: Modal Ruang Pengawas Lab Realtime */}

@@ -372,11 +372,12 @@ export interface AuditLog {
 }
 
 export interface ApiErrorResponse {
-  error: {
-    code: string;
-    message: string;
+  message?: string;
+  error?: {
+    code?: string;
+    message?: string;
     details?: any;
-  };
+  } | string;
 }
 
 export interface PaginationMeta {

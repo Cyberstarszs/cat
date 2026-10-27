@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useStudentPhoto } from '../../services/unira';
 import logoImg from '../../assets/cat-governance-logo.png';
 import { FigmaIcon, IconName } from '../common/FigmaIcon';
+import { alert } from '../../utils/alert';
 
 export interface NavbarProps {
   minimal?: boolean;
@@ -16,19 +17,54 @@ export const Navbar: React.FC<NavbarProps> = ({ minimal = false }) => {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
+  const lastScrollYRef = useRef(0);
 
   useEffect(() => {
+    lastScrollYRef.current = typeof window !== 'undefined' ? window.scrollY : 0;
+
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 12);
+      const currentScrollY = window.scrollY;
+      const delta = currentScrollY - lastScrollYRef.current;
+
+      // Di dekat bagian atas halaman, header selalu ditampilkan
+      if (currentScrollY <= 80) {
+        setIsVisible(true);
+        setIsScrolled(currentScrollY > 12);
+        lastScrollYRef.current = currentScrollY;
+        return;
+      }
+
+      setIsScrolled(true);
+
+      // Jika menu navigasi mobile sedang dibuka, jaga header tetap terlihat
+      if (menuOpen) {
+        setIsVisible(true);
+        lastScrollYRef.current = currentScrollY;
+        return;
+      }
+
+      // Scroll ke bawah dengan delta cukup besar -> sembunyikan header
+      if (delta > 6) {
+        setIsVisible(false);
+      }
+      // Scroll ke atas dengan delta cukup besar -> tampilkan kembali header
+      else if (delta < -6) {
+        setIsVisible(true);
+      }
+
+      lastScrollYRef.current = currentScrollY;
     };
+
     handleScroll();
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [menuOpen]);
 
-  // Tutup menu mobile ketika rute berganti
+  // Tutup menu mobile dan tampilkan header ketika rute berganti
   useEffect(() => {
     setMenuOpen(false);
+    setIsVisible(true);
   }, [location.pathname, location.hash]);
 
   const goSection = (id: string) => {
@@ -49,6 +85,15 @@ export const Navbar: React.FC<NavbarProps> = ({ minimal = false }) => {
   };
 
   const handleLogout = async () => {
+    const confirmed = await alert.confirm({
+      title: 'Keluar dari Akun?',
+      text: 'Apakah Anda yakin ingin mengakhiri sesi login saat ini?',
+      confirmButtonText: 'Ya, Keluar',
+      cancelButtonText: 'Batal',
+      icon: 'question',
+    });
+    if (!confirmed) return;
+
     setMenuOpen(false);
     await logout();
     navigate('/login');
@@ -96,12 +141,6 @@ export const Navbar: React.FC<NavbarProps> = ({ minimal = false }) => {
         isActive: location.pathname.startsWith('/explore') || location.pathname.startsWith('/assessment-lg'),
       },
       {
-        label: 'Verifikasi Sertifikat',
-        path: '/verify',
-        icon: 'shield',
-        isActive: location.pathname.startsWith('/verify'),
-      },
-      {
         label: 'Tentang Kami',
         sectionId: 'tentang',
         icon: 'book',
@@ -118,7 +157,7 @@ export const Navbar: React.FC<NavbarProps> = ({ minimal = false }) => {
     // 2. ADMINISTRATOR
     navItems = [
       {
-        label: 'Portal Admin',
+        label: 'Panel Admin',
         path: '/admin/dashboard',
         icon: 'monitor',
         isActive: location.pathname === '/admin/dashboard',
@@ -183,17 +222,11 @@ export const Navbar: React.FC<NavbarProps> = ({ minimal = false }) => {
         icon: 'award',
         isActive: location.pathname.startsWith('/certificates') || location.pathname === '/certificate',
       },
-      {
-        label: 'Verifikasi',
-        path: '/verify',
-        icon: 'shield',
-        isActive: location.pathname.startsWith('/verify'),
-      },
     ];
   }
 
   return (
-    <header className={`site-header ${isScrolled ? 'site-header--scrolled' : ''}`}>
+    <header className={`site-header ${isScrolled ? 'site-header--scrolled' : ''} ${!isVisible ? 'site-header--hidden' : ''}`}>
       <div className="site-header__inner">
         {/* Brand & Identitas Fakultas FIA Universitas Madura */}
         <Link
@@ -204,7 +237,7 @@ export const Navbar: React.FC<NavbarProps> = ({ minimal = false }) => {
             !isAuthenticated
               ? 'Ke beranda CAT Governance FIA Universitas Madura'
               : user?.role === 'admin'
-              ? 'Ke Dashboard Portal Admin FIA'
+              ? 'Ke Dashboard Admin FIA'
               : 'Ke Dashboard Peserta Ujian FIA'
           }
         >
@@ -222,9 +255,9 @@ export const Navbar: React.FC<NavbarProps> = ({ minimal = false }) => {
                 <span className="brand__faculty">FIA UNIVERSITAS MADURA</span>
                 <span className="brand__tag">
                   {user?.role === 'admin'
-                    ? 'Portal Administrator Sistem'
+                    ? 'Panel Administrator Sistem'
                     : isAuthenticated
-                    ? 'Portal Peserta Ujian Mandiri'
+                    ? 'Ruang Peserta Ujian Mandiri'
                     : 'Sistem Ujian CAT Mandiri'}
                 </span>
               </div>
@@ -236,7 +269,7 @@ export const Navbar: React.FC<NavbarProps> = ({ minimal = false }) => {
         {!minimal && (
           <nav
             className={`nav-links ${menuOpen ? 'open' : ''}`}
-            aria-label="Navigasi utama portal"
+            aria-label="Navigasi utama situs"
           >
             {navItems.map((item) => (
               <button
@@ -324,17 +357,17 @@ export const Navbar: React.FC<NavbarProps> = ({ minimal = false }) => {
                 type="button"
                 className="header-cta-btn hidden sm:inline-flex"
                 onClick={() => handleNav('/admin/dashboard')}
-                title="Buka Portal Administrator"
+                title="Buka Panel Administrator"
               >
                 <FigmaIcon name="shield" size={14} />
-                <span>Portal Admin</span>
+                <span>Panel Admin</span>
               </button>
 
               <button
                 type="button"
                 className="header-profile-btn"
                 onClick={() => handleNav('/admin/dashboard')}
-                title="Kelola Portal Administrator"
+                title="Kelola Panel Administrator"
               >
                 <div className="header-profile-avatar" aria-hidden="true">
                   {userInitial}

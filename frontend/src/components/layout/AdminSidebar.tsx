@@ -1,21 +1,16 @@
 import React from 'react';
-import { NavLink, Link } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import logoImg from '../../assets/cat-governance-logo.png';
 import {
   LayoutDashboard,
   Users,
-  FolderTree,
   FileText,
   HelpCircle,
-  Upload,
   Calendar,
   UserCheck,
   BarChart3,
   ShieldAlert,
-  Bell,
   Settings,
-  X,
-  ExternalLink,
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -68,26 +63,17 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose }) =
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed top-0 left-0 z-50 h-screen w-64 bg-[#352148] text-white flex flex-col transition-transform duration-200 lg:translate-x-0 ${
+        className={`fixed top-0 left-0 z-50 h-screen w-64 bg-[#352148] text-white flex flex-col transition-transform duration-300 ease-in-out shadow-2xl ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Brand Header */}
-        <div className="h-[80px] px-6 flex items-center justify-between border-b border-[#4d3363]">
-          <div className="flex items-center gap-3">
-            <img
-              src={logoImg}
-              alt="CAT GOVERNANCE Logo"
-              className="h-9 w-auto brightness-0 invert"
-            />
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1 text-gray-300 hover:text-white lg:hidden"
-            aria-label="Tutup menu"
-          >
-            <X className="w-5 h-5" />
-          </button>
+        <div className="h-[80px] px-6 flex items-center border-b border-[#4d3363]">
+          <img
+            src={logoImg}
+            alt="CAT GOVERNANCE Logo"
+            className="h-9 w-auto brightness-0 invert"
+          />
         </div>
 
         {/* Navigation Items */}
@@ -102,7 +88,11 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose }) =
                   <NavLink
                     key={item.path}
                     to={item.path}
-                    onClick={() => onClose()}
+                    onClick={() => {
+                      if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+                        onClose();
+                      }
+                    }}
                     className={({ isActive }) =>
                       `flex items-center gap-3 px-3 py-2.5 rounded-[6px] text-xs font-semibold tracking-wide transition ${
                         isActive
@@ -118,18 +108,6 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose }) =
               </div>
             </div>
           ))}
-        </div>
-
-        {/* Footer / Switch Portal Link */}
-        <div className="p-4 border-t border-[#4d3363]">
-          <Link
-            to="/"
-            onClick={() => onClose()}
-            className="flex items-center justify-between px-3 py-2 text-xs text-[#cfc3dc] hover:text-white hover:bg-[#4d3363] rounded-[6px] transition"
-          >
-            <span>Buka Portal Publik</span>
-            <ExternalLink className="w-3.5 h-3.5" />
-          </Link>
         </div>
       </aside>
     </>

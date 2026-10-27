@@ -42,7 +42,7 @@ interface ErrorAlertProps {
 }
 
 export const ErrorAlert: React.FC<ErrorAlertProps> = ({
-  title = 'Gagal Memuat Data',
+  title = 'Kendala Memuat Data',
   message,
   onRetry,
   className = '',

@@ -55,8 +55,8 @@ export const Footer: React.FC<FooterProps> = ({ minimal = false }) => {
             />
           </div>
           <p>
-            Platform Ujian Kompetensi Digital berbasis Computer Assisted Test (CAT)
-            Fakultas Ilmu Administrasi – Universitas Madura. Terstandar, objektif, dan transparan.
+            Sistem ujian kompetensi berbasis komputer Fakultas Ilmu Administrasi Universitas Madura
+            untuk pelaksanaan asesmen yang tertib, adil, dan transparan.
           </p>
           <div className="site-footer__address">
             <span>
@@ -72,7 +72,7 @@ export const Footer: React.FC<FooterProps> = ({ minimal = false }) => {
 
         {/* Kolom 2: Navigasi Ujian */}
         <div className="site-footer__col">
-          <h4>Navigasi Portal</h4>
+          <h4>Menu Utama</h4>
           <div className="site-footer__links">
             <button type="button" onClick={() => navigate('/')}>
               Beranda
@@ -85,9 +85,6 @@ export const Footer: React.FC<FooterProps> = ({ minimal = false }) => {
             </button>
             <button type="button" onClick={() => goSection('cara-kerja')}>
               Tahapan Asesmen
-            </button>
-            <button type="button" onClick={() => navigate('/verify')}>
-              Verifikasi Sertifikat
             </button>
           </div>
         </div>
@@ -118,7 +115,7 @@ export const Footer: React.FC<FooterProps> = ({ minimal = false }) => {
                 }
               }}
             >
-              Portal Administrator
+              Panel Administrator
             </button>
             <button type="button" onClick={() => goSection('bantuan')}>
               Pusat Informasi & FAQ
@@ -135,7 +132,7 @@ export const Footer: React.FC<FooterProps> = ({ minimal = false }) => {
       {/* Baris Bawah: Hak Cipta */}
       <div className="site-footer__bottom">
         <small>
-          © 2026 CAT GOVERNANCE — Fakultas Ilmu Administrasi, Universitas Madura. Seluruh hak cipta dilindungi undang-undang.
+          © 2026 CAT GOVERNANCE · Fakultas Ilmu Administrasi, Universitas Madura. Seluruh hak cipta dilindungi undang-undang.
         </small>
       </div>
     </footer>

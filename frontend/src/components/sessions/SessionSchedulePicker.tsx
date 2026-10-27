@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   Calendar,
   Clock,
@@ -11,6 +11,7 @@ import {
   formatWIBDate,
   getWIBDateString,
   addMinutesToTime,
+  addMinutesToWIBDateTime,
   calculateMinutesDuration,
 } from '../../utils/date';
 
@@ -23,10 +24,10 @@ export interface SessionSchedulePickerProps {
 }
 
 const COMMON_SESSIONS = [
-  { label: 'Sesi 1 (Pagi)', time: '08:00' },
-  { label: 'Sesi 2 (Pagi)', time: '10:00' },
-  { label: 'Sesi 3 (Siang)', time: '13:00' },
-  { label: 'Sesi 4 (Sore)', time: '15:30' },
+  { label: 'Sesi 1 (08:00)', time: '08:00' },
+  { label: 'Sesi 2 (10:00)', time: '10:00' },
+  { label: 'Sesi 3 (13:00)', time: '13:00' },
+  { label: 'Sesi 4 (15:30)', time: '15:30' },
 ];
 
 const COMMON_DURATIONS = [60, 90, 120, 180];
@@ -52,6 +53,10 @@ export const SessionSchedulePicker: React.FC<SessionSchedulePickerProps> = ({
   // Multi-day toggle state
   const [isMultiDay, setIsMultiDay] = useState(rawEndDate !== startDate);
   const endDate = isMultiDay ? rawEndDate : startDate;
+
+  useEffect(() => {
+    setIsMultiDay(rawEndDate !== startDate);
+  }, [rawEndDate, startDate]);
 
   // Calculate live duration in minutes
   const durationMinutes = useMemo(() => {
@@ -103,11 +108,18 @@ export const SessionSchedulePicker: React.FC<SessionSchedulePickerProps> = ({
   const handleStartTimeChange = (newStartTime: string) => {
     if (!newStartTime) return;
     // Keep current duration intact if it's already positive
-    let targetEndTime = endTime;
-    if (durationMinutes > 0 && !isMultiDay) {
-      targetEndTime = addMinutesToTime(newStartTime, durationMinutes);
+    if (durationMinutes > 0) {
+      const nextEndISO = addMinutesToWIBDateTime(`${startDate}T${newStartTime}`, durationMinutes);
+      if (nextEndISO) {
+        const nextEndDate = nextEndISO.slice(0, 10);
+        if (nextEndDate !== startDate && !isMultiDay) {
+          setIsMultiDay(true);
+        }
+        onChange(`${startDate}T${newStartTime}`, nextEndISO);
+        return;
+      }
     }
-    onChange(`${startDate}T${newStartTime}`, `${endDate}T${targetEndTime}`);
+    onChange(`${startDate}T${newStartTime}`, `${endDate}T${endTime}`);
   };
 
   // Handler: Change End Time
@@ -119,14 +131,24 @@ export const SessionSchedulePicker: React.FC<SessionSchedulePickerProps> = ({
   // Quick Preset: Click Sesi (08:00, 10:00, etc.)
   const handleSelectSessionPreset = (sessionTime: string) => {
     const desiredDuration = durationMinutes > 0 ? durationMinutes : (examDurationMinutes || 90);
-    const calculatedEndTime = addMinutesToTime(sessionTime, desiredDuration);
-    onChange(`${startDate}T${sessionTime}`, `${endDate}T${calculatedEndTime}`);
+    const nextEndISO = addMinutesToWIBDateTime(`${startDate}T${sessionTime}`, desiredDuration);
+    if (!nextEndISO) return;
+    const nextEndDate = nextEndISO.slice(0, 10);
+    if (nextEndDate !== startDate && !isMultiDay) {
+      setIsMultiDay(true);
+    }
+    onChange(`${startDate}T${sessionTime}`, nextEndISO);
   };
 
   // Quick Preset: Duration (+60m, +90m, or Sesuai Ujian)
   const handleApplyDuration = (minutes: number) => {
-    const calculatedEndTime = addMinutesToTime(startTime, minutes);
-    onChange(`${startDate}T${startTime}`, `${startDate}T${calculatedEndTime}`);
+    const nextEndISO = addMinutesToWIBDateTime(`${startDate}T${startTime}`, minutes);
+    if (!nextEndISO) return;
+    const nextEndDate = nextEndISO.slice(0, 10);
+    if (nextEndDate !== startDate && !isMultiDay) {
+      setIsMultiDay(true);
+    }
+    onChange(`${startDate}T${startTime}`, nextEndISO);
   };
 
   return (
@@ -139,10 +161,10 @@ export const SessionSchedulePicker: React.FC<SessionSchedulePickerProps> = ({
           </div>
           <div>
             <h4 className="text-xs font-bold text-[#24212b] uppercase tracking-wider">
-              Atur Jadwal & Waktu Akses Sesi
+              Waktu
             </h4>
             <p className="text-[11px] text-[#595562]">
-              Standar Waktu: <strong className="text-[#583682]">WIB (Asia/Jakarta, UTC+7)</strong> · Format 24 Jam
+              WIB (24 Jam)
             </p>
           </div>
         </div>
@@ -151,7 +173,7 @@ export const SessionSchedulePicker: React.FC<SessionSchedulePickerProps> = ({
         {isTimeValid && (
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#eae2f5] text-[#583682] text-xs font-bold self-start sm:self-auto">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>{durationMinutes} Menit Akses</span>
+            <span>{durationMinutes} Menit</span>
           </div>
         )}
       </div>
@@ -161,7 +183,7 @@ export const SessionSchedulePicker: React.FC<SessionSchedulePickerProps> = ({
         <div className="flex items-center justify-between flex-wrap gap-2">
           <label className="text-xs font-bold text-[#24212b] flex items-center gap-1.5">
             <Calendar className="w-3.5 h-3.5 text-[#583682]" />
-            <span>Tanggal Pelaksanaan Sesi (WIB)</span>
+            <span>Tanggal</span>
             <span className="text-[#b63b48]">*</span>
           </label>
 
@@ -224,9 +246,9 @@ export const SessionSchedulePicker: React.FC<SessionSchedulePickerProps> = ({
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <label className="text-xs font-bold text-[#24212b]">
-              Jam Mulai (WIB) <span className="text-[#b63b48]">*</span>
+              Mulai <span className="text-[#b63b48]">*</span>
             </label>
-            <span className="text-[10px] text-[#595562]">Format 24 Jam</span>
+            <span className="text-[10px] text-[#595562]">24 Jam</span>
           </div>
 
           <input
@@ -240,7 +262,7 @@ export const SessionSchedulePicker: React.FC<SessionSchedulePickerProps> = ({
           {/* Quick Session Presets */}
           <div className="space-y-1">
             <span className="text-[10px] font-semibold text-[#595562] uppercase tracking-wider block">
-              Pilih Sesi Ujian (1-Klik):
+              Sesi:
             </span>
             <div className="grid grid-cols-2 gap-1.5">
               {COMMON_SESSIONS.map((sess) => (
@@ -265,7 +287,7 @@ export const SessionSchedulePicker: React.FC<SessionSchedulePickerProps> = ({
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <label className="text-xs font-bold text-[#24212b]">
-              Jam Selesai (WIB) <span className="text-[#b63b48]">*</span>
+              Selesai <span className="text-[#b63b48]">*</span>
             </label>
             {isTimeValid && (
               <span className="text-[11px] font-bold text-[#583682]">
@@ -287,7 +309,7 @@ export const SessionSchedulePicker: React.FC<SessionSchedulePickerProps> = ({
           {/* Quick Duration Presets */}
           <div className="space-y-1">
             <span className="text-[10px] font-semibold text-[#595562] uppercase tracking-wider block">
-              Atur Cepat Durasi:
+              Durasi:
             </span>
             <div className="flex flex-wrap gap-1.5">
               {examDurationMinutes && examDurationMinutes > 0 ? (
@@ -302,7 +324,7 @@ export const SessionSchedulePicker: React.FC<SessionSchedulePickerProps> = ({
                   title="Sesuaikan durasi otomatis sesuai paket soal ujian"
                 >
                   <Zap className="w-3 h-3" />
-                  <span>Sesuai Ujian ({examDurationMinutes}m)</span>
+                  <span>Paket ({examDurationMinutes}m)</span>
                 </button>
               ) : null}
 
@@ -330,7 +352,7 @@ export const SessionSchedulePicker: React.FC<SessionSchedulePickerProps> = ({
         <div className="p-3 bg-[#fdf2f2] border border-[#f5c6cb] rounded-[6px] flex items-center gap-2.5 text-[#b63b48] text-xs">
           <AlertTriangle className="w-4 h-4 shrink-0" />
           <div>
-            <strong>Waktu Selesai Tidak Valid:</strong> Jam selesai ({endTime}) harus lebih lambat dari jam mulai ({startTime}) pada tanggal yang sama.
+            <strong>Jam selesai ({endTime}) harus setelah jam mulai ({startTime}).</strong>
           </div>
         </div>
       ) : (
@@ -345,7 +367,7 @@ export const SessionSchedulePicker: React.FC<SessionSchedulePickerProps> = ({
                 {isMultiDay && ` s.d. ${formattedEndDateLabel}`} · {startTime} – {endTime} WIB
               </div>
               <div className="text-[11px] text-[#595562] mt-0.5">
-                Total Jendela Pengerjaan:{' '}
+                Durasi:{' '}
                 <strong className="text-[#583682]">{durationMinutes} Menit</strong>
                 {durationMinutes >= 60 && (
                   <span>
@@ -357,7 +379,7 @@ export const SessionSchedulePicker: React.FC<SessionSchedulePickerProps> = ({
           </div>
 
           <div className="text-[11px] font-bold text-[#583682] bg-[#eae2f5] px-2.5 py-1 rounded self-start sm:self-auto uppercase tracking-wider">
-            WIB (UTC+7)
+            WIB
           </div>
         </div>
       )}
@@ -371,13 +393,13 @@ export const SessionSchedulePicker: React.FC<SessionSchedulePickerProps> = ({
             onChange={(e) => handleToggleMultiDay(e.target.checked)}
             className="rounded border-[#e6e1eb] text-[#583682] focus:ring-[#583682]"
           />
-          <span>Sesi berlangsung lintas hari (selesai di tanggal berbeda)</span>
+          <span>Lintas hari</span>
         </label>
 
         {isMultiDay && (
           <div className="mt-2.5 p-3 bg-white border border-[#e6e1eb] rounded-[6px] space-y-1.5 animate-fadeIn">
             <label className="text-xs font-bold text-[#24212b]">
-              Tanggal Selesai (WIB) <span className="text-[#b63b48]">*</span>
+              Selesai <span className="text-[#b63b48]">*</span>
             </label>
             <input
               type="date"
@@ -388,7 +410,7 @@ export const SessionSchedulePicker: React.FC<SessionSchedulePickerProps> = ({
               required
             />
             <p className="text-[11px] text-[#595562]">
-              Sesi akan ditutup pada: <strong>{formattedEndDateLabel} pukul {endTime} WIB</strong>
+              Tutup: <strong>{formattedEndDateLabel} {endTime} WIB</strong>
             </p>
           </div>
         )}

@@ -15,6 +15,7 @@ import {
   ArrowLeft,
   KeyRound,
   FileText,
+  Check,
 } from 'lucide-react';
 
 export const InstructionsPage: React.FC = () => {
@@ -69,10 +70,10 @@ export const InstructionsPage: React.FC = () => {
     };
 
     fetchSession();
-  }, [sessionId]);
+  }, [sessionId, examId]);
 
   const handleStartExam = async () => {
-    if (!session || !agreed) return;
+    if (!session || !agreed || starting) return;
 
     if (session.has_access_code && !accessCode.trim()) {
       setError('Kode akses (PIN) sesi ujian wajib diisi dari pengawas ruangan.');
@@ -192,21 +193,40 @@ export const InstructionsPage: React.FC = () => {
               type="text"
               value={accessCode}
               onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
-              placeholder="MASUKKAN PIN SESI"
+              placeholder="PIN sesi"
               className="w-full sm:w-72 px-3.5 py-2 rounded bg-white border border-[#e6e1eb] font-mono font-bold tracking-widest text-[#583682] uppercase text-sm focus:outline-none focus:ring-2 focus:ring-[#583682]"
             />
           </div>
         )}
         {/* Agreement Checkbox */}
         <div className="pt-4 border-t border-[#e6e1eb]">
-          <label className="flex items-center gap-3 cursor-pointer select-none py-1 group">
-            <input
-              type="checkbox"
-              checked={agreed}
-              onChange={(e) => setAgreed(e.target.checked)}
-              className="w-4 h-4 text-[#583682] rounded cursor-pointer accent-[#583682]"
-            />
-            <span className="text-xs text-[#24212b] font-medium group-hover:text-[#583682] transition-colors">
+          <label
+            htmlFor="agreed-rules"
+            className="inline-flex items-center gap-2.5 cursor-pointer select-none py-1 group"
+          >
+            <div className="relative flex items-center justify-center shrink-0">
+              <input
+                id="agreed-rules"
+                type="checkbox"
+                checked={agreed}
+                onChange={(e) => setAgreed(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div
+                className={`w-4 h-4 rounded-[4px] border transition-all flex items-center justify-center ${
+                  agreed
+                    ? 'bg-[#583682] border-[#583682] shadow-sm'
+                    : 'bg-white border-[#cfc6d7] group-hover:border-[#583682]'
+                } peer-focus-visible:ring-2 peer-focus-visible:ring-[#583682]/30`}
+              >
+                <Check
+                  className={`w-3 h-3 text-white stroke-[2.75] transition-all duration-150 ${
+                    agreed ? 'opacity-100 scale-100' : 'opacity-0 scale-75'
+                  }`}
+                />
+              </div>
+            </div>
+            <span className="text-xs text-[#24212b] font-medium group-hover:text-[#583682] transition-colors leading-relaxed">
               Saya telah membaca dan menyetujui seluruh tata tertib pelaksanaan ujian ini.
             </span>
           </label>

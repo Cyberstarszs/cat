@@ -18,7 +18,7 @@ import {
   HelpCircle,
   LogIn,
   ArrowRight,
-  Sparkles,
+  CalendarClock,
   Search,
 } from 'lucide-react';
 
@@ -122,7 +122,7 @@ export const ExplorePage: React.FC = () => {
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-6 border-b border-[#e6e1eb]">
         <div>
           <div className="eyebrow mb-1">
-            {isAuthenticated ? 'PORTAL JADWAL ASESMEN' : 'JADWAL UJIAN RESMI'}
+            {isAuthenticated ? 'JADWAL ASESMEN PESERTA' : 'JADWAL UJIAN RESMI'}
           </div>
           <h1 className="font-display font-bold text-3xl md:text-4xl text-[#24212b]">
             Jadwal Sesi Ujian Kompetensi
@@ -174,127 +174,112 @@ export const ExplorePage: React.FC = () => {
 
       {error && <ErrorAlert message={error} />}
 
-      {/* 2. Schedule Summary Metrics Grid */}
-      <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white border border-[#e6e1eb] rounded-[8px] p-5 flex items-center gap-4 shadow-sm">
-          <BookOpen className="w-8 h-8 text-[#583682]" />
-          <div>
-            <div className="font-display font-bold text-2xl text-[#24212b]">
-              {publicSessions.length}
-            </div>
-            <div className="text-xs text-[#595562] font-semibold">Total Sesi Terbuka</div>
-          </div>
-        </div>
-
-        <div className="bg-white border border-[#e6e1eb] rounded-[8px] p-5 flex items-center gap-4 shadow-sm">
-          <Calendar className="w-8 h-8 text-[#583682]" />
-          <div>
-            <div className="font-display font-bold text-2xl text-[#24212b]">
-              {publicSessions.filter((s) => (s.status || s.session_status) === 'active').length}
-            </div>
-            <div className="text-xs text-[#595562] font-semibold">Sesi Berlangsung</div>
-          </div>
-        </div>
-
-        <div className="bg-white border border-[#e6e1eb] rounded-[8px] p-5 flex items-center gap-4 shadow-sm">
-          <Clock className="w-8 h-8 text-[#583682]" />
-          <div>
-            <div className="font-display font-bold text-2xl text-[#24212b]">
-              {nearestSession?.duration_minutes || 90}
-            </div>
-            <div className="text-xs text-[#595562] font-semibold">Durasi Menit</div>
-          </div>
-        </div>
-
-        <div className="bg-white border border-[#e6e1eb] rounded-[8px] p-5 flex items-center gap-4 shadow-sm">
-          <Shield className="w-8 h-8 text-[#583682]" />
-          <div>
-            <div className="font-display font-bold text-2xl text-[#24212b]">
-              {Math.round(Number(nearestSession?.passing_score) || 70)}
-            </div>
-            <div className="text-xs text-[#595562] font-semibold">Ambang Batas</div>
-          </div>
-        </div>
-      </section>
-
-      {/* 3. Nearest Enrolled / Upcoming Session Highlight Banner */}
+      {/* 2. Upgraded Executive Featured Nearest Session Hero Banner */}
       {nearestSession && (
-        <section className="bg-white border border-[#e6e1eb] border-l-4 border-l-[#583682] rounded-[8px] p-6 md:p-8 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="flex items-start gap-5">
-            <span className="font-display font-bold text-3xl text-gray-300">01</span>
-            <div className="space-y-1">
-              <div className="eyebrow text-xs flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-[#583682]" />
-                SESI UJIAN TERDEKAT
+        <section className="relative overflow-hidden rounded-[10px] bg-gradient-to-br from-[#1b1126] via-[#2f174a] to-[#583682] text-white p-6 md:p-8 shadow-lg border border-[#4d2876]">
+          {/* Subtle concentric circles watermark */}
+          <div className="absolute -right-12 -bottom-24 w-80 h-80 rounded-full border border-white/10 pointer-events-none" />
+          <div className="absolute right-12 -bottom-8 w-44 h-44 rounded-full border border-white/10 pointer-events-none" />
+          <div className="absolute -left-12 -top-12 w-40 h-40 rounded-full border border-white/5 pointer-events-none" />
+
+          <div className="relative z-10 flex flex-col gap-6">
+            <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-5">
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase bg-white/15 text-[#e5d4f7] border border-white/15 backdrop-blur-xs">
+                    <CalendarClock className="w-3.5 h-3.5 text-[#e5d4f7]" />
+                    SESI UJIAN TERDEKAT
+                  </span>
+                  <Badge
+                    variant={
+                      (nearestSession.status || nearestSession.session_status) === 'active'
+                        ? 'success'
+                        : (nearestSession.status || nearestSession.session_status) === 'completed'
+                        ? 'neutral'
+                        : 'purple'
+                    }
+                  >
+                    {(nearestSession.status || nearestSession.session_status) === 'active'
+                      ? 'Sedang Berlangsung'
+                      : (nearestSession.status || nearestSession.session_status) === 'completed'
+                      ? 'Selesai'
+                      : 'Akan Datang'}
+                  </Badge>
+                </div>
+
+                <h2 className="font-display font-bold text-2xl md:text-3xl text-white tracking-tight pt-1">
+                  {nearestSession.name || nearestSession.exam_title || nearestSession.session_name}
+                </h2>
+
+                <p className="text-xs text-[#cfc2de] flex flex-wrap items-center gap-2 pt-0.5">
+                  <span>Kode Sesi:</span>
+                  <span className="font-mono font-bold bg-white/15 text-white px-2 py-0.5 rounded text-xs">
+                    {nearestSession.code || nearestSession.session_code}
+                  </span>
+                  <span>·</span>
+                  <span>FIA Universitas Madura</span>
+                </p>
               </div>
-              <h2 className="font-display font-bold text-xl md:text-2xl text-[#24212b]">
-                {nearestSession.name || nearestSession.exam_title || nearestSession.session_name}
-              </h2>
-              <p className="text-xs text-[#595562]">
-                Kode Sesi:{' '}
-                <strong className="text-[#583682] font-mono">
-                  {nearestSession.code || nearestSession.session_code}
-                </strong>{' '}
-                · FIA Universitas Madura
-              </p>
-              <div className="flex flex-wrap items-center gap-4 pt-2 text-xs text-[#595562]">
-                <span className="flex items-center gap-1.5">
-                  <Calendar className="w-4 h-4 text-[#583682]" />
-                  <b>{formatWIBDate(nearestSession.starts_at)}</b>
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <Clock className="w-4 h-4 text-[#583682]" />
-                  <b>{formatWIBTimeRange(nearestSession.starts_at, nearestSession.ends_at)}</b>
-                </span>
+
+              <div className="shrink-0 flex items-center lg:self-center">
+                <button
+                  type="button"
+                  onClick={() => handleActionClick(nearestSession)}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white text-[#43206c] hover:bg-[#faf7fd] hover:shadow-lg active:scale-[0.98] transition font-bold text-xs md:text-sm px-6 py-3 rounded-[6px] cursor-pointer shadow-md"
+                >
+                  <span>
+                    {nearestSession.session_status === 'completed'
+                      ? 'Lihat Hasil Ujian'
+                      : nearestSession.attempt_status === 'in_progress'
+                      ? 'Lanjutkan Ujian'
+                      : 'Ikuti Ujian Sekarang'}
+                  </span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
               </div>
             </div>
-          </div>
 
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-4 bg-[#faf9fc] p-3 rounded border border-[#e6e1eb] text-xs">
-              <div>
-                <div className="text-[10px] text-[#595562] font-bold uppercase">DURASI</div>
-                <div className="font-bold text-[#24212b]">
+            {/* Structured Specifications Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-white/15">
+              <div className="bg-white/10 border border-white/15 rounded-[8px] p-3.5 backdrop-blur-xs">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-[#d1bfeb] flex items-center gap-1.5 mb-1">
+                  <Calendar className="w-3.5 h-3.5" />
+                  JADWAL PELAKSANAAN
+                </div>
+                <div className="text-xs font-bold text-white">
+                  {formatWIBDate(nearestSession.starts_at)}
+                </div>
+                <div className="text-[11px] text-[#e0d3f2]">
+                  {formatWIBTimeRange(nearestSession.starts_at, nearestSession.ends_at)}
+                </div>
+              </div>
+
+              <div className="bg-white/10 border border-white/15 rounded-[8px] p-3.5 backdrop-blur-xs">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-[#d1bfeb] flex items-center gap-1.5 mb-1">
+                  <Clock className="w-3.5 h-3.5" />
+                  DURASI PENGERJAAN
+                </div>
+                <div className="text-xs font-bold text-white">
                   {nearestSession.duration_minutes || 90} Menit
                 </div>
-              </div>
-              <div className="border-l border-[#e6e1eb] pl-4">
-                <div className="text-[10px] text-[#595562] font-bold uppercase">AMBANG BATAS</div>
-                <div className="font-bold text-[#24212b]">
-                  {Math.round(Number(nearestSession.passing_score) || 70)} / 100
+                <div className="text-[11px] text-[#e0d3f2]">
+                  Waktu berjalan otomatis
                 </div>
               </div>
-              <div className="border-l border-[#e6e1eb] pl-4">
-                <Badge
-                  variant={
-                    (nearestSession.status || nearestSession.session_status) === 'active'
-                      ? 'success'
-                      : (nearestSession.status || nearestSession.session_status) === 'completed'
-                      ? 'neutral'
-                      : 'purple'
-                  }
-                >
-                  {(nearestSession.status || nearestSession.session_status) === 'active'
-                    ? 'Sedang Berlangsung'
-                    : (nearestSession.status || nearestSession.session_status) === 'completed'
-                    ? 'Selesai'
-                    : 'Akan Datang'}
-                </Badge>
+
+              <div className="bg-white/10 border border-white/15 rounded-[8px] p-3.5 backdrop-blur-xs">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-[#d1bfeb] flex items-center gap-1.5 mb-1">
+                  <Shield className="w-3.5 h-3.5" />
+                  AMBANG BATAS KELULUSAN
+                </div>
+                <div className="text-xs font-bold text-white">
+                  {Math.round(Number(nearestSession.passing_score) || 70)} / 100
+                </div>
+                <div className="text-[11px] text-[#e0d3f2]">
+                  Standar kelulusan kompetensi
+                </div>
               </div>
             </div>
-
-            <Button
-              variant="primary"
-              onClick={() => handleActionClick(nearestSession)}
-              rightIcon={<ArrowRight className="w-4 h-4" />}
-              className="text-xs h-9 px-5"
-            >
-              {nearestSession.session_status === 'completed'
-                ? 'Lihat Hasil'
-                : nearestSession.attempt_status === 'in_progress'
-                ? 'Lanjutkan Ujian'
-                : 'Ikuti Ujian'}
-            </Button>
           </div>
         </section>
       )}
@@ -312,7 +297,7 @@ export const ExplorePage: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <div className="w-full sm:w-64">
               <Input
-                placeholder="Cari ujian atau kode…"
+                placeholder="Cari ujian"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 leftIcon={<Search className="w-4 h-4 text-gray-400" />}
@@ -417,10 +402,6 @@ export const ExplorePage: React.FC = () => {
                         <Clock className="w-3.5 h-3.5 text-[#583682]" />
                         <b>{sess.duration_minutes || 90} menit</b>
                       </span>
-                      <span>
-                        <Shield className="w-3.5 h-3.5 text-[#583682]" />
-                        <b>Batas: {Math.round(Number(sess.passing_score) || 70)}</b>
-                      </span>
                     </div>
 
                     <div className="course-exam-card__schedule">
@@ -481,7 +462,7 @@ export const ExplorePage: React.FC = () => {
             'Koneksi internet stabil selama asesmen.',
             'Masuk 15 menit sebelum waktu sesi dimulai.',
             'Pastikan daya baterai terisi penuh.',
-            'Pahami tata tertib dan sanksi kecurangan.',
+            'Pahami tata tertib dan panduan pelaksanaan ujian.',
           ].map((item, index) => (
             <li
               key={index}
@@ -506,7 +487,7 @@ export const ExplorePage: React.FC = () => {
           <ol className="list-decimal pl-5 space-y-2 leading-relaxed">
             <li>Peserta wajib masuk menggunakan akun terdaftar (NIM atau Email resmi).</li>
             <li>Ujian dilaksanakan secara mandiri, objektif, dan jujur sesuai durasi waktu.</li>
-            <li>Jawaban otomatis terkunci dan tersimpan saat waktu hitung mundur habis.</li>
+            <li>Jawaban tersimpan otomatis saat batas waktu pengerjaan berakhir.</li>
             <li>Apabila terjadi kendala teknis, segera hubungi pengawas atau admin lab.</li>
           </ol>
           <div className="pt-4 border-t border-[#e6e1eb] flex justify-end">

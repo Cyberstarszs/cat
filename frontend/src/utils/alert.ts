@@ -1,4 +1,5 @@
 import Swal, { SweetAlertOptions } from 'sweetalert2';
+import { dispatchToast } from '../context/ToastContext';
 
 // Base customized SweetAlert2 theme matching CAT Governance (FIA UNIRA Theme)
 const customSwal = Swal.mixin({
@@ -163,28 +164,23 @@ export const alert = {
   },
 
   /**
-   * Toast Notifikasi Mengambang (Pojok Kanan Atas)
+   * Toast Notifikasi Mengambang Terpadu (Pojok Kanan Atas)
    */
   toast(title: string, icon: 'success' | 'error' | 'warning' | 'info' = 'success'): void {
-    const Toast = Swal.mixin({
-      toast: true,
-      position: 'top-end',
-      showConfirmButton: false,
-      timer: 3000,
-      timerProgressBar: true,
-      didOpen: (toast) => {
-        toast.onmouseenter = Swal.stopTimer;
-        toast.onmouseleave = Swal.resumeTimer;
-      },
-      customClass: {
-        popup: 'rounded-lg border border-[#e6e1eb] bg-white shadow-lg px-4 py-2.5 text-xs font-semibold text-[#24212b]',
-      },
-    });
-
-    Toast.fire({
-      icon,
-      title,
-    });
+    const handled = dispatchToast(title, icon);
+    if (!handled) {
+      const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3500,
+        timerProgressBar: true,
+        customClass: {
+          popup: 'rounded-xl border border-[#e6e1eb] bg-white shadow-lg px-4 py-3 text-xs font-semibold text-[#24212b]',
+        },
+      });
+      Toast.fire({ icon, title });
+    }
   },
 };
 

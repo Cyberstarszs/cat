@@ -10,7 +10,8 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ label, error, helperText, leftIcon, rightIcon, className = '', id, ...props }, ref) => {
-    const inputId = id || props.name || Math.random().toString(36).substring(7);
+    const reactId = React.useId();
+    const inputId = id || props.name || reactId;
 
     // Padding yang aman dan terisolasi agar icon dan teks tidak pernah bertabrakan
     const paddingLeftClass = leftIcon ? '!pl-11' : 'pl-3.5';
@@ -34,7 +35,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             id={inputId}
             className={`w-full min-h-[46px] py-2.5 bg-white border ${
-              error ? 'border-[#b63b48] ring-1 ring-[#b63b48]' : 'border-[#e6e1eb] focus:border-[#583682]'
+              error ? 'border-[#b63b48] ring-1 ring-[#b63b48]' : 'border-[#e6e1eb] focus:border-[#583682] focus:ring-2 focus:ring-[#583682]/15'
             } rounded-[6px] text-sm text-[#24212b] placeholder-gray-400 outline-none transition duration-150 ${paddingLeftClass} ${paddingRightClass} ${className}`}
             {...props}
           />

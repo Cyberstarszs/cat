@@ -61,11 +61,11 @@ export const AdminSettingsPage: React.FC = () => {
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword.length < 4) {
-      showToast('Kata sandi baru minimal 4 karakter.', 'error');
+      showToast('Kata sandi baru minimal 4 karakter.', 'warning');
       return;
     }
     if (newPassword !== confirmPassword) {
-      showToast('Konfirmasi kata sandi baru tidak cocok.', 'error');
+      showToast('Konfirmasi kata sandi baru tidak sesuai.', 'warning');
       return;
     }
 
@@ -299,7 +299,7 @@ export const AdminSettingsPage: React.FC = () => {
                 required
                 value={oldPassword}
                 onChange={(e) => setOldPassword(e.target.value)}
-                placeholder="Masukkan kata sandi lama"
+                placeholder="Kata sandi lama"
               />
 
               <Input
@@ -308,7 +308,7 @@ export const AdminSettingsPage: React.FC = () => {
                 required
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Minimal 4 karakter"
+                placeholder="Kata sandi baru"
               />
 
               <Input
@@ -317,7 +317,7 @@ export const AdminSettingsPage: React.FC = () => {
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Ulangi kata sandi baru"
+                placeholder="Konfirmasi kata sandi"
               />
 
               <div className="pt-2">

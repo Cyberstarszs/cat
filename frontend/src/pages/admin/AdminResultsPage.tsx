@@ -16,7 +16,6 @@ import {
   CheckCircle2,
   XCircle,
   HelpCircle,
-  Send,
   Search,
   Filter,
   Check,
@@ -47,9 +46,6 @@ export const AdminResultsPage: React.FC = () => {
   const [adminNotes, setAdminNotes] = useState('');
   const [resolving, setResolving] = useState(false);
 
-  // Bulk publish
-  const [publishing, setPublishing] = useState(false);
-
   // Detail Transkrip Modal
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedResultDetail, setSelectedResultDetail] = useState<ResultDetail | null>(null);
@@ -78,50 +74,6 @@ export const AdminResultsPage: React.FC = () => {
   useEffect(() => {
     fetchData();
   }, [selectedSessionFilter]);
-
-  const handlePublishSingle = async (resultId: string) => {
-    const confirmed = await alert.confirm({
-      title: 'Publikasikan Nilai Peserta?',
-      text: 'Nilai dan transkrip ujian akan resmi diterbitkan dan dapat langsung diakses oleh peserta di dashboard mereka.',
-      confirmButtonText: 'Ya, Publikasikan',
-      icon: 'question',
-    });
-    if (!confirmed) return;
-
-    try {
-      await resultService.publishResult(resultId);
-      alert.toast('Hasil penilaian berhasil dipublikasikan!', 'success');
-      fetchData();
-    } catch (err: any) {
-      alert.error('Gagal Mempublikasikan Hasil', err?.response?.data?.message || err.message);
-    }
-  };
-
-  const handleBulkPublishSession = async () => {
-    if (!selectedSessionFilter) {
-      alert.warning('Pilih Sesi Terlebih Dahulu', 'Pilih filter sesi ujian untuk mempublikasikan seluruh nilai peserta sekaligus.');
-      return;
-    }
-    const sessionObj = sessions.find((s) => s.id === selectedSessionFilter);
-    const confirmed = await alert.confirm({
-      title: 'Publikasikan Semua Nilai Sesi?',
-      text: `Apakah Anda yakin ingin mempublikasikan nilai untuk semua peserta pada sesi "${sessionObj?.name || 'Sesi Terpilih'}"? Seluruh peserta ujian akan dapat langsung melihat skor akhir mereka.`,
-      confirmButtonText: 'Ya, Publikasikan Semua',
-      icon: 'question',
-    });
-    if (!confirmed) return;
-
-    setPublishing(true);
-    try {
-      await resultService.publishSessionResults(selectedSessionFilter);
-      alert.success('Nilai Sesi Berhasil Dipublikasikan!', 'Seluruh hasil ujian pada sesi ini telah resmi dirilis ke peserta.');
-      fetchData();
-    } catch (err: any) {
-      alert.error('Gagal Mempublikasikan Hasil Sesi', err?.response?.data?.message || err.message);
-    } finally {
-      setPublishing(false);
-    }
-  };
 
   const openResolveAppealModal = (appeal: Appeal) => {
     setActiveAppeal(appeal);
@@ -190,8 +142,8 @@ export const AdminResultsPage: React.FC = () => {
       a.download = `Sertifikat_${(studentName || 'Peserta').replace(/\s+/g, '_')}.pdf`;
       document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
       showToast('Sertifikat kelulusan berhasil diunduh!', 'success');
     } catch (err: any) {
       showToast(err.message || 'Gagal mengunduh sertifikat.', 'error');
@@ -209,8 +161,8 @@ export const AdminResultsPage: React.FC = () => {
       a.download = `Rekap_Nilai_Sesi_${selectedSessionFilter.slice(0, 8)}.csv`;
       document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
       showToast('Rekap nilai sesi berhasil diekspor ke format CSV!', 'success');
     } catch (err: any) {
       showToast(err.message || 'Gagal mengekspor CSV rekap sesi.', 'error');
@@ -228,21 +180,9 @@ export const AdminResultsPage: React.FC = () => {
             Hasil Ujian & Sanggahan
           </h1>
           <p className="text-xs text-[#595562] mt-0.5">
-            Kelola publikasi nilai peserta dan tindak lanjuti sanggahan.
+            Pantau pencapaian nilai peserta berdasarkan ambang batas kelulusan dan tindak lanjuti sanggahan.
           </p>
         </div>
-
-        {selectedSessionFilter && activeTab === 'results' && (
-          <Button
-            variant="primary"
-            onClick={handleBulkPublishSession}
-            isLoading={publishing}
-            leftIcon={<Send className="w-4 h-4" />}
-            className="text-xs bg-[#287a58] border-[#287a58] hover:bg-[#206346]"
-          >
-            Publikasikan Nilai Sesi
-          </Button>
-        )}
       </div>
 
       {error && <ErrorAlert message={error} onRetry={fetchData} />}
@@ -296,7 +236,7 @@ export const AdminResultsPage: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-center gap-4">
             <div className="w-full sm:w-72">
               <Input
-                placeholder="Cari nama atau NIM..."
+                placeholder="Cari peserta"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 leftIcon={<Search className="w-4 h-4 text-gray-400" />}
@@ -350,12 +290,11 @@ export const AdminResultsPage: React.FC = () => {
                 <table className="w-full text-left text-xs">
                   <thead className="bg-[#faf9fc] border-b border-[#e6e1eb] text-[#595562] uppercase tracking-wider font-bold">
                     <tr>
-                      <th className="px-6 py-3.5">NIM</th>
+                      <th className="px-6 py-3.5">NIM / No. Peserta</th>
                       <th className="px-6 py-3.5">Nama Peserta</th>
                       <th className="px-6 py-3.5">Ujian / Sesi</th>
                       <th className="px-6 py-3.5">Skor Akhir</th>
                       <th className="px-6 py-3.5">Kelulusan</th>
-                      <th className="px-6 py-3.5">Status</th>
                       <th className="px-6 py-3.5 text-right">Aksi</th>
                     </tr>
                   </thead>
@@ -378,11 +317,6 @@ export const AdminResultsPage: React.FC = () => {
                         <td className="px-6 py-4">
                           <Badge variant={r.passed ? 'success' : 'danger'}>
                             {r.passed ? 'LULUS' : 'TIDAK LULUS'}
-                          </Badge>
-                        </td>
-                        <td className="px-6 py-4">
-                          <Badge variant={r.status === 'published' ? 'success' : 'neutral'}>
-                            {r.status === 'published' ? 'TERBIT' : 'DRAFT'}
                           </Badge>
                         </td>
                         <td className="px-6 py-4 text-right">
@@ -408,18 +342,6 @@ export const AdminResultsPage: React.FC = () => {
                               >
                                 <Download className="w-4 h-4" />
                               </button>
-                            )}
-
-                            {r.status !== 'published' ? (
-                              <Button
-                                variant="secondary"
-                                className="text-[11px] min-h-[30px] px-2.5"
-                                onClick={() => handlePublishSingle(r.id)}
-                              >
-                                Terbitkan
-                              </Button>
-                            ) : (
-                              <span className="text-[11px] text-[#287a58] font-bold px-1.5">Terbit</span>
                             )}
                           </div>
                         </td>
@@ -528,8 +450,19 @@ export const AdminResultsPage: React.FC = () => {
         onClose={() => setResolveModalOpen(false)}
         title="Tanggapi Sanggahan Nilai"
         description={`Peserta: ${activeAppeal?.student_name || activeAppeal?.full_name || '-'} (${activeAppeal?.identifier || '-'})`}
+        maxWidth="lg"
+        footer={
+          <div className="flex items-center justify-end gap-2 w-full">
+            <Button type="button" variant="ghost" onClick={() => setResolveModalOpen(false)} className="text-xs">
+              Batal
+            </Button>
+            <Button type="submit" form="resolve-appeal-form" variant="primary" isLoading={resolving} className="text-xs">
+              Simpan Keputusan
+            </Button>
+          </div>
+        }
       >
-        <form onSubmit={handleResolveAppeal} className="space-y-4">
+        <form id="resolve-appeal-form" onSubmit={handleResolveAppeal} className="space-y-4">
           <div className="p-3 bg-[#faf9fc] rounded border border-[#e6e1eb] text-xs">
             <strong className="text-[#24212b] block mb-1">Alasan Peserta:</strong>
             <p className="text-[#595562] italic leading-relaxed">{activeAppeal?.reason || activeAppeal?.message || '-'}</p>
@@ -585,18 +518,9 @@ export const AdminResultsPage: React.FC = () => {
               required
               value={adminNotes}
               onChange={(e) => setAdminNotes(e.target.value)}
-              placeholder="Tuliskan catatan atau pertimbangan keputusan..."
+              placeholder="Catatan pertimbangan"
               className="w-full p-3 bg-white border border-[#e6e1eb] rounded text-xs text-[#24212b] outline-none focus:border-[#583682]"
             />
-          </div>
-
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#e6e1eb]">
-            <Button type="button" variant="ghost" onClick={() => setResolveModalOpen(false)}>
-              Batal
-            </Button>
-            <Button type="submit" variant="primary" isLoading={resolving}>
-              Simpan Keputusan
-            </Button>
           </div>
         </form>
       </Modal>
@@ -610,6 +534,7 @@ export const AdminResultsPage: React.FC = () => {
         }}
         title="Transkrip Lembar Jawaban"
         description={`Peserta: ${selectedResultDetail?.student_name || selectedResultDetail?.full_name || '-'} (${selectedResultDetail?.identifier || '-'})`}
+        maxWidth="3xl"
         footer={
           <div className="flex items-center justify-end w-full">
             <Button
@@ -656,11 +581,6 @@ export const AdminResultsPage: React.FC = () => {
                 <Badge variant={selectedResultDetail.passed ? 'success' : 'danger'}>
                   {selectedResultDetail.passed ? 'LULUS' : 'TIDAK LULUS'}
                 </Badge>
-                <div className="mt-1">
-                  <Badge variant={selectedResultDetail.status === 'published' ? 'success' : 'neutral'} className="text-[10px]">
-                    {selectedResultDetail.status === 'published' ? 'TERBIT' : 'DRAFT'}
-                  </Badge>
-                </div>
               </div>
             </div>
 

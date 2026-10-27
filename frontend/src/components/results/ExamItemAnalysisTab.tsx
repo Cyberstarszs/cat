@@ -91,10 +91,11 @@ export const ExamItemAnalysisTab: React.FC = () => {
       return false;
     }
 
-    if (filterDiscrimination === 'good' && item.discrimination_index < 0.3) {
+    const disc = Number(item.discrimination_index ?? 0);
+    if (filterDiscrimination === 'good' && disc < 0.3) {
       return false;
     }
-    if (filterDiscrimination === 'poor' && item.discrimination_index >= 0.2) {
+    if (filterDiscrimination === 'poor' && disc >= 0.2) {
       return false;
     }
 
@@ -199,7 +200,7 @@ export const ExamItemAnalysisTab: React.FC = () => {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Cari kode soal atau teks soal..."
+            placeholder="Cari soal"
             className="w-full !pl-10 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:border-[#583682]"
           />
         </div>

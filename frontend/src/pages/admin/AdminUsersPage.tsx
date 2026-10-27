@@ -201,7 +201,7 @@ export const AdminUsersPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row items-center gap-4">
         <div className="w-full sm:w-80">
           <Input
-            placeholder="Cari email atau peran..."
+            placeholder="Cari pengguna"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             leftIcon={<Search className="w-4 h-4 text-gray-400" />}
@@ -346,9 +346,28 @@ export const AdminUsersPage: React.FC = () => {
           setNewAdminEmail('');
         }}
         title="Tambah Admin Baru"
-        description="Buat akun administrator baru untuk sistem."
+        description="Buat akun administrator baru untuk sistem CAT."
+        maxWidth="md"
+        footer={
+          <div className="flex items-center justify-end gap-2 w-full">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setAddAdminModalOpen(false);
+                setNewAdminEmail('');
+              }}
+              className="text-xs"
+            >
+              Batal
+            </Button>
+            <Button type="submit" form="add-admin-form" variant="primary" isLoading={creatingAdmin} className="text-xs">
+              Simpan Akun
+            </Button>
+          </div>
+        }
       >
-        <form onSubmit={handleCreateAdmin} className="space-y-4">
+        <form id="add-admin-form" onSubmit={handleCreateAdmin} className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-[#24212b] mb-1">
               Email Administrator <span className="text-[#b63b48]">*</span>
@@ -358,24 +377,9 @@ export const AdminUsersPage: React.FC = () => {
               required
               value={newAdminEmail}
               onChange={(e) => setNewAdminEmail(e.target.value)}
-              placeholder="admin@example.com"
+              placeholder="admin@fia.kampus.ac.id"
+              helperText="Kata sandi sementara akan di-generate otomatis dan ditampilkan setelah akun dibuat."
             />
-          </div>
-
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#e6e1eb]">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => {
-                setAddAdminModalOpen(false);
-                setNewAdminEmail('');
-              }}
-            >
-              Batal
-            </Button>
-            <Button type="submit" variant="primary" isLoading={creatingAdmin}>
-              Simpan Akun
-            </Button>
           </div>
         </form>
       </Modal>

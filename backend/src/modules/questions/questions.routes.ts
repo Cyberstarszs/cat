@@ -377,6 +377,66 @@ export const questionRoutes: FastifyPluginAsync = async (fastify: FastifyInstanc
     return reply.send({ success: true, question: rows[0] });
   });
 
+  // DELETE /questions/bulk (Hapus Massal Butir Soal Terpilih)
+  fastify.delete('/questions/bulk', async (request, reply) => {
+    const { ids } = (request.body || {}) as { ids?: string[] };
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      throw new AppError('VALIDATION_FAILED', 'Daftar ID butir soal wajib diisi.');
+    }
+
+    const { rows } = await pool.query(
+      `UPDATE questions 
+       SET deleted_at = now() 
+       WHERE id = ANY($1::uuid[]) AND deleted_at IS NULL 
+       RETURNING id, category_id, year;`,
+      [ids]
+    );
+
+    if (rows.length > 0) {
+      await logAudit({
+        actorId: request.user!.id,
+        actorRole: 'admin',
+        action: 'questions.bulk_delete',
+        entityType: 'questions',
+        entityId: `bulk_${rows.length}`,
+        beforeData: { count: rows.length, ids: rows.map((r: any) => r.id) },
+        ipAddress: request.ip,
+      });
+    }
+
+    return reply.send({ success: true, count: rows.length, message: `${rows.length} butir soal berhasil dihapus.` });
+  });
+
+  // DELETE /questions/year/:year (Hapus Seluruh Soal pada Tahun Tertentu)
+  fastify.delete('/questions/year/:year', async (request, reply) => {
+    const year = parseInt((request.params as any).year, 10);
+    if (isNaN(year)) {
+      throw new AppError('VALIDATION_FAILED', 'Tahun tidak valid.');
+    }
+
+    const { rows } = await pool.query(
+      `UPDATE questions 
+       SET deleted_at = now() 
+       WHERE year = $1 AND deleted_at IS NULL 
+       RETURNING id, category_id, year;`,
+      [year]
+    );
+
+    if (rows.length > 0) {
+      await logAudit({
+        actorId: request.user!.id,
+        actorRole: 'admin',
+        action: 'questions.year_delete',
+        entityType: 'questions',
+        entityId: `year_${year}`,
+        beforeData: { year, count: rows.length },
+        ipAddress: request.ip,
+      });
+    }
+
+    return reply.send({ success: true, count: rows.length, message: `Seluruh butir soal tahun ${year} (${rows.length} butir) berhasil dihapus.` });
+  });
+
   fastify.delete('/questions/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
 

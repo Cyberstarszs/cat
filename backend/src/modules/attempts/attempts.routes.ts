@@ -232,6 +232,7 @@ export const attemptRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
       const { rows } = await pool.query(
         `SELECT 
           a.*,
+          r.id AS result_id,
           se.student_id,
           sp.identifier, sp.full_name, sp.institution, u.email,
           s.id AS session_id, s.name AS session_name, s.code AS session_code,
@@ -242,6 +243,7 @@ export const attemptRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
          JOIN users u ON u.id = sp.user_id
          JOIN exam_sessions s ON s.id = se.session_id
          JOIN exams e ON e.id = s.exam_id
+         LEFT JOIN results r ON r.attempt_id = a.id
          WHERE a.id = $1;`,
         [id]
       );
@@ -260,6 +262,7 @@ export const attemptRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
           return reply.send({
             attempt: {
               id: att.id,
+              result_id: att.result_id,
               session_id: att.session_id,
               exam_title: att.exam_title,
               status: att.status,

@@ -118,10 +118,13 @@ apiClient.interceptors.response.use(
       }
     }
 
+    const data = error.response?.data as any;
     const message =
-      error.response?.data?.error?.message ||
+      data?.message ||
+      data?.error?.message ||
+      (typeof data?.error === 'string' ? data.error : null) ||
       error.message ||
-      'Terjadi kesalahan saat berkomunikasi dengan server.';
+      'Terjadi kendala saat berkomunikasi dengan server.';
 
     const customError = new Error(message) as any;
     customError.status = error.response?.status;

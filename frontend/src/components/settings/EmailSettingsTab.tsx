@@ -129,9 +129,9 @@ export const EmailSettingsTab: React.FC = () => {
     e.preventDefault();
     setSaving(true);
     try {
-      // Don't send masked password if unchanged
+      // Don't send masked password if unchanged or blank
       const payload = { ...form };
-      if (payload.pass === '••••••••') {
+      if (payload.pass === '••••••••' || !payload.pass || !payload.pass.trim()) {
         delete payload.pass;
       }
       const updated = await settingsService.updateSmtpSettings(payload);
@@ -278,7 +278,7 @@ export const EmailSettingsTab: React.FC = () => {
                 name="host"
                 value={form.host}
                 onChange={handleChange}
-                placeholder="misal: smtp.unira.ac.id atau mail.unira.ac.id"
+                placeholder="smtp.example.com"
                 helperText="Domain server email internal kampus atau relay mail provider."
                 required={form.enabled}
               />
@@ -304,7 +304,7 @@ export const EmailSettingsTab: React.FC = () => {
                 name="user"
                 value={form.user}
                 onChange={handleChange}
-                placeholder="ujian.fia@unira.ac.id"
+                placeholder="Username SMTP"
                 helperText="Akun otentikasi resmi kampus."
                 leftIcon={<Mail className="w-4 h-4" />}
                 required={form.enabled}
@@ -317,7 +317,7 @@ export const EmailSettingsTab: React.FC = () => {
                 type="password"
                 value={form.pass}
                 onChange={handleChange}
-                placeholder="••••••••"
+                placeholder="Kata sandi"
                 helperText="Kosongkan jika tidak ingin mengubah kata sandi tersimpan."
                 leftIcon={<KeyRound className="w-4 h-4" />}
               />
@@ -331,7 +331,7 @@ export const EmailSettingsTab: React.FC = () => {
                 name="from_name"
                 value={form.from_name}
                 onChange={handleChange}
-                placeholder="Fakultas Ilmu Administrasi UNIRA"
+                placeholder="Nama pengirim"
                 helperText="Nama institusi yang tampil di kotak masuk mahasiswa."
               />
             </div>
@@ -342,7 +342,7 @@ export const EmailSettingsTab: React.FC = () => {
                 type="email"
                 value={form.from_email}
                 onChange={handleChange}
-                placeholder="ujian.fia@unira.ac.id"
+                placeholder="Email pengirim"
                 helperText="Harus sesuai dengan domain email resmi."
                 required={form.enabled}
               />
@@ -354,7 +354,7 @@ export const EmailSettingsTab: React.FC = () => {
                 type="email"
                 value={form.reply_to || ''}
                 onChange={handleChange}
-                placeholder="fia@unira.ac.id"
+                placeholder="Email balasan"
                 helperText="Tujuan jika mahasiswa membalas email."
               />
             </div>
@@ -458,7 +458,7 @@ export const EmailSettingsTab: React.FC = () => {
               label="Email Penerima Uji Coba"
               value={testEmail}
               onChange={(e) => setTestEmail(e.target.value)}
-              placeholder="nama@unira.ac.id atau email@gmail.com"
+              placeholder="Email penerima"
               leftIcon={<Mail className="w-4 h-4" />}
             />
           </div>

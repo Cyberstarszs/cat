@@ -92,14 +92,14 @@ export const InstitutionSettingsTab: React.FC = () => {
                     value={form.university_name}
                     onChange={(e) => setForm({ ...form, university_name: e.target.value })}
                     required
-                    placeholder="Contoh: Universitas Madura"
+                    placeholder="Nama universitas"
                   />
                   <Input
                     label="Nama Fakultas"
                     value={form.faculty_name}
                     onChange={(e) => setForm({ ...form, faculty_name: e.target.value })}
                     required
-                    placeholder="Contoh: Fakultas Ilmu Administrasi"
+                    placeholder="Nama fakultas"
                   />
                 </div>
 
@@ -113,7 +113,7 @@ export const InstitutionSettingsTab: React.FC = () => {
                       value={form.decan_name}
                       onChange={(e) => setForm({ ...form, decan_name: e.target.value })}
                       required
-                      placeholder="Contoh: Dr. H. Abd. Razak, S.E., M.Si."
+                      placeholder="Nama lengkap pejabat"
                     />
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -121,14 +121,14 @@ export const InstitutionSettingsTab: React.FC = () => {
                         label="NIP / NIDN Pejabat"
                         value={form.decan_nip}
                         onChange={(e) => setForm({ ...form, decan_nip: e.target.value })}
-                        placeholder="Contoh: 19740512 200501 1 002"
+                        placeholder="NIP atau NIDN"
                       />
                       <Input
                         label="Jabatan Resmi"
                         value={form.decan_title}
                         onChange={(e) => setForm({ ...form, decan_title: e.target.value })}
                         required
-                        placeholder="Contoh: Dekan Fakultas Ilmu Administrasi"
+                        placeholder="Jabatan resmi"
                       />
                     </div>
                   </div>
@@ -144,7 +144,7 @@ export const InstitutionSettingsTab: React.FC = () => {
                       value={form.cert_city}
                       onChange={(e) => setForm({ ...form, cert_city: e.target.value })}
                       required
-                      placeholder="Contoh: Pamekasan"
+                      placeholder="Kota penerbitan"
                     />
 
                     <div>
@@ -168,7 +168,7 @@ export const InstitutionSettingsTab: React.FC = () => {
                       value={form.cert_no_prefix}
                       onChange={(e) => setForm({ ...form, cert_no_prefix: e.target.value })}
                       required
-                      placeholder="Contoh: CAT-FIA/UNIRA"
+                      placeholder="Prefix nomor"
                     />
                   </div>
                 </div>

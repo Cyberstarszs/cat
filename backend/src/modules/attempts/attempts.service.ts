@@ -752,13 +752,13 @@ export async function submitExamAttempt(
       [newAttemptStatus, serverNow.toISOString(), submitReason, attemptId]
     );
 
-    // Masukkan ke tabel results (status pending_publication)
+    // Masukkan ke tabel results (otomatis terbit/published karena ambang batas kelulusan sudah ditentukan di awal)
     const { rows: resRows } = await client.query(
       `INSERT INTO results (
-        attempt_id, raw_score, max_score, score, passing_score, passed, status, graded_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, 'pending_publication', now())
+        attempt_id, raw_score, max_score, score, passing_score, passed, status, published_at, graded_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, 'published', now(), now())
       ON CONFLICT (attempt_id) DO UPDATE
-      SET raw_score = $2, max_score = $3, score = $4, passing_score = $5, passed = $6, graded_at = now()
+      SET raw_score = $2, max_score = $3, score = $4, passing_score = $5, passed = $6, status = 'published', published_at = COALESCE(results.published_at, now()), graded_at = now()
       RETURNING id, score, passed;`,
       [
         attemptId,

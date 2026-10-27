@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import logoImg from '../../assets/cat-governance-logo.png';
-import { FigmaIcon } from '../../components/common/FigmaIcon';
+import { User, Lock, Eye, EyeOff, ArrowLeft, Loader2 } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
   const { login, isAuthenticated, user } = useAuth();
@@ -14,7 +14,6 @@ export const LoginPage: React.FC = () => {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,10 +35,11 @@ export const LoginPage: React.FC = () => {
 
     try {
       const res = await login(identifier.trim(), password);
+
       showToast(
         res.user.role === 'admin'
           ? 'Login Administrator berhasil.'
-          : 'Berhasil masuk ke Portal Peserta.',
+          : 'Berhasil masuk ke Ruang Peserta Ujian.',
         'success'
       );
 
@@ -64,7 +64,7 @@ export const LoginPage: React.FC = () => {
         }
       }
     } catch (err: any) {
-      setError(err.message || 'NIM/Email atau kata sandi tidak sesuai.');
+      setError(err.message || 'NIM/Email atau kata sandi belum sesuai. Silakan periksa kembali data Anda.');
     } finally {
       setLoading(false);
     }
@@ -73,118 +73,115 @@ export const LoginPage: React.FC = () => {
   return (
     <main className="auth-portal">
       <div className="auth-grid" aria-hidden="true" />
+
+      {/* Tombol Kembali ke Beranda yang Halus & Elegan */}
       <button
         type="button"
         className="auth-back"
         onClick={() => navigate('/')}
         aria-label="Kembali ke beranda"
       >
-        <span aria-hidden="true">←</span> Kembali ke beranda
+        <ArrowLeft className="w-4 h-4" />
+        <span>Kembali ke Beranda</span>
       </button>
 
+      {/* Kartu Login Minimalis & Elegan */}
       <section className="auth-card">
-        <div className="auth-brand">
-          <div className="brand">
-            <img
-              className="brand__logo"
-              src={logoImg}
-              alt="CAT Governance FIA Universitas Madura"
-            />
-          </div>
-        </div>
-
-        <div className="auth-heading">
-          <div className="eyebrow">PORTAL CAT FIA / 2026</div>
-          <h1>Masuk ke Sistem CAT</h1>
-          <p>
-            Masukkan alamat email atau NIM dan kata sandi akun Anda.
+        {/* Brand & Heading Terpadu */}
+        <div className="auth-card-head">
+          <img
+            className="auth-card-logo"
+            src={logoImg}
+            alt="CAT Governance FIA Universitas Madura"
+          />
+          <h1 className="auth-card-title">Masuk ke Ruang Ujian</h1>
+          <p className="auth-card-subtitle">
+            Fakultas Ilmu Administrasi · Universitas Madura
           </p>
         </div>
 
         {error && (
-          <div
-            className="p-2.5 mb-3 bg-[#f8e9eb] border-l-4 border-[#b63b48] text-xs text-[#b63b48] font-medium leading-relaxed"
-            role="alert"
-          >
-            {error}
+          <div className="login-error-alert" role="alert">
+            <span>{error}</span>
           </div>
         )}
 
-        <form className="auth-fields" onSubmit={handleSubmit}>
-          <label>
-            <span>Alamat email atau NIM</span>
-            <input
-              id="auth-identifier"
-              name="identifier"
-              required
-              type="text"
-              autoComplete="username"
-              spellCheck={false}
-              placeholder="nama@email.com atau NIM"
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
-              autoFocus
-            />
-          </label>
+        <form className="login-card-form" onSubmit={handleSubmit}>
+          {/* Input NIM / Email */}
+          <div className="login-field-group">
+            <label htmlFor="auth-identifier" className="login-label">
+              NIM atau Alamat Email
+            </label>
+            <div className="login-input-wrapper">
+              <User className="login-input-icon" />
+              <input
+                id="auth-identifier"
+                name="identifier"
+                required
+                type="text"
+                autoComplete="username"
+                spellCheck={false}
+                placeholder="NIM atau email"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                autoFocus
+                className="login-input"
+              />
+            </div>
+          </div>
 
-          <label className="auth-password-field">
-            <span>Kata sandi</span>
-            <input
-              id="auth-password"
-              name="password"
-              required
-              type={showPassword ? 'text' : 'password'}
-              autoComplete="current-password"
-              minLength={1}
-              placeholder="Minimal 8 karakter"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <button
-              type="button"
-              className="auth-password-toggle"
-              onClick={() => setShowPassword((value) => !value)}
-              aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
-            >
-              {showPassword ? 'Sembunyikan' : 'Tampilkan'}
-            </button>
-          </label>
+          {/* Input Password */}
+          <div className="login-field-group">
+            <label htmlFor="auth-password" className="login-label">
+              Kata Sandi
+            </label>
+            <div className="login-input-wrapper">
+              <Lock className="login-input-icon" />
+              <input
+                id="auth-password"
+                name="password"
+                required
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                minLength={1}
+                placeholder="Kata sandi"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="login-input login-input--password"
+              />
+              <button
+                type="button"
+                className="login-eye-btn"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
 
-          <label className="check">
-            <input
-              id="auth-remember"
-              name="rememberMe"
-              type="checkbox"
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-            />
-            <span>Ingat perangkat ini</span>
-          </label>
-
+          {/* Tombol Masuk */}
           <button
             type="submit"
-            className={`button full ${loading ? 'is-loading' : ''}`}
+            className="login-submit-btn"
             disabled={loading}
           >
-            <FigmaIcon name="shield" />
-            {loading ? 'MEMPROSES…' : 'MASUK KE SISTEM'}
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Memverifikasi...</span>
+              </>
+            ) : (
+              <span>Masuk ke Akun</span>
+            )}
           </button>
         </form>
-
-        <button
-          type="button"
-          className="forgot"
-          onClick={() =>
-            showToast('Tautan pemulihan akan dikirim jika alamat email terdaftar.', 'info')
-          }
-        >
-          Lupa kata sandi?
-        </button>
       </section>
 
       <div className="auth-caption">CAT • ASSESSMENT • GOVERNANCE</div>
       <small className="auth-copyright">
-        © CAT GOVERNANCE — Fakultas Ilmu Administrasi, Universitas Madura
+        © 2026 CAT GOVERNANCE · Fakultas Ilmu Administrasi, Universitas Madura
       </small>
     </main>
   );

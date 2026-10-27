@@ -19,6 +19,15 @@ export const ProfilePage: React.FC = () => {
   const [institution, setInstitution] = useState(profile?.institution || '');
   const [savingProfile, setSavingProfile] = useState(false);
 
+  // Sinkronisasi data saat profile selesai dimuat dari server
+  React.useEffect(() => {
+    if (profile) {
+      setFullName(profile.full_name || '');
+      setPhone(profile.phone || '');
+      setInstitution(profile.institution || '');
+    }
+  }, [profile]);
+
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setSavingProfile(true);
@@ -108,7 +117,7 @@ export const ProfilePage: React.FC = () => {
               required
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              placeholder="Masukkan nama lengkap"
+              placeholder="Nama lengkap"
             />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -116,14 +125,14 @@ export const ProfilePage: React.FC = () => {
                 label="Nomor Telepon / WhatsApp"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="08xxxxxxxxxx"
+                placeholder="Nomor telepon"
                 leftIcon={<Phone className="w-4 h-4 text-gray-400" />}
               />
               <Input
                 label="Instansi / Asal"
                 value={institution}
                 onChange={(e) => setInstitution(e.target.value)}
-                placeholder="Nama instansi atau prodi"
+                placeholder="Prodi atau instansi"
                 leftIcon={<Building className="w-4 h-4 text-gray-400" />}
               />
             </div>

@@ -10,6 +10,7 @@ import { Badge } from '../../components/ui/Badge';
 import { CardSkeleton } from '../../components/ui/Skeleton';
 import { EmptyState, ErrorAlert } from '../../components/ui/EmptyState';
 import { Modal } from '../../components/ui/Modal';
+import { alert } from '../../utils/alert';
 import { ShieldAlert, Search, RefreshCw, Bell, Eye, Download, FileCode, Filter } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 
@@ -84,6 +85,7 @@ export const AdminAuditLogsPage: React.FC = () => {
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
+    alert.toast('Log audit berhasil diekspor ke format JSON!', 'success');
   };
 
   return (
@@ -161,7 +163,7 @@ export const AdminAuditLogsPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row items-center gap-4">
         <div className="w-full sm:w-80">
           <Input
-            placeholder="Cari aksi, email, atau IP..."
+            placeholder="Cari log audit"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             leftIcon={<Search className="w-4 h-4 text-gray-400" />}
@@ -260,6 +262,7 @@ export const AdminAuditLogsPage: React.FC = () => {
         }}
         title="Detail Log Audit"
         description={`Aksi: ${selectedLogForDetail?.action} | Waktu: ${selectedLogForDetail?.created_at ? formatWIBDateTime(selectedLogForDetail.created_at) : '-'}`}
+        maxWidth="2xl"
         footer={
           <div className="flex items-center justify-end w-full">
             <Button

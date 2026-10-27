@@ -148,6 +148,7 @@ export function useStudentPhoto(
     const cached = photoMemoryCache.get(cleanNim);
     if (cached !== undefined) {
       setPhotoUrl(cached);
+      setLoading(false);
       return;
     }
 

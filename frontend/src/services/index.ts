@@ -245,6 +245,18 @@ export const questionService = {
     await apiClient.delete(`/questions/${id}`);
   },
 
+  async deleteQuestionsBulk(ids: string[]): Promise<{ count: number; message: string }> {
+    const res = await apiClient.delete<{ count: number; message: string }>('/questions/bulk', {
+      data: { ids },
+    });
+    return res.data;
+  },
+
+  async deleteQuestionsByYear(year: number): Promise<{ count: number; message: string }> {
+    const res = await apiClient.delete<{ count: number; message: string }>(`/questions/year/${year}`);
+    return res.data;
+  },
+
   async previewQuestion(questionId: string): Promise<any> {
     const res = await apiClient.get(`/questions/${questionId}/preview`);
     return res.data;

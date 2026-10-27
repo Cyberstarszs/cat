@@ -249,8 +249,8 @@ export const meRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => 
         JOIN exam_sessions s ON s.id = se.session_id
         JOIN exams e ON e.id = s.exam_id
         LEFT JOIN certificates c ON c.result_id = r.id AND c.status = 'valid'
-        WHERE se.student_id = $1 AND r.status = 'published'
-        ORDER BY r.published_at DESC;
+        WHERE se.student_id = $1 AND r.status IN ('published', 'pending_publication')
+        ORDER BY COALESCE(r.published_at, r.graded_at) DESC;
       `;
 
       const { rows } = await pool.query(query, [user.id]);

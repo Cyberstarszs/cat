@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { resultService } from '../../services';
 import { ResultDetail } from '../../types';
 import { useToast } from '../../context/ToastContext';
@@ -8,13 +8,12 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { Skeleton } from '../../components/ui/Skeleton';
-import { ErrorAlert } from '../../components/ui/EmptyState';
+import { ErrorAlert, EmptyState } from '../../components/ui/EmptyState';
 import {
   Award,
   CheckCircle2,
   XCircle,
   Download,
-  AlertCircle,
   HelpCircle,
   ArrowLeft,
   Calendar,
@@ -24,12 +23,14 @@ import {
 
 export const ResultPage: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const resultId = searchParams.get('resultId');
+  const resultId = searchParams.get('resultId') || searchParams.get('attemptId');
+  const navigate = useNavigate();
   const { showToast } = useToast();
 
   const [result, setResult] = useState<ResultDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isEmpty, setIsEmpty] = useState(false);
 
   // Sanggah / Appeal modal state
   const [appealModalOpen, setAppealModalOpen] = useState(false);
@@ -43,19 +44,25 @@ export const ResultPage: React.FC = () => {
   const fetchResult = async () => {
     setLoading(true);
     setError(null);
+    setIsEmpty(false);
     try {
-      if (resultId) {
-        const data = await resultService.getResultById(resultId);
-        setResult(data);
-      } else {
-        // Fallback: fetch latest from my results
-        const myResults = await resultService.getMyResults();
-        if (myResults.length > 0) {
-          const detail = await resultService.getResultById(myResults[0].id);
-          setResult(detail);
-        } else {
-          setError('Belum ada hasil ujian yang tersedia untuk akun ini.');
+      if (resultId && resultId !== 'latest') {
+        try {
+          const data = await resultService.getResultById(resultId);
+          setResult(data);
+          return;
+        } catch (specificErr) {
+          console.warn('Could not load specific result, falling back to latest:', specificErr);
         }
+      }
+
+      // Fallback: fetch latest from my results
+      const myResults = await resultService.getMyResults();
+      if (myResults && myResults.length > 0) {
+        const detail = await resultService.getResultById(myResults[0].id);
+        setResult(detail);
+      } else {
+        setIsEmpty(true);
       }
     } catch (err: any) {
       setError(err.message || 'Gagal memuat hasil penilaian ujian.');
@@ -79,8 +86,8 @@ export const ResultPage: React.FC = () => {
       a.download = `Sertifikat_${result.identifier || 'FIA'}.pdf`;
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      setTimeout(() => window.URL.revokeObjectURL(url), 1000);
       showToast('Sertifikat berhasil diunduh!', 'success');
     } catch (err: any) {
       showToast(err.message || 'Gagal mengunduh sertifikat.', 'error');
@@ -118,10 +125,34 @@ export const ResultPage: React.FC = () => {
     );
   }
 
+  if (isEmpty) {
+    return (
+      <div className="max-w-[800px] mx-auto px-6 py-12 w-full space-y-4">
+        <div>
+          <Link
+            to="/dashboard"
+            className="text-xs font-semibold text-[#583682] hover:underline inline-flex items-center gap-1.5"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" /> Kembali ke Dashboard
+          </Link>
+        </div>
+        <EmptyState
+          title="Belum Ada Hasil Ujian"
+          description="Akun Anda belum memiliki riwayat pengerjaan ujian atau hasil ujian Anda masih dalam proses penilaian oleh panitia."
+          icon={<Award className="w-8 h-8 text-[#583682]" />}
+          action={{
+            label: 'Lihat Jadwal Ujian',
+            onClick: () => navigate('/explore'),
+          }}
+        />
+      </div>
+    );
+  }
+
   if (error || !result) {
     return (
-      <div className="max-w-[800px] mx-auto px-6 py-12 w-full">
-        <ErrorAlert message={error || 'Hasil ujian tidak ditemukan.'} />
+      <div className="max-w-[800px] mx-auto px-6 py-12 w-full space-y-4">
+        <ErrorAlert message={error || 'Hasil ujian tidak ditemukan.'} onRetry={fetchResult} />
         <div className="mt-4">
           <Link to="/dashboard">
             <Button variant="secondary" leftIcon={<ArrowLeft className="w-4 h-4" />}>
@@ -135,8 +166,6 @@ export const ResultPage: React.FC = () => {
 
   const passed = result.passed;
 
-  const isPending = result.status === 'pending_publication';
-
   return (
     <div className="max-w-[800px] mx-auto px-6 py-12 w-full space-y-6">
       <div>
@@ -144,19 +173,6 @@ export const ResultPage: React.FC = () => {
           <ArrowLeft className="w-3.5 h-3.5" /> Kembali ke Dashboard
         </Link>
       </div>
-
-      {/* Banner Hasil Sementara jika status pending_publication */}
-      {isPending && (
-        <div className="p-4 bg-amber-50 border border-amber-200 rounded-[8px] text-amber-900 text-xs flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 flex-shrink-0 text-amber-600 mt-0.5" />
-          <div className="space-y-1">
-            <div className="font-bold text-amber-950">Hasil Belum Diumumkan Resmi</div>
-            <p className="text-amber-800 leading-relaxed">
-              Nilai ini masih dalam tahap rekapitulasi panitia. Sertifikat akan terbit setelah pengumuman resmi.
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* Main Score Card */}
       <Card
@@ -174,12 +190,10 @@ export const ResultPage: React.FC = () => {
         </div>
 
         <div className="eyebrow mb-1">
-          {isPending ? 'HASIL EVALUASI SEMENTARA' : 'HASIL EVALUASI AKHIR'}
+          HASIL EVALUASI AKHIR
         </div>
         <h1 className="font-display font-bold text-3xl md:text-4xl text-[#24212b] mb-2">
-          {isPending
-            ? (passed ? 'Memenuhi Ambang Batas' : 'Belum Memenuhi Ambang Batas')
-            : (passed ? 'Dinyatakan Lulus' : 'Belum Memenuhi Ambang Batas')}
+          {passed ? 'Dinyatakan Lulus' : 'Belum Memenuhi Ambang Batas'}
         </h1>
         <p className="text-xs text-[#595562] max-w-md mx-auto mb-8">
           Ujian: <strong>{result.exam_title || result.session_name}</strong>
@@ -234,13 +248,6 @@ export const ResultPage: React.FC = () => {
             <div className="flex items-center justify-center gap-2 text-xs text-[#287a58] bg-[#eaf4ef] border border-[#bce2cf] py-2 px-4 rounded-[6px] max-w-lg mx-auto">
               <Mail className="w-4 h-4 shrink-0 text-[#287a58]" />
               <span>Sertifikat kelulusan resmi dengan lampiran PDF juga dikirimkan secara otomatis ke email Anda.</span>
-            </div>
-          )}
-
-          {passed && !result.certificate_id && isPending && (
-            <div className="text-[11px] text-[#595562] italic flex items-center gap-1.5 mt-2">
-              <FileCheck className="w-3.5 h-3.5 text-[#583682]" />
-              Sertifikat resmi terbit setelah panitia mengumumkan hasil ujian.
             </div>
           )}
         </div>
@@ -328,7 +335,7 @@ export const ResultPage: React.FC = () => {
                 required
                 value={appealReason}
                 onChange={(e) => setAppealReason(e.target.value)}
-                placeholder="Tuliskan nomor soal dan alasan sanggahan..."
+                placeholder="Alasan sanggahan"
                 className="w-full p-3 bg-white border border-[#e6e1eb] rounded-[6px] text-xs text-[#24212b] outline-none focus:border-[#583682]"
               />
             </div>

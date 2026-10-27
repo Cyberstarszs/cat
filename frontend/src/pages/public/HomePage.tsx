@@ -5,6 +5,8 @@ import { Clock, Calendar, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import logoImg from '../../assets/cat-governance-logo.png';
+import fakultasImg from '../../assets/fakultas.jpeg';
+import certRefImg from '../../assets/referensi_sertifikat.jpg';
 import { FigmaIcon, IconName } from '../../components/common/FigmaIcon';
 
 export const HomePage: React.FC = () => {
@@ -24,9 +26,8 @@ export const HomePage: React.FC = () => {
   const primaryCtaLabel = !isAuthenticated
     ? 'Masuk ke Ruang Ujian'
     : user?.role === 'admin'
-    ? 'Buka Portal Administrator'
+    ? 'Buka Panel Administrator'
     : 'Buka Dashboard Ujian';
-  const [verifyCertNumber, setVerifyCertNumber] = useState('');
   const [publicSessions, setPublicSessions] = useState<any[]>([]);
   const [publicLoading, setPublicLoading] = useState(true);
 
@@ -37,15 +38,6 @@ export const HomePage: React.FC = () => {
       .catch(() => setPublicSessions([]))
       .finally(() => setPublicLoading(false));
   }, []);
-
-  const handleVerifySubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (verifyCertNumber.trim()) {
-      navigate(`/verify?number=${encodeURIComponent(verifyCertNumber.trim())}`);
-    } else {
-      navigate('/verify');
-    }
-  };
 
   return (
     <div className="landing">
@@ -81,8 +73,9 @@ export const HomePage: React.FC = () => {
           <div className="eyebrow">FAKULTAS ILMU ADMINISTRASI · UNIVERSITAS MADURA</div>
           <h1>CAT GOVERNANCE</h1>
           <p>
-            Sistem evaluasi akademik dan uji kompetensi berbasis Computer Assisted Test (CAT) mandiri
-            di lingkungan Fakultas Ilmu Administrasi, Universitas Madura.
+            Tata kelola yang bersih bermula dari kejujuran yang diuji. Di Fakultas Ilmu Administrasi
+            Universitas Madura, sistem ini memastikan setiap mahasiswa dinilai murni berdasarkan kecakapannya
+            secara terbuka, terukur, dan tanpa kompromi.
           </p>
           <div className="minimal-hero-actions">
             <button
@@ -101,7 +94,7 @@ export const HomePage: React.FC = () => {
                 else navigate('/explore');
               }}
             >
-              Jadwal Sesi Ujian
+              Lihat Jadwal Ujian
             </button>
           </div>
         </div>
@@ -110,44 +103,38 @@ export const HomePage: React.FC = () => {
       {/* 2. Solusi & Nilai Manfaat Nyata (Tentang CAT GOVERNANCE) */}
       <section className="lp-quick lp-section" id="tentang">
         <div className="lp-section-heading">
-          <div className="eyebrow">TENTANG PLATFORM</div>
+          <div className="eyebrow">KOMITMEN MUTU FIA</div>
           <h2>
-            Standar Asesmen Akademik yang
-            <br />
-            Objektif dan Akuntabel
+            Tata Kelola Nyata Dimulai dari Penilaian yang Jujur
           </h2>
           <p>
-            Sistem Computer Assisted Test (CAT) mandiri di lingkungan Fakultas Ilmu Administrasi
-            Universitas Madura. Menyelenggarakan evaluasi kompetensi terukur dengan pengolahan hasil
-            otomatis, adil, dan transparan bagi mahasiswa internal maupun peserta eksternal.
+            Ilmu Administrasi mengajarkan tanggung jawab publik, dan kami memulainya dari cara kami menguji.
+            Di laboratorium komputer FIA UNIRA, setiap peserta berhadapan dengan standar yang setara: materi yang sama,
+            alokasi waktu yang tegas, dan penilaian otomatis tanpa campur tangan subjektif.
           </p>
         </div>
         <div className="lp-quick-list">
           {[
             [
-              '01',
               'target',
-              'Penilaian Objektif',
-              'Hasil evaluasi diproses otomatis oleh sistem berdasarkan standar kunci jawaban baku tanpa intervensi subjektif.',
+              'Penilaian Mandiri & Terbuka',
+              'Jawaban diperiksa langsung oleh sistem begitu Anda menekan tombol selesai. Nilai yang muncul adalah cermin murni lembar kerja Anda tanpa rekayasa.',
             ],
             [
-              '02',
               'shield',
-              'Pelaksanaan Terjadwal',
-              'Sesi ujian diselenggarakan dalam lingkungan terkendali guna menjamin ketertiban, ketepatan waktu, dan integritas akademik.',
+              'Tertib Laboratorium',
+              'Ujian berlangsung di laboratorium komputer terpadu gedung FIA Panglegur. Setiap sesi dijadwalkan teratur dan diawasi langsung demi menjaga suasana tenang.',
             ],
             [
-              '03',
               'award',
-              'Sertifikasi Kompetensi',
-              'Peserta yang memenuhi standar kelulusan memperoleh sertifikat resmi beridentitas unik yang dapat diverifikasi langsung oleh publik.',
+              'Legitimasi Fakultas',
+              'Peserta yang memenuhi batas kelulusan berhak menerima sertifikat resmi bertanda tangan Dekan dengan kode QR unik yang tercatat di arsip fakultas.',
             ],
           ].map((item) => (
-            <article key={item[0]}>
-              <span>{item[0]}</span>
-              <FigmaIcon name={item[1] as IconName} />
-              <h3>{item[2]}</h3>
-              <p>{item[3]}</p>
+            <article key={item[1]}>
+              <FigmaIcon name={item[0] as IconName} />
+              <h3>{item[1]}</h3>
+              <p>{item[2]}</p>
             </article>
           ))}
         </div>
@@ -156,14 +143,12 @@ export const HomePage: React.FC = () => {
       {/* 2b. Jadwal Sesi Ujian Publik */}
       <section className="lp-section max-w-[1280px] mx-auto px-6 py-12" id="jadwal-publik">
         <div className="lp-section-heading">
-          <div className="eyebrow">JADWAL SESI UJIAN</div>
+          <div className="eyebrow">AGENDA EVALUASI</div>
           <h2>
-            Jadwal Sesi Ujian yang Sedang
-            <br />
-            dan Akan Berlangsung
+            Jadwal Pelaksanaan Ujian
           </h2>
           <p>
-            Pilih sesi ujian kompetensi yang tersedia di bawah ini untuk mengikuti asesmen mandiri.
+            Setiap sesi memiliki pembagian waktu dan kuota perangkat di laboratorium kampus. Pastikan Anda hadir sebelum sesi dibuka untuk persiapan teknis dan verifikasi tempat duduk.
           </p>
         </div>
 
@@ -175,14 +160,13 @@ export const HomePage: React.FC = () => {
           </div>
         ) : publicSessions.length === 0 ? (
           <div className="text-center py-12 text-xs text-[#595562] bg-white border border-[#e6e1eb] rounded-[8px] mt-6">
-            Saat ini belum ada sesi ujian publik yang dibuka. Silakan periksa kembali nanti.
+            Belum ada jadwal sesi yang dibuka untuk umum saat ini. Agenda evaluasi berikutnya akan diperbarui secara berkala melalui pangkalan data akademik FIA.
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
-            {publicSessions.map((sess, idx) => (
+            {publicSessions.map((sess) => (
               <article key={sess.id} className="course-exam-card">
                 <div className="course-exam-card__visual">
-                  <span>0{idx + 1}</span>
                   <FigmaIcon name="book" size={24} />
                   <small>SESI UJIAN</small>
                 </div>
@@ -239,34 +223,32 @@ export const HomePage: React.FC = () => {
       {/* 3. Panduan Alur Peserta (5 Langkah Terarah) */}
       <section className="lp-process" id="cara-kerja">
         <div className="lp-section-heading light">
-          <div className="eyebrow">ALUR ASESMEN / PANDUAN PESERTA</div>
+          <div className="eyebrow">STANDAR OPERASIONAL</div>
           <h2>
-            Tahapan Pelaksanaan
-            <br />
-            Ujian Mandiri
+            Lima Tahap Menempuh Ujian
           </h2>
         </div>
         <div className="lp-process-line">
           {[
             [
-              'Akses Akun Peserta',
-              'Masuk menggunakan NIM bagi mahasiswa internal atau ID Peserta resmi bagi pendaftar dari luar kampus.',
+              'Autentikasi Akun',
+              'Mahasiswa masuk menggunakan NIM terdaftar, sementara peserta jalur khusus menggunakan Nomor Registrasi yang diterbitkan panitia fakultas.',
             ],
             [
-              'Konfirmasi Jadwal',
-              'Periksa waktu sesi, alokasi durasi, dan nomor ruang laboratorium pelaksanaan asesmen.',
+              'Pemeriksaan Sesi & Lab',
+              'Periksa jam sesi dan letak ruangan laboratorium komputer gedung FIA sebelum hitung mundur pengerjaan dimulai.',
             ],
             [
-              'Pengerjaan Soal',
-              'Selesaikan materi asesmen pilihan ganda melalui antarmuka komputer dalam alokasi waktu yang ditentukan.',
+              'Pengerjaan Mandiri',
+              'Selesaikan butir soal tata kelola dan administrasi melalui komputer laboratorium sebelum batas waktu habis.',
             ],
             [
-              'Transparansi Nilai',
-              'Perolehan skor akhir ditampilkan langsung secara terbuka sesaat setelah ujian dikonfirmasi selesai.',
+              'Transparansi Nilai Seketika',
+              'Skor akhir dan rincian capaian kompetensi langsung tampil di layar sesaat setelah Anda mengonfirmasi ujian selesai.',
             ],
             [
-              'Penerbitan Sertifikat',
-              'Peserta yang mencapai ambang batas kelulusan berhak mengunduh sertifikat kompetensi resmi ber-QR Code.',
+              'Penerbitan Sertifikat Resmi',
+              'Peserta yang melampaui nilai ambang batas langsung memperoleh akses unduhan sertifikat digital berstempel Dekan FIA UNIRA.',
             ],
           ].map((item, index) => (
             <article key={item[0]}>
@@ -278,137 +260,42 @@ export const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* 4. Pratinjau Tampilan Sistem (Kartu Peserta & Antarmuka Soal) */}
-      <section className="lp-system-preview lp-section">
-        <div className="lp-identity-demo">
-          <div className="lp-section-heading">
-            <div className="eyebrow">SISTEM ASESMEN TERPADU</div>
-            <h2>Antarmuka Bersih dan Terstandarisasi</h2>
-            <p>
-              Lingkungan ujian dirancang fokus dan tertata agar mahasiswa internal maupun peserta eksternal
-              dapat menjalani asesmen dengan nyaman dan optimal.
-            </p>
-          </div>
-          <div className="lp-id-card">
-            <div className="lp-id-avatar">
-              <div className="lp-id-avatar-circle">WH</div>
-              <small>PESERTA UJIAN</small>
-            </div>
-            <div className="lp-id-content">
-              <div className="eyebrow">KARTU PESERTA ASESMEN</div>
-              <h3>Wahyu Hidayatullah</h3>
-              <dl>
-                <div>
-                  <dt>Identitas Peserta</dt>
-                  <dd>202412345 (NIM / No. Peserta)</dd>
-                </div>
-                <div>
-                  <dt>Program / Kategori</dt>
-                  <dd>Administrasi Publik / Terdaftar</dd>
-                </div>
-                <div className="full-col">
-                  <dt>Nomor Registrasi Ujian</dt>
-                  <dd>CAT-2026-001245</dd>
-                </div>
-              </dl>
-              <div className="lp-id-footer">
-                <span className="text-[11px] font-semibold text-[#583682] uppercase tracking-wider">
-                  Status: Aktif
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="lp-cat-demo">
-          <div className="lp-cat-head">
-            <div className="brand brand--compact">
-              <img
-                className="brand__logo"
-                src={logoImg}
-                alt="CAT Governance"
-              />
-            </div>
-            <span>SIMULASI UJIAN CAT</span>
-            <strong>01:24:36</strong>
-          </div>
-          <div className="lp-cat-body">
-            <div>
-              <div className="eyebrow">SOAL 12 DARI 50</div>
-              <h3>
-                Salah satu prinsip utama dalam tata kelola pemerintahan yang
-                baik (good governance) adalah...
-              </h3>
-              {[
-                'Transparansi dan akuntabilitas pelayanan publik',
-                'Pemusatan kewenangan secara mutlak tanpa pengawasan',
-                'Pembatasan hak berpendapat dan informasi warga negara',
-              ].map((x, i) => (
-                <span className={i === 0 ? 'selected' : ''} key={x}>
-                  <b>{String.fromCharCode(65 + i)}</b>
-                  {x}
-                </span>
-              ))}
-            </div>
-            <aside>
-              <div className="eyebrow">NAVIGASI SOAL</div>
-              <div className="lp-nav-grid">
-                {Array.from({ length: 15 }, (_, i) => (
-                  <i
-                    className={i === 11 ? 'active' : i < 8 ? 'done' : ''}
-                    key={i}
-                  >
-                    {i + 1}
-                  </i>
-                ))}
-              </div>
-              <div className="lp-cat-progress-wrap">
-                <small>Kemajuan pengerjaan 48%</small>
-                <div className="lp-cat-progress-bar">
-                  <i style={{ width: '48%' }} />
-                </div>
-              </div>
-            </aside>
-          </div>
-        </div>
-      </section>
-
-      {/* 5. Prinsip Integritas Akademik */}
+      {/* 4. Prinsip Integritas Akademik */}
       <section className="lp-benefits lp-section">
         <div className="lp-section-heading row">
           <div>
-            <div className="eyebrow">INTEGRITAS AKADEMIK</div>
-            <h2>Prinsip Tata Kelola Asesmen</h2>
+            <div className="eyebrow">PRINSIP KELOLA</div>
+            <h2>Standar Pengujian yang Kami Pertahankan</h2>
           </div>
           <p>
-            Fakultas Ilmu Administrasi menerapkan standar mutu pengujian yang terpercaya guna menjamin
-            setiap evaluasi mencerminkan kompetensi riil peserta secara adil.
+            Di Fakultas Ilmu Administrasi Universitas Madura, kami tidak mendidik calon sarjana untuk mencari jalan pintas. Standar pengujian yang tertib adalah bentuk penghormatan kami terhadap masa depan tata kelola daerah dan bangsa.
           </p>
         </div>
         <div className="lp-benefit-list">
           {[
             [
-              'Objektivitas Penilaian',
-              'Skor akhir diproses independen oleh sistem komputer berdasarkan kunci jawaban yang telah divalidasi.',
+              'Keadilan Waktu',
+              'Durasi pengerjaan dikunci otomatis oleh server. Tidak ada peserta yang mendapat menit tambahan di luar hak yang sama.',
               '01',
             ],
             [
-              'Standarisasi Materi',
-              'Paket soal disusun oleh akademisi ahli untuk menguji kompetensi tata kelola secara mendalam dan terukur.',
+              'Materi Berorientasi Tata Kelola',
+              'Soal dirumuskan oleh dosen pengampu untuk menguji kepekaan analitis regulasi, kebijakan publik, dan etika manajerial.',
               '02',
             ],
             [
-              'Ketertiban Waktu',
-              'Pengendalian durasi per sesi berlangsung otomatis demi menjamin kesetaraan kesempatan bagi semua peserta.',
+              'Hasil yang Dapat Dipertanggungjawabkan',
+              'Seluruh lembar pengerjaan dan log aktivitas tersimpan aman di pangkalan data terenkripsi untuk kebutuhan audit akademik.',
               '03',
             ],
             [
-              'Arsip Terpusat',
-              'Seluruh rekam jejak nilai tersimpan permanen di pangkalan data resmi fakultas untuk keabsahan jangka panjang.',
+              'Pendampingan Resmi di Ruangan',
+              'Pengawas ruangan dan teknisi fakultas bersiaga penuh di laboratorium memastikan perangkat dan jaringan berjalan tertib.',
               '04',
             ],
             [
-              'Pengawasan Laboratorium',
-              'Pelaksanaan di laboratorium dipandu oleh pengawas dan tim teknis untuk menjamin ketertiban asesmen.',
+              'Kredibilitas yang Diakui',
+              'Lulusan yang memegang sertifikat FIA membawa bukti kompetensi yang kokoh dan dapat diverifikasi kapan pun oleh instansi kerja.',
               '05',
             ],
           ].map((x) => (
@@ -426,18 +313,18 @@ export const HomePage: React.FC = () => {
         {[
           [
             'monitor',
-            'Berbasis Komputer (CAT)',
-            'Pelaksanaan terpusat di laboratorium dengan sistem mandiri yang tertata dan terstandarisasi.',
+            'Ujian Tanpa Kertas & Rapi',
+            'Seluruh pengerjaan berlangsung di komputer lab kampus. Meniadakan risiko salah periksa atau lembar jawaban tercecer.',
           ],
           [
             'clock',
-            'Hasil Nilai Langsung',
-            'Skor evaluasi diketahui seketika saat ujian selesai, menjamin keterbukaan informasi bagi peserta.',
+            'Kepastian Nilai Seketika',
+            'Tidak ada waktu tunggu rekap manual. Skor akhir dan rincian capaian tersaji tuntas saat tombol selesai ditekan.',
           ],
           [
             'shield',
-            'Validasi Sertifikat Digital',
-            'Keaslian sertifikat dapat diverifikasi kapan saja oleh pihak kampus, sekolah, maupun instansi kerja.',
+            'Verifikasi Arsip 24 Jam',
+            'Pimpinan instansi dan mitra kerja dapat membuktikan keaslian dokumen kelulusan cukup dengan memindai kode QR sertifikat.',
           ],
         ].map((item) => (
           <div key={item[1]}>
@@ -451,125 +338,69 @@ export const HomePage: React.FC = () => {
       {/* 7. Sertifikat Kompetensi Resmi */}
       <section className="lp-certificate-section lp-section">
         <div className="lp-certificate-copy">
-          <div className="eyebrow">DOKUMEN KELULUSAN</div>
+          <div className="eyebrow">DOKUMEN KELAYAKAN</div>
           <h2>
-            Sertifikat Kompetensi
-            <br />
-            <em>Fakultas Ilmu Administrasi</em>
+            Sertifikat Resmi Fakultas Ilmu Administrasi
           </h2>
           <p>
-            Bukti kompetensi resmi yang diterbitkan oleh Fakultas Ilmu Administrasi Universitas Madura.
-            Dilengkapi nomor registrasi unik dan kode QR untuk validasi keaslian dokumen oleh instansi luar.
+            Kelulusan di CAT Governance bukan sekadar formalitas. Lembar sertifikat bertanda tangan Dekan FIA UNIRA
+            ini membuktikan bahwa Anda telah menyelesaikan ujian berstandar tata kelola dengan hasil murni kerja keras sendiri.
           </p>
           <button
             type="button"
             className="button"
-            onClick={() => navigate('/verify')}
+            onClick={() => navigate('/explore')}
           >
-            <FigmaIcon name="shield" />
-            Periksa Keabsahan Sertifikat
+            <FigmaIcon name="calendar" />
+            Jadwal Sesi Ujian
           </button>
         </div>
-        <div className="lp-certificate">
-          <div className="lp-certificate-top">
-            <span>UNIVERSITAS MADURA · FAKULTAS ILMU ADMINISTRASI</span>
-            <span>FAKULTAS ILMU ADMINISTRASI</span>
-          </div>
-          <div className="lp-certificate-body">
-            <span className="lp-certificate-badge">SERTIFIKAT KOMPETENSI</span>
-            <h3 className="lp-certificate-name">WAHYU HIDAYATULLAH</h3>
-            <p className="lp-certificate-intro">Diberikan atas pemenuhan standar kompetensi bidang</p>
-            <h4 className="lp-certificate-title">TATA KELOLA DAN ADMINISTRASI PUBLIK</h4>
-          </div>
-          <div className="lp-certificate-footer">
-            <div className="lp-cert-metric">
-              <small>NILAI KELULUSAN</small>
-              <b>86 / 100</b>
-            </div>
-            <div className="lp-cert-metric">
-              <small>NOMOR REGISTRASI</small>
-              <b>CAT-2026-001245</b>
-            </div>
-            <div className="lp-cert-qr-wrap">
-              <div className="lp-qr">
-                CG
-                <br />
-                26
-              </div>
-              <small>VALID</small>
-            </div>
-          </div>
+        <div className="lp-certificate-image-wrap">
+          <img
+            src={certRefImg}
+            alt="Sertifikat Resmi Kelulusan FIA Universitas Madura"
+          />
         </div>
       </section>
 
-      {/* 8. Layanan Verifikasi Terbuka */}
-      <section className="lp-verify-strip">
-        <div>
-          <div className="eyebrow">LAYANAN VALIDASI PUBLIK</div>
-          <h2>Verifikasi Keaslian Sertifikat</h2>
-          <p>
-            Fasilitas pemeriksaan keabsahan sertifikat kelulusan yang diterbitkan oleh
-            Fakultas Ilmu Administrasi Universitas Madura untuk menjamin keaslian dokumen akademik.
-          </p>
-        </div>
-        <form onSubmit={handleVerifySubmit}>
-          <label>
-            <span>Nomor Registrasi Sertifikat</span>
-            <input
-              id="verify-cert-input"
-              name="verifyCertNumber"
-              value={verifyCertNumber}
-              onChange={(e) => setVerifyCertNumber(e.target.value)}
-              placeholder="Contoh: CAT-2026-001245…"
-              spellCheck={false}
-              autoComplete="off"
-            />
-          </label>
-          <button type="submit" className="button button--light">
-            Periksa Sertifikat
-          </button>
-          <small>
-            <FigmaIcon name="check" size={14} /> Terhubung langsung dengan pangkalan data sertifikat FIA
-          </small>
-        </form>
-      </section>
-
-      {/* 9. Profil Institusi Penyelenggara */}
+      {/* 8. Profil Institusi Penyelenggara */}
       <section className="lp-institution lp-section">
-        <div className="lp-institution-visual">
-          <div className="institution-seal">
-            <span>FIA</span>
-            <FigmaIcon name="book" size={34} />
+        <div className="lp-institution-visual rounded-[12px] overflow-hidden shadow-lg border border-[#e6e1eb] relative group">
+          <img
+            src={fakultasImg}
+            alt="Gedung Fakultas Ilmu Administrasi Universitas Madura"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#21162d]/90 via-[#21162d]/20 to-transparent pointer-events-none z-1" />
+          <div className="absolute bottom-6 left-6 right-6 z-10 text-white">
+            <span className="text-[11px] font-bold tracking-widest uppercase bg-[#583682]/90 backdrop-blur-sm px-2.5 py-1 rounded inline-block mb-1.5 border border-white/20">
+              KAMPUS PANGLEGUR
+            </span>
+            <div className="text-sm font-bold leading-snug">
+              Fakultas Ilmu Administrasi · Universitas Madura
+            </div>
+            <div className="text-[11px] text-gray-200 mt-0.5">
+              Jl. Raya Panglegur No. 3.5, Pamekasan, Madura
+            </div>
           </div>
-          <div className="institution-grid" aria-hidden="true">
-            {Array.from({ length: 24 }, (_, index) => (
-              <i key={index}>
-                {index % 6 === 0
-                  ? String(index / 6 + 1).padStart(2, '0')
-                  : ''}
-              </i>
-            ))}
-          </div>
-          <small>FAKULTAS ILMU ADMINISTRASI / UNIVERSITAS MADURA</small>
         </div>
         <div>
-          <div className="eyebrow">LEMBAGA PENYELENGGARA</div>
+          <div className="eyebrow">TENTANG KAMI</div>
           <h2>
-            Fakultas Ilmu
-            <br />
-            Administrasi
+            Fakultas Ilmu Administrasi
           </h2>
           <h3>Universitas Madura</h3>
           <p>
-            Institusi pendidikan tinggi yang berfokus membentuk lulusan sarjana berkompeten, berintegritas tinggi,
-            serta menguasai keilmuan tata kelola pemerintahan dan administrasi organisasi modern.
+            Berdiri di Pamekasan sebagai bagian dari Universitas Madura, Fakultas Ilmu Administrasi mengemban
+            amanah melahirkan praktisi dan pemimpin tata kelola yang berintegritas tinggi. Kami meyakini bahwa perubahan
+            birokrasi dan kemajuan administrasi bermula dari individu yang terbiasa bersikap jujur sejak bangku kuliah.
           </p>
           <div className="lp-institution-facts">
             <span>
-              <b>FIA</b> Universitas Madura
+              <b>FIA UNIRA</b> Pendidikan Tata Kelola Publik & Bisnis
             </span>
             <span>
-              <b>CAT</b> Laboratorium Komputer Terpadu
+              <b>LAB CAT</b> Uji Kompetensi Terstandar Panglegur
             </span>
           </div>
         </div>
@@ -578,74 +409,41 @@ export const HomePage: React.FC = () => {
       {/* 10. Pusat Informasi & Pertanyaan Umum (FAQ) */}
       <section className="lp-section" id="bantuan">
         <div className="lp-section-heading">
-          <div className="eyebrow">PUSAT INFORMASI & PANDUAN</div>
-          <h2>Pertanyaan yang Sering Diajukan</h2>
+          <div className="eyebrow">INFORMASI PRAKTIS</div>
+          <h2>Pertanyaan yang Kerap Diajukan</h2>
           <p>
-            Informasi resmi mengenai keikutsertaan, teknis pelaksanaan, dan sertifikasi bagi mahasiswa
-            maupun peserta eksternal.
+            Ketentuan praktis seputar akun peserta, pelaksanaan ujian di laboratorium kampus, hingga validitas sertifikat.
           </p>
         </div>
         <div className="lp-faq-grid">
           <article className="lp-faq-card">
-            <h3>Bagaimana ketentuan bagi peserta eksternal (siswa atau mahasiswa luar kampus)?</h3>
+            <h3>Siapa saja yang berhak mengikuti ujian melalui sistem ini?</h3>
             <p>
-              Peserta dari luar kampus dapat mengikuti uji kompetensi melalui jalur pendaftaran resmi yang dibuka fakultas.
-              Setelah terverifikasi, panitia akan menerbitkan ID Peserta resmi beserta jadwal sesi ujian di laboratorium.
+              Mahasiswa aktif Fakultas Ilmu Administrasi UNIRA yang menempuh mata kuliah atau uji sertifikasi,
+              serta peserta kemitraan instansi yang terdaftar resmi pada agenda evaluasi fakultas.
             </p>
           </article>
           <article className="lp-faq-card">
-            <h3>Bagaimana mahasiswa internal FIA Universitas Madura mengakses ruang ujian?</h3>
+            <h3>Bagaimana mahasiswa masuk ke ruang ujian?</h3>
             <p>
-              Mahasiswa internal dapat langsung masuk menggunakan Nomor Induk Mahasiswa (NIM) aktif dan kata sandi
-              yang telah disinkronkan dengan pangkalan data akademik fakultas.
+              Mahasiswa cukup masuk dengan NIM dan kata sandi yang telah terhubung ke pangkalan data akademik fakultas.
+              Tidak diperlukan pendaftaran akun terpisah.
             </p>
           </article>
           <article className="lp-faq-card">
-            <h3>Bagaimana jika terjadi kendala teknis atau jaringan saat ujian berlangsung?</h3>
+            <h3>Bagaimana bila terjadi kendala perangkat atau listrik saat ujian?</h3>
             <p>
-              Setiap lembar jawaban tersimpan secara berkala pada peladen pusat. Pengawas ruang akan membantu peserta
-              melakukan login ulang tanpa kehilangan jawaban yang telah diisi sebelumnya.
+              Setiap opsi jawaban otomatis tersimpan di server setiap detik. Teknisi dan pengawas ruangan akan membantu
+              mengalihkan Anda ke komputer cadangan tanpa mengurangi sisa waktu maupun jawaban yang telah terisi.
             </p>
           </article>
           <article className="lp-faq-card">
-            <h3>Apakah sertifikat kompetensi ini diakui secara resmi oleh pihak luar?</h3>
+            <h3>Mengapa sertifikat kelulusan ini dapat dipercaya oleh instansi kerja?</h3>
             <p>
-              Ya. Sertifikat diterbitkan resmi oleh Fakultas Ilmu Administrasi Universitas Madura dan tercatat dalam sistem
-              verifikasi publik, sehingga dapat divalidasi keabsahannya oleh institusi pendidikan maupun instansi kerja.
+              Sertifikat diterbitkan atas nama Dekan Fakultas Ilmu Administrasi Universitas Madura dan memuat kode QR
+              yang terhubung langsung ke arsip kelulusan resmi, sehingga keasliannya dapat diverifikasi seketika.
             </p>
           </article>
-        </div>
-      </section>
-
-      {/* 11. Final CTA Banner */}
-      <section className="lp-final-cta">
-        <div>
-          <div className="eyebrow">PORTAL ASESMEN KOMPETENSI</div>
-          <h2>
-            Akses Ruang
-            <br />
-            Ujian Mandiri
-          </h2>
-          <p>
-            Silakan masuk menggunakan identitas peserta terdaftar untuk memeriksa jadwal ruang laboratorium
-            atau memulai asesmen kompetensi Anda.
-          </p>
-        </div>
-        <div className="button-row">
-          <button
-            type="button"
-            className="button button--light"
-            onClick={handlePrimaryCta}
-          >
-            {primaryCtaLabel}
-          </button>
-          <button
-            type="button"
-            className="button button--secondary"
-            onClick={() => navigate('/explore')}
-          >
-            Jadwal & Informasi Ujian
-          </button>
         </div>
       </section>
     </div>

@@ -192,6 +192,18 @@ export const AdminExamsPage: React.FC = () => {
 
   const handleSaveExam = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!title.trim() || !code.trim()) {
+      showToast('Judul dan kode ujian wajib diisi.', 'warning');
+      return;
+    }
+    if (Number(passingScore) <= 0 || Number(passingScore) > 100) {
+      showToast('Nilai kelulusan (passing score) harus di antara 1 dan 100.', 'warning');
+      return;
+    }
+    if (Number(durationMinutes) <= 0) {
+      showToast('Durasi pengerjaan ujian harus lebih dari 0 menit.', 'warning');
+      return;
+    }
     setSavingExam(true);
     try {
       if (editingExam) {
@@ -495,7 +507,7 @@ export const AdminExamsPage: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="w-full sm:w-80">
               <Input
-                placeholder="Cari kode atau judul ujian..."
+                placeholder="Cari ujian"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 leftIcon={<Search className="w-4 h-4 text-gray-400" />}
@@ -660,16 +672,33 @@ export const AdminExamsPage: React.FC = () => {
         onClose={() => setExamModalOpen(false)}
         title={editingExam ? `Ubah Paket Ujian: ${editingExam.title}` : 'Buat Paket Ujian'}
         description="Atur kode, judul, tahun soal, dan nilai kelulusan."
-        maxWidth="xl"
+        maxWidth="2xl"
+        footer={
+          <div className="flex items-center justify-end gap-2 w-full">
+            <Button type="button" variant="ghost" onClick={() => setExamModalOpen(false)} className="text-xs">
+              Batal
+            </Button>
+            <Button
+              type="submit"
+              form="exam-form"
+              variant="primary"
+              isLoading={savingExam}
+              leftIcon={<Plus className="w-4 h-4" />}
+              className="text-xs"
+            >
+              {editingExam ? 'Simpan Perubahan' : 'Buat Paket Ujian'}
+            </Button>
+          </div>
+        }
       >
-        <form onSubmit={handleSaveExam} className="space-y-4">
+        <form id="exam-form" onSubmit={handleSaveExam} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Input
               label="Kode Ujian"
               required
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
-              placeholder="Contoh: FIA-2026"
+              placeholder="Kode ujian"
               className="uppercase font-mono"
             />
 
@@ -688,7 +717,7 @@ export const AdminExamsPage: React.FC = () => {
                 value={examYear}
                 onChange={(e) => setExamYear(Number(e.target.value))}
                 className="w-full h-[46px] px-3.5 bg-white border border-[#e6e1eb] rounded-[6px] text-xs font-bold text-[#24212b] outline-none focus:border-[#583682]"
-                placeholder="2026"
+                placeholder="Tahun"
               />
               <div className="flex items-center gap-1 mt-1 flex-wrap">
                 {Array.from(new Set([new Date().getFullYear(), ...availableYears]))
@@ -717,7 +746,7 @@ export const AdminExamsPage: React.FC = () => {
               <select
                 value={examStatus}
                 onChange={(e) => setExamStatus(e.target.value as 'active' | 'draft')}
-                className="w-full h-[46px] px-3.5 bg-white border border-[#e6e1eb] rounded-[6px] text-xs text-[#24212b] outline-none"
+                className="w-full h-[46px] px-3.5 bg-white border border-[#e6e1eb] rounded-[6px] text-xs text-[#24212b] outline-none cursor-pointer"
               >
                 <option value="active">Aktif</option>
                 <option value="draft">Draft</option>
@@ -730,7 +759,7 @@ export const AdminExamsPage: React.FC = () => {
             required
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Contoh: Ujian Tata Kelola FIA 2026"
+            placeholder="Judul ujian"
           />
 
           <div>
@@ -783,18 +812,9 @@ export const AdminExamsPage: React.FC = () => {
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Tuliskan petunjuk umum atau deskripsi mengenai tujuan evaluasi ini..."
+              placeholder="Deskripsi (opsional)"
               className="w-full p-3 bg-white border border-[#e6e1eb] rounded-[6px] text-xs text-[#24212b] outline-none focus:border-[#583682]"
             />
-          </div>
-
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#e6e1eb]">
-            <Button type="button" variant="ghost" onClick={() => setExamModalOpen(false)}>
-              Batal
-            </Button>
-            <Button type="submit" variant="primary" isLoading={savingExam}>
-              {editingExam ? 'Simpan Perubahan' : 'Buat Paket Ujian'}
-            </Button>
           </div>
         </form>
       </Modal>
@@ -805,7 +825,17 @@ export const AdminExamsPage: React.FC = () => {
         onClose={() => setRulesModalOpen(false)}
         title={`Atur Komposisi Soal: ${activeExamForRules?.title || ''}`}
         description={`Tentukan butir soal yang ditarik dari setiap subtes untuk naskah Tahun ${activeExamForRules?.year || new Date().getFullYear()}. Jumlah soal dibatasi ketat oleh stok soal aktif yang tersedia di Bank Soal pada tahun tersebut.`}
-        maxWidth="xl"
+        maxWidth="3xl"
+        footer={
+          <div className="flex items-center justify-between w-full">
+            <span className="text-[11px] text-[#595562]">
+              Total Komposisi Paket: <strong className="text-[#583682]">{totalQuestionsInActiveExam} Butir Soal</strong>
+            </span>
+            <Button variant="secondary" onClick={() => setRulesModalOpen(false)} className="text-xs">
+              Selesai & Tutup
+            </Button>
+          </div>
+        }
       >
         <div className="space-y-6">
           {/* Summary Box: Identitas Ujian & Komposisi */}
@@ -1036,7 +1066,7 @@ export const AdminExamsPage: React.FC = () => {
                         ? 'bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed'
                         : 'bg-white border-[#e6e1eb] focus:border-[#583682]'
                     }`}
-                    placeholder={availableStock > 0 ? `1 - ${availableStock}` : 'Stok bank soal 0'}
+                    placeholder={availableStock > 0 ? `1 - ${availableStock}` : 'Stok kosong'}
                   />
                   <div className="text-[10px] text-[#595562] mt-1 leading-relaxed">
                     {availableStock > 0 ? (
@@ -1065,12 +1095,6 @@ export const AdminExamsPage: React.FC = () => {
               </div>
             </form>
           )}
-
-          <div className="flex justify-end pt-2 border-t border-[#e6e1eb]">
-            <Button variant="ghost" onClick={() => setRulesModalOpen(false)}>
-              Selesai & Tutup
-            </Button>
-          </div>
         </div>
       </Modal>
 
