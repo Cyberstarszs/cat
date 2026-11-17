@@ -282,7 +282,7 @@ export async function changeUserPassword(
 
   const newHash = await hashPassword(newPass);
 
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: any) => {
     await tx.users.update({
       where: { id: userId },
       data: {

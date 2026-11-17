@@ -7,7 +7,8 @@ import { Button } from '../../components/ui/Button';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { ErrorAlert } from '../../components/ui/EmptyState';
 import { useToast } from '../../context/ToastContext';
-import { Download, ShieldCheck, Printer, Award } from 'lucide-react';
+import { Download, ShieldCheck, Printer, Award, ExternalLink } from 'lucide-react';
+import certTemplateImg from '../../assets/templete_sertifikat.jpg';
 
 export const CertificatePage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -86,7 +87,7 @@ export const CertificatePage: React.FC = () => {
       a.click();
       document.body.removeChild(a);
       setTimeout(() => window.URL.revokeObjectURL(url), 1000);
-      showToast('Sertifikat PDF berhasil diunduh!', 'success');
+      showToast('Sertifikat PDF resmi berhasil diunduh!', 'success');
     } catch (err: any) {
       showToast(err.message || 'Gagal mengunduh sertifikat.', 'error');
     } finally {
@@ -96,7 +97,7 @@ export const CertificatePage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="max-w-[800px] mx-auto px-6 py-12 w-full space-y-6">
+      <div className="max-w-[840px] mx-auto px-6 py-12 w-full space-y-6">
         <Skeleton className="h-8 w-1/3 mx-auto" />
         <Skeleton className="h-96 w-full rounded-[8px]" />
       </div>
@@ -134,7 +135,7 @@ export const CertificatePage: React.FC = () => {
               Sertifikat Belum Tersedia
             </h2>
             <p className="text-xs text-[#595562] max-w-md mx-auto leading-relaxed">
-              Sertifikat digital resmi berstempel Dekan FIA UNIRA diterbitkan secara otomatis setelah Anda menyelesaikan sesi ujian dan memenuhi batas kelulusan.
+              Sertifikat digital resmi berstempel Dekan FIA UNIRA diterbitkan secara otomatis setelah Anda menyelesaikan sesi ujian dan dinyatakan lulus.
             </p>
           </div>
 
@@ -162,11 +163,11 @@ export const CertificatePage: React.FC = () => {
   const issuedDate = new Date(cert.issued_at || new Date());
 
   return (
-    <div className="max-w-[900px] mx-auto px-4 sm:px-6 py-10 w-full space-y-8">
-      {/* 1. Section Head (no-print) */}
+    <div className="max-w-[960px] mx-auto px-4 sm:px-6 py-8 w-full space-y-6">
+      {/* 1. Header Control Bar (no-print) */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-[#e6e1eb] no-print">
         <div>
-          <div className="eyebrow text-xs mb-1">SERTIFIKAT RESMI</div>
+          <div className="eyebrow text-xs mb-1">DOKUMEN KELULUSAN RESMI</div>
           <h1 className="font-display font-bold text-2xl md:text-3xl text-[#24212b]">
             Sertifikat Kelulusan
           </h1>
@@ -187,126 +188,112 @@ export const CertificatePage: React.FC = () => {
             </div>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Button
+            variant="secondary"
+            onClick={() => navigate(`/verify/${cert.verification_code}`)}
+            leftIcon={<ShieldCheck className="w-4 h-4 text-[#583682]" />}
+            className="text-xs"
+          >
+            Verifikasi Keabsahan
+          </Button>
           <Button
             variant="secondary"
             onClick={handlePrintPDF}
             leftIcon={<Printer className="w-4 h-4" />}
             className="text-xs"
           >
-            Cetak PDF
+            Cetak
           </Button>
           <Button
             variant="primary"
             onClick={handleDownloadPDF}
             isLoading={downloading}
             leftIcon={<Download className="w-4 h-4" />}
-            className="text-xs"
+            className="text-xs font-semibold"
           >
             Unduh Dokumen PDF
           </Button>
         </div>
       </div>
 
-      {/* 2. Authentic Certificate Frame matching Figma */}
-      <div className="relative bg-[#fdfbf4] border border-[#d7cfbc] rounded-[4px] p-8 sm:p-14 text-center shadow-lg overflow-hidden">
-        {/* Double Ornamental Inner Border */}
-        <div className="absolute inset-4 border border-[#bca9ca] pointer-events-none" />
-        <div className="absolute inset-6 border border-[#ddd3c2] pointer-events-none" />
+      {/* 2. Authentic Certificate Container (Rendered exactly on top of templete_sertifikat.jpg) */}
+      <div className="relative w-full aspect-[1439/1057] rounded-lg shadow-xl overflow-hidden border border-[#d7cfbc] bg-white select-none print:shadow-none print:border-none print:rounded-none">
+        {/* Template Image Background */}
+        <img
+          src={certTemplateImg}
+          alt="Sertifikat CAT Governance"
+          className="w-full h-full object-contain pointer-events-none"
+        />
 
-        {/* Watermark */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-9xl font-display font-extrabold text-[#49316f]/5 select-none pointer-events-none tracking-tighter">
-          CG
+        {/* Dynamic Field 1: Nama Lengkap Peserta (Tepat di bawah 'Dengan ini menyatakan bahwa') */}
+        <div className="absolute top-[38.2%] left-0 w-full text-center px-8 flex items-center justify-center">
+          <span className="font-bold text-[#340E63] text-[clamp(14px,2.4vw,34px)] tracking-wide leading-tight font-sans">
+            {(cert.student_name || cert.full_name || '-').toUpperCase()}
+          </span>
         </div>
 
-        <div className="relative z-10 space-y-8">
-          {/* Top Institutions */}
-          <div className="flex justify-between items-center text-xs font-bold tracking-widest text-[#595562] uppercase">
-            <span>UNIVERSITAS MADURA</span>
-            <span>FAKULTAS ILMU ADMINISTRASI</span>
-          </div>
-
-          <div className="space-y-1 pt-4">
-            <div className="text-[11px] font-bold uppercase tracking-widest text-[#583682]">
-              CAT GOVERNANCE / ASSESSMENT STANDARD
-            </div>
-            <h2 className="font-display font-bold text-3xl sm:text-4xl text-[#24212b] tracking-tight">
-              CERTIFICATE
-              <br />
-              <em className="text-[#583682] italic font-serif text-2xl sm:text-3xl font-normal">
-                OF COMPETENCY
-              </em>
-            </h2>
-            <p className="text-xs text-[#595562] pt-2">Diberikan secara terstandar kepada:</p>
-          </div>
-
-          {/* Student Name */}
-          <div className="py-2">
-            <h3 className="font-display font-bold text-2xl sm:text-3xl text-[#583682] border-b-2 border-[#583682] inline-block pb-1 px-4">
-              {cert.student_name || cert.full_name || '-'}
-            </h3>
-            <p className="text-xs text-[#595562] mt-2">
-              {cert.identifier?.startsWith('UMUM') ? 'No. Peserta' : 'NIM'}: <strong className="text-[#24212b]">{cert.identifier}</strong> · Instansi: {cert.institution || (cert.identifier?.startsWith('UMUM') ? 'Umum' : 'Fakultas Ilmu Administrasi')}
-            </p>
-          </div>
-
-          <div className="space-y-1">
-            <p className="text-xs text-[#595562]">atas keberhasilannya menyelesaikan evaluasi:</p>
-            <h4 className="font-display font-bold text-base sm:text-lg text-[#24212b]">
-              {cert.exam_title || 'Uji Kompetensi CAT'}
-            </h4>
-          </div>
-
-          {/* Details Row */}
-          <div className="grid grid-cols-3 gap-4 py-4 border-y border-[#d8cfdf] text-xs">
-            <div>
-              <div className="text-[10px] text-[#595562] font-semibold uppercase">NILAI / STATUS</div>
-              <div className="font-bold text-[#287a58] mt-0.5">
-                {cert.score} / 100 · LULUS
-              </div>
-            </div>
-            <div>
-              <div className="text-[10px] text-[#595562] font-semibold uppercase">NOMOR SERTIFIKAT</div>
-              <div className="font-mono font-bold text-[#24212b] mt-0.5">
-                {cert.certificate_no}
-              </div>
-            </div>
-            <div>
-              <div className="text-[10px] text-[#595562] font-semibold uppercase">TANGGAL TERBIT</div>
-              <div className="font-bold text-[#24212b] mt-0.5 uppercase">
-                {formatWIBDate(issuedDate, { weekday: undefined })}
-              </div>
-            </div>
-          </div>
-
-          {/* Approval Sign & QR Code */}
-          <div className="flex items-end justify-between pt-6 px-4">
-            <div className="text-center">
-              <div className="w-36 h-10 border-b border-[#24212b] mx-auto mb-2" />
-              <div className="text-xs font-bold text-[#24212b]">Pejabat Berwenang</div>
-              <div className="text-[10px] text-[#595562]">Fakultas Ilmu Administrasi</div>
-            </div>
-
-            <div className="flex items-center gap-3 text-left">
-              <div className="w-16 h-16 bg-white border border-[#24212b] p-1 flex items-center justify-center font-bold text-xs shadow-xs">
-                <span className="text-center font-mono">
-                  CG
-                  <br />
-                  26
-                </span>
-              </div>
-              <div className="text-[10px] text-[#595562] leading-tight font-semibold uppercase tracking-wider">
-                PINDAI UNTUK
-                <br />
-                VERIFIKASI
-              </div>
-            </div>
-          </div>
-
-          <div className="text-[10px] text-gray-400 pt-4">
-            Dokumen resmi terverifikasi secara elektronik oleh CAT GOVERNANCE FIA Universitas Madura.
-          </div>
+        {/* Dynamic Field 2: Nama Ujian / Asesmen (Tepat di bawah 'telah mengikuti dan menyelesaikan :') */}
+        <div className="absolute top-[49.6%] left-0 w-full text-center px-12 flex items-center justify-center">
+          <span className="font-bold text-[#340E63] text-[clamp(12px,1.8vw,26px)] tracking-wide leading-tight font-sans">
+            {(cert.exam_title || 'ASESMEN KOMPETENSI').toUpperCase()}
+          </span>
         </div>
+
+        {/* Dynamic Field 3: Nilai Asesmen (Tepat di dalam badge pita ungu) */}
+        <div className="absolute top-[64.5%] left-0 w-full h-[6.5%] flex items-center justify-center">
+          <span className="font-bold text-white text-[clamp(10px,1.6vw,22px)] tracking-wider font-sans">
+            NILAI ASESMEN: {Number.isInteger(Number(cert.score)) ? Number(cert.score) : Number(cert.score).toFixed(1)}/100
+          </span>
+        </div>
+
+        {/* Dynamic Field 4: Kota & Tanggal Penerbitan (Kanan atas garis, miring) */}
+        <div className="absolute top-[80.4%] right-[5.6%] text-right flex items-center justify-end">
+          <span className="italic text-[#1E1B26] text-[clamp(9px,1.25vw,17px)] font-sans">
+            Pamekasan, {formatWIBDate(issuedDate, { weekday: undefined })}
+          </span>
+        </div>
+
+        {/* Dynamic Field 5 & 6: Barcode / QR Code & Nomor Sertifikat (Di kiri bawah) */}
+        <div className="absolute top-[74.55%] left-[8.62%] w-[10.84%] flex flex-col items-center">
+          {cert.qr_code_url ? (
+            <img
+              src={cert.qr_code_url}
+              alt="QR Code Verifikasi"
+              className="w-full aspect-square bg-white p-0.5 rounded-xs"
+            />
+          ) : (
+            <div className="w-full aspect-square bg-white border border-[#e6e1eb] flex items-center justify-center text-[10px] text-gray-400 font-mono">
+              QR
+            </div>
+          )}
+          <span className="font-bold text-[#1E1B26] text-[clamp(8px,0.95vw,14px)] text-center mt-2 font-mono tracking-tight">
+            {cert.certificate_no}
+          </span>
+        </div>
+
+        {/* Revoked Overlay Watermark */}
+        {cert.status === 'revoked' && (
+          <div className="absolute inset-0 bg-red-900/20 backdrop-blur-[1px] flex items-center justify-center pointer-events-none">
+            <div className="transform -rotate-25 border-4 border-red-600 bg-red-600/90 text-white font-extrabold text-2xl sm:text-4xl px-8 py-3 rounded-lg shadow-2xl tracking-widest uppercase">
+              DICABUT / TIDAK BERLAKU
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 3. Bottom Information Bar (no-print) */}
+      <div className="p-4 bg-white border border-[#e6e1eb] rounded-lg shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#595562] no-print">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="w-4 h-4 text-[#287a58]" />
+          <span>Sertifikat dilengkapi tanda tangan digital dan QR code verifikasi keabsahan dokumen.</span>
+        </div>
+        <button
+          onClick={() => navigate(`/verify/${cert.verification_code}`)}
+          className="text-[#583682] hover:underline font-bold flex items-center gap-1 cursor-pointer shrink-0"
+        >
+          Cek status keabsahan <ExternalLink className="w-3.5 h-3.5" />
+        </button>
       </div>
     </div>
   );

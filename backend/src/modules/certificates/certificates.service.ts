@@ -6,6 +6,26 @@ import { AppError } from '../../lib/errors.js';
 import { generateVerificationCode } from '../../lib/hash.js';
 import { logAudit } from '../audit/audit.service.js';
 import { getInstitutionSettings } from '../settings/settings.service.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+function getTemplateImagePath(): string | null {
+  const candidates = [
+    path.resolve(process.cwd(), 'image/template/templete_sertifikat.jpg'),
+    path.resolve(process.cwd(), 'backend/image/template/templete_sertifikat.jpg'),
+    path.resolve(process.cwd(), '../backend/image/template/templete_sertifikat.jpg'),
+    path.resolve(__dirname, '../../../image/template/templete_sertifikat.jpg'),
+    path.resolve(__dirname, '../../../../image/template/templete_sertifikat.jpg'),
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) return c;
+  }
+  return null;
+}
 
 export async function generateCertificateNumber(client: PoolClient, year: number): Promise<string> {
   const { rows } = await client.query(
@@ -24,8 +44,9 @@ export async function generateCertificateNumber(client: PoolClient, year: number
 
 export async function issueCertificateForResult(
   resultId: string,
-  adminActorId: string,
-  client?: PoolClient
+  adminActorId?: string | null,
+  client?: PoolClient,
+  actorRole: 'admin' | 'student' | 'mahasiswa' | 'umum' = 'admin'
 ): Promise<any> {
   const executor = client || pool;
 
@@ -77,13 +98,13 @@ export async function issueCertificateForResult(
       result_id, certificate_no, verification_code, status, issued_by
     ) VALUES ($1, $2, $3, 'valid', $4)
     RETURNING *;`,
-    [resultId, certNo, verifyCode, adminActorId]
+    [resultId, certNo, verifyCode, adminActorId || null]
   );
 
   await logAudit(
     {
       actorId: adminActorId,
-      actorRole: 'admin',
+      actorRole: adminActorId ? actorRole : null,
       action: 'certificates.issue',
       entityType: 'certificates',
       entityId: rows[0].id,
@@ -107,8 +128,9 @@ export async function revokeCertificate(
   certificateId: string,
   reason: string,
   source: 'manual' | 'regrade',
-  adminActorId: string,
-  client?: PoolClient
+  adminActorId?: string | null,
+  client?: PoolClient,
+  actorRole: 'admin' | 'student' | 'mahasiswa' | 'umum' = 'admin'
 ) {
   const executor = client || pool;
 
@@ -130,7 +152,7 @@ export async function revokeCertificate(
   await logAudit(
     {
       actorId: adminActorId,
-      actorRole: 'admin',
+      actorRole: adminActorId ? actorRole : null,
       action: 'certificates.revoke',
       entityType: 'certificates',
       entityId: certificateId,
@@ -216,13 +238,14 @@ export async function generateCertificatePDFBuffer(
   const cleanBase = baseUrl.replace(/\/api\/v1\/?$/, '').replace(/\/+$/, '');
   const verifyUrl = `${cleanBase}/verify/${cert.verification_code}`;
 
-  const qrBuffer = await QRCode.toBuffer(verifyUrl, { width: 120, margin: 1 });
+  const qrBuffer = await QRCode.toBuffer(verifyUrl, { width: 300, margin: 1, errorCorrectionLevel: 'H' });
+  const templatePath = getTemplateImagePath();
 
   return new Promise<Buffer>((resolve, reject) => {
     const doc = new PDFDocument({
       size: 'A4',
       layout: 'landscape',
-      margin: 40,
+      margin: 0,
     });
 
     const buffers: Buffer[] = [];
@@ -230,71 +253,59 @@ export async function generateCertificatePDFBuffer(
     doc.on('end', () => resolve(Buffer.concat(buffers)));
     doc.on('error', reject);
 
-    // Border decorative
-    doc.rect(20, 20, doc.page.width - 40, doc.page.height - 40).lineWidth(3).stroke('#1e3a8a');
-    doc.rect(25, 25, doc.page.width - 50, doc.page.height - 50).lineWidth(1).stroke('#3b82f6');
+    if (templatePath && fs.existsSync(templatePath)) {
+      // 1. Gambar latar belakang template resmi (1439 x 1057 px)
+      doc.image(templatePath, 0, 0, { width: doc.page.width, height: doc.page.height });
 
-    // Header
-    doc.fontSize(22).font('Helvetica-Bold').fillColor('#1e3a8a').text('SERTIFIKAT KELULUSAN UJI KOMPETENSI', {
-      align: 'center',
-    });
-    doc.moveDown(0.2);
-    doc.fontSize(13).font('Helvetica-Bold').fillColor('#475569').text(`${settings.faculty_name.toUpperCase()} - ${settings.university_name.toUpperCase()}`, {
-      align: 'center',
-    });
+      const scaleX = doc.page.width / 1439;
+      const scaleY = doc.page.height / 1057;
 
-    doc.moveDown(0.8);
-    doc.fontSize(11).font('Helvetica').fillColor('#334155').text('Diberikan kepada:', { align: 'center' });
-    doc.moveDown(0.4);
+      // 2. Nama Lengkap Peserta (Tepat di bawah "Dengan ini menyatakan bahwa :")
+      const studentName = (cert.student_name || 'PESERTA UJI KOMPETENSI').toUpperCase();
+      const nameSize = studentName.length > 36 ? 18 : studentName.length > 26 ? 21 : 24;
+      doc.fontSize(nameSize).font('Helvetica-Bold').fillColor('#340E63')
+         .text(studentName, 0, 404 * scaleY, { align: 'center', width: doc.page.width });
 
-    // Student Name
-    doc.fontSize(22).font('Helvetica-Bold').fillColor('#0f172a').text(cert.student_name, { align: 'center' });
-    doc.fontSize(11).font('Helvetica').fillColor('#64748b').text(`Nomor Identitas: ${cert.identifier} | Instansi: ${cert.institution || 'Umum'}`, {
-      align: 'center',
-    });
+      // 3. Nama Ujian / Asesmen (Tepat di bawah "telah mengikuti dan menyelesaikan :")
+      const examTitle = (cert.exam_title || 'ASESMEN KOMPETENSI').toUpperCase();
+      const examSize = examTitle.length > 45 ? 14 : examTitle.length > 32 ? 16 : 18;
+      doc.fontSize(examSize).font('Helvetica-Bold').fillColor('#340E63')
+         .text(examTitle, 0, 524 * scaleY, { align: 'center', width: doc.page.width });
 
-    doc.moveDown(0.8);
-    doc.fontSize(11).font('Helvetica').fillColor('#334155').text('Telah dinyatakan LULUS pada ujian kompetensi:', { align: 'center' });
-    doc.moveDown(0.3);
+      // 4. Nilai Asesmen (Tepat di dalam badge pita ungu)
+      const scoreFormatted = Number.isInteger(Number(cert.score)) ? Number(cert.score) : Number(cert.score).toFixed(1);
+      doc.fontSize(18).font('Helvetica-Bold').fillColor('#FFFFFF')
+         .text(`NILAI ASESMEN: ${scoreFormatted}/100`, 0, 698 * scaleY, { align: 'center', width: doc.page.width });
 
-    // Exam Title & Score
-    doc.fontSize(17).font('Helvetica-Bold').fillColor('#1e3a8a').text(cert.exam_title, { align: 'center' });
-    doc.fontSize(12).font('Helvetica-Bold').fillColor('#059669').text(`Nilai Akhir: ${cert.score} / 100`, { align: 'center' });
+      // 5. Kota & Tanggal Penerbitan (Kanan atas garis, miring)
+      const issuedDate = new Date(cert.issued_at || Date.now());
+      const dateFormatted = issuedDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+      doc.fontSize(12).font('Helvetica-Oblique').fillColor('#1E1B26')
+         .text(`${settings.cert_city || 'Pamekasan'}, ${dateFormatted}`, 800 * scaleX, 850 * scaleY, { align: 'right', width: (1358 - 800) * scaleX });
 
-    // Watermark if revoked
-    if (cert.status === 'revoked') {
-      doc.save();
-      doc.rotate(-30, { origin: [doc.page.width / 2, doc.page.height / 2] });
-      doc.fontSize(60).font('Helvetica-Bold').fillColor('#ef4444', 0.25).text('DICABUT / INVALID', doc.page.width / 2 - 250, doc.page.height / 2 - 40);
-      doc.restore();
-    }
+      // 6. Barcode / QR Code Keabsahan (Di kiri bawah)
+      doc.image(qrBuffer, 124 * scaleX, 788 * scaleY, { width: 156 * scaleX, height: 156 * scaleY });
 
-    // Bottom section: No Certificate, Date, Signatory, and QR Code
-    const bottomY = doc.page.height - 165;
-    doc.image(qrBuffer, 55, bottomY, { width: 80, height: 80 });
-    doc.fontSize(8).font('Helvetica').fillColor('#64748b').text('Scan QR untuk verifikasi keabsahan', 45, bottomY + 84);
-    doc.fontSize(8).font('Helvetica').fillColor('#94a3b8').text(`Kode: ${cert.verification_code}`, 45, bottomY + 95);
+      // 7. Nomor Sertifikat (Tepat di bawah QR Code sebelah kiri)
+      doc.fontSize(11).font('Helvetica-Bold').fillColor('#1E1B26')
+         .text(cert.certificate_no, 122 * scaleX, 968 * scaleY, { align: 'center', width: 158 * scaleX });
 
-    // Validity Info
-    const issuedDate = new Date(cert.issued_at);
-    const validUntilDate = new Date(issuedDate);
-    validUntilDate.setFullYear(validUntilDate.getFullYear() + (settings.cert_validity_years || 2));
-    const validUntilStr = validUntilDate.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
-
-    doc.fontSize(9).font('Helvetica').fillColor('#475569')
-      .text(`Nomor Sertifikat: ${cert.certificate_no}`, 150, bottomY + 15)
-      .text(`Masa Berlaku: s/d ${validUntilStr} (${settings.cert_validity_years} Tahun)`, 150, bottomY + 30);
-
-    // Tanda Tangan Dekan / Pejabat Resmi
-    const rightMargin = doc.page.width - 280;
-    const dateFormatted = issuedDate.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
-    doc.fontSize(10).font('Helvetica').fillColor('#334155').text(`${settings.cert_city}, ${dateFormatted}`, rightMargin, bottomY, { width: 240, align: 'center' });
-    doc.fontSize(10).font('Helvetica-Bold').fillColor('#1e3a8a').text(settings.decan_title, rightMargin, bottomY + 14, { width: 240, align: 'center' });
-    
-    // Space for signature
-    doc.fontSize(10).font('Helvetica-Bold').fillColor('#0f172a').text(settings.decan_name, rightMargin, bottomY + 70, { width: 240, align: 'center', underline: true });
-    if (settings.decan_nip) {
-      doc.fontSize(9).font('Helvetica').fillColor('#475569').text(`NIP. ${settings.decan_nip}`, rightMargin, bottomY + 85, { width: 240, align: 'center' });
+      // 8. Tanda Jika Dicabut (Watermark)
+      if (cert.status === 'revoked') {
+        doc.save();
+        doc.rotate(-30, { origin: [doc.page.width / 2, doc.page.height / 2] });
+        doc.fontSize(55).font('Helvetica-Bold').fillColor('#ef4444', 0.45)
+           .text('DICABUT / TIDAK BERLAKU', doc.page.width / 2 - 320, doc.page.height / 2 - 30);
+        doc.restore();
+      }
+    } else {
+      // Fallback
+      doc.rect(20, 20, doc.page.width - 40, doc.page.height - 40).lineWidth(3).stroke('#1e3a8a');
+      doc.fontSize(22).font('Helvetica-Bold').fillColor('#1e3a8a').text('SERTIFIKAT KELULUSAN UJI KOMPETENSI', { align: 'center' });
+      doc.fontSize(22).font('Helvetica-Bold').fillColor('#0f172a').text(cert.student_name, { align: 'center' });
+      doc.fontSize(17).font('Helvetica-Bold').fillColor('#1e3a8a').text(cert.exam_title, { align: 'center' });
+      doc.fontSize(14).font('Helvetica-Bold').fillColor('#059669').text(`Nilai Akhir: ${cert.score} / 100`, { align: 'center' });
+      doc.image(qrBuffer, 55, doc.page.height - 165, { width: 80, height: 80 });
     }
 
     doc.end();

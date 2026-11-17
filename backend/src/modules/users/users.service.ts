@@ -65,7 +65,7 @@ export async function createAdminUser(
   const tempPassword = generateSecureTempPassword();
   const passwordHash = await hashPassword(tempPassword);
 
-  const newUser = await prisma.$transaction(async (tx) => {
+  const newUser = await prisma.$transaction(async (tx: any) => {
     const user = await tx.users.create({
       data: {
         email: cleanEmail,
@@ -165,7 +165,7 @@ export async function createStudentUser(
   const tempPassword = generateNumeric6DigitPassword();
   const passwordHash = await hashPassword(tempPassword);
 
-  const newUser = await prisma.$transaction(async (tx) => {
+  const newUser = await prisma.$transaction(async (tx: any) => {
     const user = await tx.users.create({
       data: {
         email: cleanEmail,
@@ -728,7 +728,7 @@ export async function resetUserPassword(
   const tempPassword = generateNumeric6DigitPassword();
   const passwordHash = await hashPassword(tempPassword);
 
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: any) => {
     await tx.users.update({
       where: { id: targetUserId },
       data: {
